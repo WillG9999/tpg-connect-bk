@@ -1,6 +1,6 @@
 package com.tpg.connect.client.database;
 
-import com.tpg.connect.model.User;
+import com.tpg.connect.model.user.User;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
@@ -14,7 +14,7 @@ public class UserRepository {
     public UserRepository() {
         users.put("admin", new User("1", "admin", "admin@example.com", "password", "ADMIN", true));
         users.put("user", new User("2", "user", "user@example.com", "password", "USER", true));
-        users.put("testuser", new User("3", "testuser", "test@example.com", "password123", "USER", true));
+        users.put("alex", new User("user_123", "alex", "alex@example.com", "password", "USER", true));
     }
 
     public User findByUsername(String username) {

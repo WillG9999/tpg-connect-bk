@@ -1,5 +1,6 @@
 package com.tpg.connect.controllers;
 
+import com.tpg.connect.constants.enums.EndpointConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -13,7 +14,7 @@ import java.util.Map;
 
 @Tag(name = "Health", description = "Health check endpoints")
 @RestController
-@RequestMapping("/api/health")
+@RequestMapping(EndpointConstants.Health.BASE)
 public class HealthController {
 
     @Operation(summary = "Health check", description = "Returns the health status of the application")

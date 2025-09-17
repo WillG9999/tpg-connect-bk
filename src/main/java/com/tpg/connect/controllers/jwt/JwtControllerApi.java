@@ -1,5 +1,6 @@
 package com.tpg.connect.controllers.jwt;
 
+import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.model.jwt.LoginRequest;
 import com.tpg.connect.model.jwt.RefreshTokenRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @Tag(name = "Authentication", description = "JWT authentication endpoints")
-@RequestMapping("/api/auth")
+@RequestMapping(EndpointConstants.Auth.BASE)
 public interface JwtControllerApi {
 
     @Operation(summary = "User login", description = "Authenticates user and returns access and refresh tokens")
@@ -39,7 +40,7 @@ public interface JwtControllerApi {
     @PostMapping("/logout")
     ResponseEntity<Map<String, Object>> logout(
             @Parameter(description = "Authorization header with Bearer token", required = true)
-            @RequestHeader("Authorization") String authHeader);
+            @RequestHeader(EndpointConstants.Headers.AUTHORIZATION) String authHeader);
 
 
 

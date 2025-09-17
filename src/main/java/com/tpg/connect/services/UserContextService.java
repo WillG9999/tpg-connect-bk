@@ -1,7 +1,7 @@
 package com.tpg.connect.services;
 
-import com.tpg.connect.model.User;
-import com.tpg.connect.model.UserContext;
+import com.tpg.connect.model.user.User;
+import com.tpg.connect.model.user.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

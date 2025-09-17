@@ -1,4 +1,4 @@
-package com.tpg.connect.model;
+package com.tpg.connect.model.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

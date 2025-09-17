@@ -1,5 +1,6 @@
 package com.tpg.connect.controllers.jwt;
 
+import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.jwt.LoginRequest;
 import com.tpg.connect.model.jwt.AuthResponse;
@@ -48,8 +49,8 @@ public class JwtController extends BaseController implements JwtControllerApi {
 
     @Override
     public ResponseEntity<Map<String, Object>> logout(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith(EndpointConstants.Headers.BEARER_PREFIX)) {
+            String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
             boolean success = authService.logout(token);
             
             if (success) {

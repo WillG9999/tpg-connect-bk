@@ -1,7 +1,7 @@
 package com.tpg.connect.services;
 
 import com.tpg.connect.client.database.UserRepository;
-import com.tpg.connect.model.User;
+import com.tpg.connect.model.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
