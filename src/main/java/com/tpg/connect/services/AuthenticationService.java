@@ -1,0 +1,430 @@
+package com.tpg.connect.services;
+
+import com.tpg.connect.repository.UserProfileRepository;
+import com.tpg.connect.repository.UserRepository;
+import com.tpg.connect.model.api.LoginResponse;
+import com.tpg.connect.model.api.RegisterResponse;
+import com.tpg.connect.model.dto.ChangePasswordRequest;
+import com.tpg.connect.model.dto.LoginRequest;
+import com.tpg.connect.model.dto.RegisterRequest;
+import com.tpg.connect.model.dto.ResetPasswordRequest;
+import com.tpg.connect.model.User;
+import com.tpg.connect.model.dto.UserProfileDTO;
+import com.tpg.connect.model.user.CompleteUserProfile;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import com.google.cloud.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Service
+public class AuthenticationService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+
+    @Autowired
+    private ProfileManagementService profileManagementService;
+
+    @Autowired
+    private EmailService emailService;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    
+    @Value("${jwt.secret:mySecretKey}")
+    private String jwtSecret;
+    
+    @Value("${jwt.expiration:86400}")
+    private int jwtExpirationInSeconds;
+    
+    @Value("${jwt.refresh.expiration:604800}")
+    private int refreshTokenExpirationInSeconds;
+
+    // In-memory store for invalidated tokens (in production, use Redis)
+    private final Set<String> invalidatedTokens = ConcurrentHashMap.newKeySet();
+    
+    // In-memory store for password reset tokens (in production, use Redis with TTL)
+    private final Map<String, PasswordResetToken> passwordResetTokens = new ConcurrentHashMap<>();
+    
+    // In-memory store for email verification tokens (in production, use Redis with TTL)
+    private final Map<String, EmailVerificationToken> emailVerificationTokens = new ConcurrentHashMap<>();
+
+    public RegisterResponse registerUser(RegisterRequest request) {
+        // Validate passwords match
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
+        // Validate age
+        if (!isUserOldEnough(request.getDateOfBirth())) {
+            throw new IllegalArgumentException("User must be at least 18 years old");
+        }
+
+        // Check if email already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        // Create user account
+        User user = User.builder()
+                .connectId(UUID.randomUUID().toString())
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .createdAt(Timestamp.now())
+                .updatedAt(Timestamp.now())
+                .emailVerified(false)
+                .active(true)
+                .role("USER")
+                .build();
+
+        user = userRepository.createUser(user);
+
+        // Create complete user profile
+        CompleteUserProfile profile = new CompleteUserProfile();
+        profile.setUserId(user.getConnectId());
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setName(request.getFirstName() + " " + request.getLastName());
+        profile.setAge(calculateAge(request.getDateOfBirth()));
+        profile.setDateOfBirth(request.getDateOfBirth());
+        profile.setGender(request.getGender());
+        profile.setLocation(request.getLocation());
+        profile.setCreatedAt(LocalDateTime.now());
+        profile.setUpdatedAt(LocalDateTime.now());
+        profile.setActive(true);
+
+        userProfileRepository.save(profile);
+
+        // Generate email verification token
+        String verificationToken = generateEmailVerificationToken(user.getConnectId(), request.getEmail());
+        
+        // Send verification email
+        emailService.sendEmailVerification(request.getEmail(), request.getFirstName(), verificationToken);
+
+        // Generate JWT token for immediate login
+        String accessToken = generateAccessToken(user.getConnectId(), request.getEmail());
+
+        UserProfileDTO profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+        return new RegisterResponse(true, "Registration successful. Please verify your email.", 
+                                  accessToken, profileDTO);
+    }
+
+    public LoginResponse loginUser(LoginRequest request) {
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        if (!userOpt.isPresent()) {
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+        
+        User user = userOpt.get();
+        if (!user.getActive()) {
+            throw new IllegalArgumentException("Account is deactivated");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        // Update last login
+        user = userRepository.updateLastLogin(user.getConnectId(), Timestamp.now(), request.getDeviceType());
+
+        // Get user profile
+        CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
+
+        // Generate tokens
+        String accessToken = generateAccessToken(user.getConnectId(), user.getEmail());
+        String refreshToken = generateRefreshToken(user.getConnectId());
+
+        UserProfileDTO profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+        return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO);
+    }
+
+    public void logoutUser(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            invalidatedTokens.add(token);
+        }
+    }
+
+    public LoginResponse refreshToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid authorization header");
+        }
+
+        String refreshToken = authHeader.substring(7);
+        
+        if (invalidatedTokens.contains(refreshToken)) {
+            throw new IllegalArgumentException("Token has been invalidated");
+        }
+
+        try {
+            Claims claims = validateToken(refreshToken);
+            String userId = claims.getSubject();
+            String email = claims.get("email", String.class);
+
+            Optional<User> userOpt = userRepository.findByConnectId(userId);
+            if (!userOpt.isPresent() || !userOpt.get().getActive()) {
+                throw new IllegalArgumentException("User not found or inactive");
+            }
+
+            User user = userOpt.get();
+            CompleteUserProfile profile = userProfileRepository.findByUserId(userId);
+
+            String newAccessToken = generateAccessToken(userId, email);
+            String newRefreshToken = generateRefreshToken(userId);
+
+            // Invalidate old refresh token
+            invalidatedTokens.add(refreshToken);
+
+            return new LoginResponse(true, "Token refreshed successfully", 
+                                   newAccessToken, newRefreshToken, profile);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid or expired refresh token");
+        }
+    }
+
+    public void initiatePasswordReset(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent() && userOpt.get().getActive()) {
+            User user = userOpt.get();
+            String resetToken = generatePasswordResetToken(user.getConnectId(), email);
+            emailService.sendPasswordReset(email, resetToken);
+        }
+        // Always succeed for security (don't reveal if email exists)
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken resetToken = passwordResetTokens.get(request.getToken());
+        if (resetToken == null || resetToken.isExpired()) {
+            throw new IllegalArgumentException("Invalid or expired reset token");
+        }
+
+        Optional<User> userOpt = userRepository.findByConnectId(resetToken.getUserId());
+        if (!userOpt.isPresent() || !userOpt.get().getActive()) {
+            throw new IllegalArgumentException("User not found or inactive");
+        }
+
+        User user = userOpt.get();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(Timestamp.now());
+        userRepository.updateUser(user);
+
+        // Remove used token
+        passwordResetTokens.remove(request.getToken());
+
+        emailService.sendPasswordResetConfirmation(user.getEmail());
+    }
+
+    public void changePassword(String userId, ChangePasswordRequest request) {
+        Optional<User> userOpt = userRepository.findByConnectId(userId);
+        if (!userOpt.isPresent() || !userOpt.get().getActive()) {
+            throw new IllegalArgumentException("User not found or inactive");
+        }
+
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(Timestamp.now());
+        userRepository.updateUser(user);
+
+        emailService.sendPasswordChangeConfirmation(user.getEmail());
+    }
+
+    public void deleteAccount(String userId) {
+        Optional<User> userOpt = userRepository.findByConnectId(userId);
+        if (!userOpt.isPresent()) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        User user = userOpt.get();
+        
+        // Soft delete using repository method
+        userRepository.softDeleteUser(userId);
+
+        // Deactivate profile
+        CompleteUserProfile profile = userProfileRepository.findByUserId(userId);
+        if (profile != null) {
+            profile.setActive(false);
+            profile.setUpdatedAt(LocalDateTime.now());
+            userProfileRepository.save(profile);
+        }
+
+        emailService.sendAccountDeletionConfirmation(user.getEmail());
+    }
+
+    public void verifyEmail(String token) {
+        EmailVerificationToken verificationToken = emailVerificationTokens.get(token);
+        if (verificationToken == null || verificationToken.isExpired()) {
+            throw new IllegalArgumentException("Invalid or expired verification token");
+        }
+
+        Optional<User> userOpt = userRepository.findByConnectId(verificationToken.getUserId());
+        if (!userOpt.isPresent()) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        User user = userOpt.get();
+        userRepository.updateEmailVerificationStatus(user.getConnectId(), true, Timestamp.now());
+
+        // Remove used token
+        emailVerificationTokens.remove(token);
+
+        emailService.sendWelcomeEmail(user.getEmail());
+    }
+
+    public void resendEmailVerification(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent() && userOpt.get().getActive() && !userOpt.get().getEmailVerified()) {
+            User user = userOpt.get();
+            CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
+            String verificationToken = generateEmailVerificationToken(user.getConnectId(), email);
+            emailService.sendEmailVerification(email, profile.getFirstName(), verificationToken);
+        }
+        // Always succeed for security
+    }
+
+    public String extractUserIdFromToken(String token) {
+        if (invalidatedTokens.contains(token)) {
+            throw new IllegalArgumentException("Token has been invalidated");
+        }
+
+        try {
+            Claims claims = validateToken(token);
+            return claims.getSubject();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid token");
+        }
+    }
+
+    public boolean isTokenValid(String token) {
+        if (invalidatedTokens.contains(token)) {
+            return false;
+        }
+
+        try {
+            validateToken(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String generateAccessToken(String userId, String email) {
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationInSeconds * 1000L);
+        
+        return Jwts.builder()
+                .subject(userId)
+                .claim("email", email)
+                .claim("type", "access")
+                .issuedAt(new Date())
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    private String generateRefreshToken(String userId) {
+        Date expiryDate = new Date(System.currentTimeMillis() + refreshTokenExpirationInSeconds * 1000L);
+        
+        return Jwts.builder()
+                .subject(userId)
+                .claim("type", "refresh")
+                .issuedAt(new Date())
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    private String generatePasswordResetToken(String userId, String email) {
+        String token = UUID.randomUUID().toString();
+        PasswordResetToken resetToken = new PasswordResetToken(userId, email, 
+                LocalDateTime.now().plusHours(1)); // 1 hour expiry
+        passwordResetTokens.put(token, resetToken);
+        return token;
+    }
+
+    private String generateEmailVerificationToken(String userId, String email) {
+        String token = UUID.randomUUID().toString();
+        EmailVerificationToken verificationToken = new EmailVerificationToken(userId, email,
+                LocalDateTime.now().plusDays(7)); // 7 days expiry
+        emailVerificationTokens.put(token, verificationToken);
+        return token;
+    }
+
+    private Claims validateToken(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid token", e);
+        }
+    }
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    }
+
+    private boolean isUserOldEnough(LocalDate dateOfBirth) {
+        return Period.between(dateOfBirth, LocalDate.now()).getYears() >= 18;
+    }
+
+    private int calculateAge(LocalDate dateOfBirth) {
+        return Period.between(dateOfBirth, LocalDate.now()).getYears();
+    }
+
+    // Helper classes for token management
+    private static class PasswordResetToken {
+        private final String userId;
+        private final String email;
+        private final LocalDateTime expiryTime;
+
+        public PasswordResetToken(String userId, String email, LocalDateTime expiryTime) {
+            this.userId = userId;
+            this.email = email;
+            this.expiryTime = expiryTime;
+        }
+
+        public String getUserId() { return userId; }
+        public String getEmail() { return email; }
+        public boolean isExpired() { return LocalDateTime.now().isAfter(expiryTime); }
+    }
+
+    private static class EmailVerificationToken {
+        private final String userId;
+        private final String email;
+        private final LocalDateTime expiryTime;
+
+        public EmailVerificationToken(String userId, String email, LocalDateTime expiryTime) {
+            this.userId = userId;
+            this.email = email;
+            this.expiryTime = expiryTime;
+        }
+
+        public String getUserId() { return userId; }
+        public String getEmail() { return email; }
+        public boolean isExpired() { return LocalDateTime.now().isAfter(expiryTime); }
+    }
+}

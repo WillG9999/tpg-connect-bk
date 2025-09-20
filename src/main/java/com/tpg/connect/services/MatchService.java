@@ -1,0 +1,180 @@
+package com.tpg.connect.services;
+
+import com.tpg.connect.repository.MatchRepository;
+import com.tpg.connect.repository.UserActionRepository;
+import com.tpg.connect.model.match.Match;
+import com.tpg.connect.model.match.UserAction;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class MatchService {
+
+    @Autowired
+    private MatchRepository matchRepository;
+
+    @Autowired
+    private UserActionRepository userActionRepository;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    public boolean checkForMutualLike(String userId, String targetUserId) {
+        // Check if target user has already liked the current user
+        return userActionRepository.existsByUserIdAndTargetUserIdAndAction(
+                targetUserId, userId, UserAction.ActionType.LIKE);
+    }
+
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    public Match createMatch(String userId, String targetUserId) {
+        // Verify both users have liked each other
+        boolean user1LikesUser2 = userActionRepository.existsByUserIdAndTargetUserIdAndAction(
+                userId, targetUserId, UserAction.ActionType.LIKE);
+        boolean user2LikesUser1 = userActionRepository.existsByUserIdAndTargetUserIdAndAction(
+                targetUserId, userId, UserAction.ActionType.LIKE);
+
+        if (!user1LikesUser2 || !user2LikesUser1) {
+            throw new IllegalStateException("Cannot create match - not mutual likes");
+        }
+
+        // Check if match already exists
+        Match existingMatch = matchRepository.findByUserIdsAndStatus(userId, targetUserId, Match.MatchStatus.ACTIVE).orElse(null);
+        if (existingMatch != null) {
+            return existingMatch; // Return existing match
+        }
+
+        // Create new match
+        Match match = new Match();
+        match.setId(UUID.randomUUID().toString());
+        match.setUser1Id(userId);
+        match.setUser2Id(targetUserId);
+        match.setMatchedAt(LocalDateTime.now());
+        match.setStatus(Match.MatchStatus.ACTIVE);
+        match.setConversationId(UUID.randomUUID().toString()); // Create conversation
+
+        Match savedMatch = matchRepository.save(match);
+
+        // Send notifications to both users
+        notificationService.sendMatchNotification(userId, targetUserId, savedMatch.getId());
+        notificationService.sendMatchNotification(targetUserId, userId, savedMatch.getId());
+
+        return savedMatch;
+    }
+
+    @Cacheable(value = "userMatches", key = "'matches_' + #userId")
+    public List<Match> getUserMatches(String userId) {
+        return matchRepository.findByUserIdAndStatus(userId, Match.MatchStatus.ACTIVE);
+    }
+
+    @Cacheable(value = "matches", key = "'match_' + #matchId")
+    public Match getMatch(String matchId) {
+        return matchRepository.findById(matchId).orElse(null);
+    }
+
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    public void unmatch(String matchId, String userId) {
+        Match match = matchRepository.findById(matchId).orElse(null);
+        if (match == null) {
+            throw new IllegalArgumentException("Match not found: " + matchId);
+        }
+
+        // Verify user is part of this match
+        if (!match.getUser1Id().equals(userId) && !match.getUser2Id().equals(userId)) {
+            throw new IllegalArgumentException("User not part of this match");
+        }
+
+        // Update match status
+        match.setStatus(Match.MatchStatus.UNMATCHED);
+        matchRepository.save(match);
+
+        // Notify the other user
+        String otherUserId = match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id();
+        notificationService.sendUnmatchNotification(otherUserId, matchId);
+    }
+
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    public void blockUser(String matchId, String userId, String blockedUserId) {
+        Match match = matchRepository.findById(matchId).orElse(null);
+        if (match == null) {
+            throw new IllegalArgumentException("Match not found: " + matchId);
+        }
+
+        // Verify user is part of this match
+        if (!match.getUser1Id().equals(userId) && !match.getUser2Id().equals(userId)) {
+            throw new IllegalArgumentException("User not part of this match");
+        }
+
+        // Update match status based on who is blocking
+        if (match.getUser1Id().equals(userId)) {
+            match.setStatus(Match.MatchStatus.BLOCKED_BY_USER1);
+        } else {
+            match.setStatus(Match.MatchStatus.BLOCKED_BY_USER2);
+        }
+
+        matchRepository.save(match);
+    }
+
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    public void reportMatch(String matchId, String reporterId, String reason) {
+        Match match = matchRepository.findById(matchId).orElse(null);
+        if (match == null) {
+            throw new IllegalArgumentException("Match not found: " + matchId);
+        }
+
+        // Verify user is part of this match
+        if (!match.getUser1Id().equals(reporterId) && !match.getUser2Id().equals(reporterId)) {
+            throw new IllegalArgumentException("User not part of this match");
+        }
+
+        // Update match status
+        match.setStatus(Match.MatchStatus.REPORTED);
+        matchRepository.save(match);
+
+        // Log the report (in real implementation, would create a Report entity)
+        System.out.println("Match reported: " + matchId + " by " + reporterId + " for: " + reason);
+    }
+
+    public int getMatchCount(String userId) {
+        return (int) matchRepository.countByUserIdAndStatus(userId, Match.MatchStatus.ACTIVE);
+    }
+
+    public List<Match> getRecentMatches(String userId, int limit) {
+        return matchRepository.findRecentByUserId(userId, Match.MatchStatus.ACTIVE, limit);
+    }
+
+    public boolean hasMatchBetweenUsers(String userId1, String userId2) {
+        return matchRepository.findByUserIdsAndStatus(userId1, userId2, Match.MatchStatus.ACTIVE) != null;
+    }
+
+    public void recordUserAction(String userId, String targetUserId, UserAction.ActionType action) {
+        // Check if action already exists
+        if (userActionRepository.existsByUserIdAndTargetUserId(userId, targetUserId)) {
+            return; // Don't record duplicate actions
+        }
+
+        UserAction userAction = new UserAction();
+        userAction.setId(UUID.randomUUID().toString());
+        userAction.setUserId(userId);
+        userAction.setTargetUserId(targetUserId);
+        userAction.setAction(action);
+        userAction.setTimestamp(LocalDateTime.now());
+
+        userActionRepository.save(userAction);
+    }
+
+    public List<UserAction> getUserActions(String userId) {
+        return userActionRepository.findByUserId(userId);
+    }
+
+    public List<UserAction> getUserActionsForTarget(String userId, String targetUserId) {
+        Optional<UserAction> action = userActionRepository.findByUserIdAndTargetUserId(userId, targetUserId);
+        return action.isPresent() ? List.of(action.get()) : List.of();
+    }
+}

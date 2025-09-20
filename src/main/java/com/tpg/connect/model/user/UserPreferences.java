@@ -11,6 +11,7 @@ public class UserPreferences {
     private int maxAge;
     private int minHeight;
     private int maxHeight;
+    private Integer maxDistance;
     private String datingIntention;
     private String drinkingPreference;
     private String smokingPreference;
