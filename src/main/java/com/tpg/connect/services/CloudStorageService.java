@@ -166,7 +166,54 @@ public class CloudStorageService {
     }
 
     private String getPublicUrl(String filePath) {
-        return String.format("https://storage.googleapis.com/%s/%s", 
-                           storageProperties.getBucketName(), filePath);
+        try {
+            // Generate signed URL with authentication that's valid for 7 days
+            BlobId blobId = BlobId.of(storageProperties.getBucketName(), filePath);
+            Blob blob = storage.get(blobId);
+            
+            if (blob != null && blob.exists()) {
+                // Create signed URL valid for 7 days (long enough for caching)
+                return blob.signUrl(7, TimeUnit.DAYS).toString();
+            } else {
+                logger.warn("Blob does not exist for path: {}", filePath);
+                return null;
+            }
+        } catch (Exception e) {
+            logger.error("Failed to generate signed URL for: {}", filePath, e);
+            return null;
+        }
+    }
+
+    /**
+     * Regenerate signed URLs for existing photo paths
+     * This should be called periodically to refresh expiring URLs
+     */
+    public String regenerateSignedUrl(String filePath) {
+        return getPublicUrl(filePath);
+    }
+
+    /**
+     * Extract the storage file path from a signed URL
+     * Used to get the original path when regenerating URLs
+     */
+    public String extractFilePathFromUrl(String signedUrl) {
+        try {
+            // Signed URLs contain the path after the bucket name
+            String bucketPattern = "/" + storageProperties.getBucketName() + "/";
+            int bucketIndex = signedUrl.indexOf(bucketPattern);
+            if (bucketIndex != -1) {
+                int pathStart = bucketIndex + bucketPattern.length();
+                int queryStart = signedUrl.indexOf("?", pathStart);
+                if (queryStart != -1) {
+                    return signedUrl.substring(pathStart, queryStart);
+                } else {
+                    return signedUrl.substring(pathStart);
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("Failed to extract file path from URL: {}", signedUrl, e);
+            return null;
+        }
     }
 }

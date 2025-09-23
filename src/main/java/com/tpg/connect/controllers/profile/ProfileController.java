@@ -8,8 +8,8 @@ import com.tpg.connect.model.dto.PhotoUploadRequest;
 import com.tpg.connect.model.dto.UpdateProfileRequest;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.model.dto.UserProfileDTO;
-import com.tpg.connect.services.AuthService;
-import com.tpg.connect.services.MockProfileManagementService;
+import com.tpg.connect.services.AuthenticationService;
+import com.tpg.connect.services.ProfileManagementService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,10 +25,10 @@ import java.util.Map;
 public class ProfileController extends BaseController implements ProfileControllerApi {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
-    private MockProfileManagementService profileService;
+    private ProfileManagementService profileService;
     
     @Autowired
     private UserService userService;
@@ -235,25 +235,12 @@ public class ProfileController extends BaseController implements ProfileControll
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
-    }
-
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
+        // Extract user ID directly from JWT token subject claim
+        return authService.extractUserIdFromToken(token);
     }
 
     protected ResponseEntity<Map<String, Object>> unauthorizedResponse(String message) {

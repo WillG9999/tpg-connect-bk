@@ -356,13 +356,13 @@ public class MatchSetRepositoryImpl implements MatchSetRepository {
                 .createdAt((Timestamp) data.get("createdAt"))
                 .completedAt((Timestamp) data.get("completedAt"))
                 .potentialMatches(convertToPotentialMatchList((List<Map<String, Object>>) data.get("potentialMatches")))
-                .totalMatches((Integer) data.get("totalMatches"))
-                .actionsSubmitted((Integer) data.get("actionsSubmitted"))
-                .matchesFound((Integer) data.get("matchesFound"))
+                .totalMatches(safeToInteger(data.get("totalMatches")))
+                .actionsSubmitted(safeToInteger(data.get("actionsSubmitted")))
+                .matchesFound(safeToInteger(data.get("matchesFound")))
                 .algorithmVersion((String) data.get("algorithmVersion"))
                 .filters(convertToFilters((Map<String, Object>) data.get("filters")))
-                .viewTime((Integer) data.get("viewTime"))
-                .avgTimePerProfile((Integer) data.get("avgTimePerProfile"))
+                .viewTime(safeToInteger(data.get("viewTime")))
+                .avgTimePerProfile(safeToInteger(data.get("avgTimePerProfile")))
                 .build();
     }
 
@@ -397,7 +397,7 @@ public class MatchSetRepositoryImpl implements MatchSetRepository {
         return MatchSet.PotentialMatch.builder()
                 .connectId((String) matchMap.get("connectId"))
                 .name((String) matchMap.get("name"))
-                .age((Integer) matchMap.get("age"))
+                .age(safeToInteger(matchMap.get("age")))
                 .location((String) matchMap.get("location"))
                 .interests((List<String>) matchMap.get("interests"))
                 .photos(convertToPhotoList((List<Map<String, Object>>) matchMap.get("photos")))
@@ -523,9 +523,23 @@ public class MatchSetRepositoryImpl implements MatchSetRepository {
         
         return MatchSet.Filters.builder()
                 .ageRange((List<Integer>) filtersMap.get("ageRange"))
-                .maxDistance((Integer) filtersMap.get("maxDistance"))
+                .maxDistance(safeToInteger(filtersMap.get("maxDistance")))
                 .preferredGender((String) filtersMap.get("preferredGender"))
                 .otherPreferences((Map<String, Object>) filtersMap.get("otherPreferences"))
                 .build();
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

@@ -4,7 +4,7 @@ import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
-import com.tpg.connect.services.AuthService;
+import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.DiscoveryService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class MatchController extends BaseController {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
     private DiscoveryService discoveryService;
@@ -284,32 +284,12 @@ public class MatchController extends BaseController {
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        String userId = getUserIdFromUsername(username);
-        return userId;
-    }
-
-    private String getUserIdFromUsername(String username) {
-        // First check if the "username" is already a user ID (from JWT subject)
-        if (username != null && username.matches("\\d+")) {
-            return username;
-        }
-        
-        // Fallback to hardcoded mappings for test users
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
+        // Extract user ID directly from JWT token subject claim
+        return authService.extractUserIdFromToken(token);
     }
 
 }

@@ -349,7 +349,7 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
         Subscription subscription = new Subscription();
         subscription.setId(doc.getId());
         subscription.setUserId((String) data.get("userId"));
-        subscription.setDurationMonths((Integer) data.get("durationMonths"));
+        subscription.setDurationMonths(safeToInteger(data.get("durationMonths")));
         subscription.setPaymentMethod((String) data.get("paymentMethod"));
         subscription.setExternalSubscriptionId((String) data.get("externalSubscriptionId"));
         subscription.setAutoRenew((Boolean) data.get("autoRenew"));
@@ -389,5 +389,19 @@ public class SubscriptionRepositoryImpl implements SubscriptionRepository {
         }
         
         return subscription;
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

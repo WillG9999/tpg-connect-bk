@@ -511,7 +511,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         if (versionObj instanceof Long) {
             profile.setVersion(((Long) versionObj).intValue());
         } else if (versionObj instanceof Integer) {
-            profile.setVersion((Integer) versionObj);
+            profile.setVersion(safeToInteger(versionObj));
         } else {
             profile.setVersion(1); // Default version
         }
@@ -593,7 +593,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         photo.setId((String) photoMap.get("id"));
         photo.setUrl((String) photoMap.get("url"));
         photo.setPrimary((Boolean) photoMap.get("isPrimary"));
-        photo.setOrder((Integer) photoMap.get("order"));
+        photo.setOrder(safeToInteger(photoMap.get("order")));
         photo.setPrompts(convertToPhotoPromptList((List<Map<String, Object>>) photoMap.get("prompts")));
         
         return photo;
@@ -652,7 +652,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
             PhotoPrompt.PhotoStyle style = new PhotoPrompt.PhotoStyle();
             style.setBackgroundColor((String) styleMap.get("backgroundColor"));
             style.setTextColor((String) styleMap.get("textColor"));
-            style.setFontSize((Integer) styleMap.get("fontSize"));
+            style.setFontSize(safeToInteger(styleMap.get("fontSize")));
             prompt.setStyle(style);
         }
         
@@ -844,7 +844,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         
         UserPreferences preferences = new UserPreferences();
         preferences.setPreferredGender((String) preferencesMap.get("preferredGender"));
-        preferences.setMaxDistance((Integer) preferencesMap.get("maxDistance"));
+        preferences.setMaxDistance(safeToInteger(preferencesMap.get("maxDistance")));
         preferences.setDatingIntention((String) preferencesMap.get("datingIntentions"));
         preferences.setDealBreakers((List<String>) preferencesMap.get("dealBreakers"));
         preferences.setMustHaves((List<String>) preferencesMap.get("mustHaves"));
@@ -852,16 +852,16 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         Map<String, Object> ageRangeMap = (Map<String, Object>) preferencesMap.get("ageRange");
         if (ageRangeMap != null) {
             UserPreferences.AgeRange ageRange = new UserPreferences.AgeRange();
-            ageRange.setMin((Integer) ageRangeMap.get("min"));
-            ageRange.setMax((Integer) ageRangeMap.get("max"));
+            ageRange.setMin(safeToInteger(ageRangeMap.get("min")));
+            ageRange.setMax(safeToInteger(ageRangeMap.get("max")));
             preferences.setAgeRange(ageRange);
         }
         
         Map<String, Object> heightRangeMap = (Map<String, Object>) preferencesMap.get("heightRange");
         if (heightRangeMap != null) {
             UserPreferences.HeightRange heightRange = new UserPreferences.HeightRange();
-            heightRange.setMin((Integer) heightRangeMap.get("min"));
-            heightRange.setMax((Integer) heightRangeMap.get("max"));
+            heightRange.setMin(safeToInteger(heightRangeMap.get("min")));
+            heightRange.setMax(safeToInteger(heightRangeMap.get("max")));
             preferences.setHeightRange(heightRange);
         }
         
@@ -904,5 +904,19 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
             partitions.add(list.subList(i, Math.min(i + partitionSize, list.size())));
         }
         return partitions;
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

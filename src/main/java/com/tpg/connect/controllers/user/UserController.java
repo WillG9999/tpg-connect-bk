@@ -6,7 +6,7 @@ import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.CloudStorageService;
-import com.tpg.connect.services.MockProfileManagementService;
+import com.tpg.connect.services.ProfileManagementService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,7 +27,7 @@ public class UserController extends BaseController {
     private AuthenticationService authService;
 
     @Autowired
-    private MockProfileManagementService profileService;
+    private ProfileManagementService profileService;
     
     @Autowired
     private UserService userService;
@@ -88,6 +88,31 @@ public class UserController extends BaseController {
             if (updateData.containsKey("languages")) request.setLanguages((List<String>) updateData.get("languages"));
             if (updateData.containsKey("jobTitle")) request.setJobTitle((String) updateData.get("jobTitle"));
             if (updateData.containsKey("company")) request.setCompany((String) updateData.get("company"));
+            
+            // Identity fields
+            if (updateData.containsKey("pronouns")) request.setPronouns((String) updateData.get("pronouns"));
+            if (updateData.containsKey("gender")) request.setGender((String) updateData.get("gender"));
+            if (updateData.containsKey("sexuality")) request.setSexuality((String) updateData.get("sexuality"));
+            if (updateData.containsKey("interestedIn")) request.setInterestedIn((String) updateData.get("interestedIn"));
+            
+            // Professional fields
+            if (updateData.containsKey("university")) request.setUniversity((String) updateData.get("university"));
+            if (updateData.containsKey("educationLevel")) request.setEducationLevel((String) updateData.get("educationLevel"));
+            
+            // Personal fields
+            if (updateData.containsKey("religiousBeliefs")) request.setReligiousBeliefs((String) updateData.get("religiousBeliefs"));
+            if (updateData.containsKey("hometown")) request.setHometown((String) updateData.get("hometown"));
+            if (updateData.containsKey("politics")) request.setPolitics((String) updateData.get("politics"));
+            if (updateData.containsKey("datingIntentions")) request.setDatingIntentions((String) updateData.get("datingIntentions"));
+            if (updateData.containsKey("relationshipType")) request.setRelationshipType((String) updateData.get("relationshipType"));
+            
+            // Physical/lifestyle fields
+            if (updateData.containsKey("height")) request.setHeight((String) updateData.get("height"));
+            if (updateData.containsKey("ethnicity")) request.setEthnicity((String) updateData.get("ethnicity"));
+            if (updateData.containsKey("children")) request.setChildren((String) updateData.get("children"));
+            if (updateData.containsKey("familyPlans")) request.setFamilyPlans((String) updateData.get("familyPlans"));
+            if (updateData.containsKey("pets")) request.setPets((String) updateData.get("pets"));
+            if (updateData.containsKey("zodiacSign")) request.setZodiacSign((String) updateData.get("zodiacSign"));
             
             CompleteUserProfile updatedProfile = profileService.updateBasicInfo(userId, request);
             UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(updatedProfile);

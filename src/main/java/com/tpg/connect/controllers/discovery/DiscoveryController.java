@@ -7,7 +7,7 @@ import com.tpg.connect.model.api.LikeResponse;
 import com.tpg.connect.model.dto.DiscoveryRequest;
 import com.tpg.connect.model.dto.DiscoverySettingsRequest;
 import com.tpg.connect.model.user.CompleteUserProfile;
-import com.tpg.connect.services.AuthService;
+import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.DiscoveryService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class DiscoveryController extends BaseController implements DiscoveryControllerApi {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
     private DiscoveryService discoveryService;
@@ -132,42 +132,18 @@ public class DiscoveryController extends BaseController implements DiscoveryCont
     }
 
     private String validateAndExtractUserId(String authHeader) {
-        System.out.println("🔐 DiscoveryController.validateAndExtractUserId called");
-        System.out.println("🔐 Auth header: " + (authHeader != null ? authHeader.substring(0, Math.min(50, authHeader.length())) + "..." : "null"));
-        
         if (authHeader == null || !authHeader.startsWith(EndpointConstants.Headers.BEARER_PREFIX)) {
-            System.out.println("❌ Auth header is null or doesn't start with Bearer prefix");
-            System.out.println("❌ Expected prefix: '" + EndpointConstants.Headers.BEARER_PREFIX + "'");
             return null;
         }
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
-        System.out.println("🔐 Extracted token: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
         
-        if (!authService.validateToken(token)) {
-            System.out.println("❌ Token validation failed");
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        System.out.println("✅ Token validation successful, extracting username");
-        String username = authService.extractUsername(token);
-        System.out.println("🔐 Extracted username: " + username);
-        String userId = getUserIdFromUsername(username);
-        System.out.println("🔐 Mapped to userId: " + userId);
-        return userId;
-    }
-
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
+        // Extract user ID directly from JWT token subject claim
+        return authService.extractUserIdFromToken(token);
     }
 
     protected ResponseEntity<Map<String, Object>> unauthorizedResponse(String message) {

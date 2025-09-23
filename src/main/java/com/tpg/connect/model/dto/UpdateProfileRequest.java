@@ -27,4 +27,29 @@ public class UpdateProfileRequest {
     private List<String> languages;
     private String jobTitle;
     private String company;
+    
+    // Identity fields
+    private String pronouns;
+    private String gender;
+    private String sexuality;
+    private String interestedIn;
+    
+    // Professional fields
+    private String university;
+    private String educationLevel;
+    
+    // Personal fields
+    private String religiousBeliefs;
+    private String hometown;
+    private String politics;
+    private String datingIntentions;
+    private String relationshipType;
+    
+    // Physical/lifestyle fields
+    private String height;
+    private String ethnicity;
+    private String children;
+    private String familyPlans;
+    private String pets;
+    private String zodiacSign;
 }

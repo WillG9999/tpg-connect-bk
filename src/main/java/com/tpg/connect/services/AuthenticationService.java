@@ -484,7 +484,7 @@ public class AuthenticationService {
 
     private UserProfileDTO createMinimalProfile(User user, CompleteUserProfile profile) {
         UserProfileDTO dto = new UserProfileDTO();
-        dto.setId(user.getConnectId());
+        dto.setConnectId(user.getConnectId());
         dto.setName(profile.getFirstName() + " " + profile.getLastName());
         
         // Calculate age safely
@@ -495,7 +495,11 @@ public class AuthenticationService {
         }
         
         dto.setLocation(profile.getLocation() != null ? profile.getLocation() : "");
-        dto.setGender(profile.getGender() != null ? profile.getGender() : "");
+        // Gender is stored in the nested profile object
+        if (dto.getProfile() == null) {
+            dto.setProfile(new UserProfileDTO.DetailedProfileDTO());
+        }
+        dto.getProfile().setGender(profile.getGender() != null ? profile.getGender() : "");
         dto.setPhotos(List.of());
         dto.setWrittenPrompts(List.of());
         dto.setPollPrompts(List.of());

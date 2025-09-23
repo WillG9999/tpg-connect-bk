@@ -524,14 +524,14 @@ public class UserMatchesRepositoryImpl implements UserMatchesRepository {
                 .connectId(doc.getId())
                 .userId((String) data.get("userId"))
                 .matches(convertToMatchList((List<Map<String, Object>>) data.get("matches")))
-                .totalMatches((Integer) data.get("totalMatches"))
-                .activeMatches((Integer) data.get("activeMatches"))
-                .newMatches((Integer) data.get("newMatches"))
-                .conversationsStarted((Integer) data.get("conversationsStarted"))
+                .totalMatches(safeToInteger(data.get("totalMatches")))
+                .activeMatches(safeToInteger(data.get("activeMatches")))
+                .newMatches(safeToInteger(data.get("newMatches")))
+                .conversationsStarted(safeToInteger(data.get("conversationsStarted")))
                 .lastMatchAt((Timestamp) data.get("lastMatchAt"))
                 .createdAt((Timestamp) data.get("createdAt"))
                 .updatedAt((Timestamp) data.get("updatedAt"))
-                .version((Integer) data.get("version"))
+                .version(safeToInteger(data.get("version")))
                 .build();
     }
 
@@ -581,7 +581,7 @@ public class UserMatchesRepositoryImpl implements UserMatchesRepository {
                 .lastMessageAt((Timestamp) matchMap.get("lastMessageAt"))
                 .lastMessageText((String) matchMap.get("lastMessageText"))
                 .myLastRead((Timestamp) matchMap.get("myLastRead"))
-                .unreadCount((Integer) matchMap.get("unreadCount"))
+                .unreadCount(safeToInteger(matchMap.get("unreadCount")))
                 .compatibilityScore((Double) matchMap.get("compatibilityScore"))
                 .commonInterests((List<String>) matchMap.get("commonInterests"))
                 .distance((Double) matchMap.get("distance"))
@@ -597,5 +597,19 @@ public class UserMatchesRepositoryImpl implements UserMatchesRepository {
         return matchMaps.stream()
                 .map(this::convertToMatch)
                 .collect(Collectors.toList());
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

@@ -441,20 +441,20 @@ public class UserActivityRepositoryImpl implements UserActivityRepository {
                 .userId((String) data.get("userId"))
                 .actions(convertToActionList((List<Map<String, Object>>) data.get("actions")))
                 .dailySummary(convertToDailySummaryMap((Map<String, Object>) data.get("dailySummary")))
-                .totalActions((Integer) data.get("totalActions"))
-                .totalLikes((Integer) data.get("totalLikes"))
-                .totalPasses((Integer) data.get("totalPasses"))
-                .totalDislikes((Integer) data.get("totalDislikes"))
-                .totalMatches((Integer) data.get("totalMatches"))
+                .totalActions(safeToInteger(data.get("totalActions")))
+                .totalLikes(safeToInteger(data.get("totalLikes")))
+                .totalPasses(safeToInteger(data.get("totalPasses")))
+                .totalDislikes(safeToInteger(data.get("totalDislikes")))
+                .totalMatches(safeToInteger(data.get("totalMatches")))
                 .matchSuccessRate((Double) data.get("matchSuccessRate"))
-                .avgActionsPerDay((Integer) data.get("avgActionsPerDay"))
+                .avgActionsPerDay(safeToInteger(data.get("avgActionsPerDay")))
                 .lastActionAt((Timestamp) data.get("lastActionAt"))
-                .actionsToday((Integer) data.get("actionsToday"))
-                .currentStreak((Integer) data.get("currentStreak"))
-                .longestStreak((Integer) data.get("longestStreak"))
+                .actionsToday(safeToInteger(data.get("actionsToday")))
+                .currentStreak(safeToInteger(data.get("currentStreak")))
+                .longestStreak(safeToInteger(data.get("longestStreak")))
                 .createdAt((Timestamp) data.get("createdAt"))
                 .updatedAt((Timestamp) data.get("updatedAt"))
-                .version((Integer) data.get("version"))
+                .version(safeToInteger(data.get("version")))
                 .build();
     }
 
@@ -493,7 +493,7 @@ public class UserActivityRepositoryImpl implements UserActivityRepository {
                 .batchDate((String) actionMap.get("batchDate"))
                 .resultedInMatch((Boolean) actionMap.get("resultedInMatch"))
                 .matchId((String) actionMap.get("matchId"))
-                .targetUserAge((Integer) actionMap.get("targetUserAge"))
+                .targetUserAge(safeToInteger(actionMap.get("targetUserAge")))
                 .targetUserLocation((String) actionMap.get("targetUserLocation"))
                 .distance((Double) actionMap.get("distance"))
                 .compatibilityScore((Double) actionMap.get("compatibilityScore"))
@@ -528,13 +528,13 @@ public class UserActivityRepositoryImpl implements UserActivityRepository {
         if (summaryMap == null) return null;
         
         return UserActivity.DailySummary.builder()
-                .totalActions((Integer) summaryMap.get("totalActions"))
-                .likes((Integer) summaryMap.get("likes"))
-                .passes((Integer) summaryMap.get("passes"))
-                .dislikes((Integer) summaryMap.get("dislikes"))
-                .matches((Integer) summaryMap.get("matches"))
-                .viewTime((Integer) summaryMap.get("viewTime"))
-                .batchesCompleted((Integer) summaryMap.get("batchesCompleted"))
+                .totalActions(safeToInteger(summaryMap.get("totalActions")))
+                .likes(safeToInteger(summaryMap.get("likes")))
+                .passes(safeToInteger(summaryMap.get("passes")))
+                .dislikes(safeToInteger(summaryMap.get("dislikes")))
+                .matches(safeToInteger(summaryMap.get("matches")))
+                .viewTime(safeToInteger(summaryMap.get("viewTime")))
+                .batchesCompleted(safeToInteger(summaryMap.get("batchesCompleted")))
                 .build();
     }
 
@@ -548,5 +548,19 @@ public class UserActivityRepositoryImpl implements UserActivityRepository {
             }
         });
         return result;
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

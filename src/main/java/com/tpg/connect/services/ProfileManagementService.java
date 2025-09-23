@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// @Service  // Temporarily disabled for schema migration
+@Service
 public class ProfileManagementService {
 
     @Autowired
@@ -128,6 +128,82 @@ public class ProfileManagementService {
         if (request.getCompany() != null) {
             DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
             profile.setCompany(request.getCompany());
+        }
+        
+        // Identity fields
+        if (request.getPronouns() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setPronouns(request.getPronouns());
+        }
+        if (request.getGender() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setGender(request.getGender());
+        }
+        if (request.getSexuality() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setSexuality(request.getSexuality());
+        }
+        if (request.getInterestedIn() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setInterestedIn(request.getInterestedIn());
+        }
+        
+        // Professional fields
+        if (request.getUniversity() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setUniversity(request.getUniversity());
+        }
+        if (request.getEducationLevel() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setEducationLevel(request.getEducationLevel());
+        }
+        
+        // Personal fields
+        if (request.getReligiousBeliefs() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setReligiousBeliefs(request.getReligiousBeliefs());
+        }
+        if (request.getHometown() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setHometown(request.getHometown());
+        }
+        if (request.getPolitics() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setPolitics(request.getPolitics());
+        }
+        if (request.getDatingIntentions() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setDatingIntentions(request.getDatingIntentions());
+        }
+        if (request.getRelationshipType() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setRelationshipType(request.getRelationshipType());
+        }
+        
+        // Physical/lifestyle fields
+        if (request.getHeight() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setHeight(request.getHeight());
+        }
+        if (request.getEthnicity() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setEthnicity(request.getEthnicity());
+        }
+        if (request.getChildren() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setChildren(request.getChildren());
+        }
+        if (request.getFamilyPlans() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setFamilyPlans(request.getFamilyPlans());
+        }
+        if (request.getPets() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setPets(request.getPets());
+        }
+        if (request.getZodiacSign() != null) {
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
+            profile.setZodiacSign(request.getZodiacSign());
         }
 
         validateProfile(existingProfile);
@@ -408,13 +484,28 @@ public class ProfileManagementService {
 
     private void updateUserPreferences(UserPreferences preferences, Map<String, Object> data) {
         if (data.containsKey("preferredGender")) preferences.setPreferredGender((String) data.get("preferredGender"));
-        if (data.containsKey("minAge")) preferences.setMinAge((Integer) data.get("minAge"));
-        if (data.containsKey("maxAge")) preferences.setMaxAge((Integer) data.get("maxAge"));
-        if (data.containsKey("minHeight")) preferences.setMinHeight((Integer) data.get("minHeight"));
-        if (data.containsKey("maxHeight")) preferences.setMaxHeight((Integer) data.get("maxHeight"));
+        if (data.containsKey("minAge")) preferences.setMinAge(safeToInteger(data.get("minAge")));
+        if (data.containsKey("maxAge")) preferences.setMaxAge(safeToInteger(data.get("maxAge")));
+        if (data.containsKey("minHeight")) preferences.setMinHeight(safeToInteger(data.get("minHeight")));
+        if (data.containsKey("maxHeight")) preferences.setMaxHeight(safeToInteger(data.get("maxHeight")));
         if (data.containsKey("datingIntention")) preferences.setDatingIntention((String) data.get("datingIntention"));
         if (data.containsKey("drinkingPreference")) preferences.setDrinkingPreference((String) data.get("drinkingPreference"));
         if (data.containsKey("smokingPreference")) preferences.setSmokingPreference((String) data.get("smokingPreference"));
+    }
+    
+    // Helper method to safely convert Long/Integer/String to Integer
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private void reorderPhotos(List<EnhancedPhoto> photos) {

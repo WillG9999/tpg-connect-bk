@@ -467,7 +467,7 @@ public class SafetyBlockRepositoryImpl implements SafetyBlockRepository {
                 .reason((String) data.get("reason"))
                 .blockedAt((Timestamp) data.get("blockedAt"))
                 .expiresAt((Timestamp) data.get("expiresAt"))
-                .duration((Integer) data.get("duration"))
+                .duration(safeToInteger(data.get("duration")))
                 .status((String) data.get("status"))
                 .isActive((Boolean) data.get("isActive"))
                 .createdBy((String) data.get("createdBy"))
@@ -490,5 +490,19 @@ public class SafetyBlockRepositoryImpl implements SafetyBlockRepository {
                 .adminNotes((String) data.get("adminNotes"))
                 .publicReason((String) data.get("publicReason"))
                 .build();
+    }
+    
+    private Integer safeToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Long) return ((Long) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

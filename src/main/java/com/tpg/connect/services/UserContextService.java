@@ -12,7 +12,7 @@ public class UserContextService {
     private UserService userService;
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     private final ThreadLocal<UserContext> currentUserContext = new ThreadLocal<>();
 
@@ -29,9 +29,9 @@ public class UserContextService {
     }
 
     public UserContext createUserContextFromToken(String token) {
-        if (token != null && authService.validateToken(token)) {
-            String username = authService.extractUsername(token);
-            User user = userService.findByUsername(username);
+        if (token != null && authService.isTokenValid(token)) {
+            String userId = authService.extractUserIdFromToken(token);
+            User user = userService.findById(userId);
             
             if (user != null && user.isActive()) {
                 return UserContext.fromUser(user);

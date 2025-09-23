@@ -4,7 +4,7 @@ import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.SubscriptionRequest;
 import com.tpg.connect.model.premium.Subscription;
-import com.tpg.connect.services.AuthService;
+import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.SubscriptionService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import java.util.Map;
 public class SubscriptionController extends BaseController implements SubscriptionControllerApi {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
     private SubscriptionService subscriptionService;
@@ -171,25 +171,12 @@ public class SubscriptionController extends BaseController implements Subscripti
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
-    }
-
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
+        // Extract user ID directly from JWT token subject claim
+        return authService.extractUserIdFromToken(token);
     }
 
     protected ResponseEntity<Map<String, Object>> unauthorizedResponse(String message) {

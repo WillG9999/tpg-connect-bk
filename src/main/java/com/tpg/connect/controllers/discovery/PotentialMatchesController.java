@@ -4,7 +4,7 @@ import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.api.PotentialMatchesResponse;
 import com.tpg.connect.model.dto.MatchActionsRequest;
-import com.tpg.connect.services.AuthService;
+import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.PotentialMatchesService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class PotentialMatchesController extends BaseController implements PotentialMatchesControllerApi {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
     private PotentialMatchesService potentialMatchesService;
@@ -161,25 +161,12 @@ public class PotentialMatchesController extends BaseController implements Potent
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
-    }
-
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
+        // Extract user ID directly from JWT token subject claim
+        return authService.extractUserIdFromToken(token);
     }
 
     private String formatDuration(Duration duration) {
