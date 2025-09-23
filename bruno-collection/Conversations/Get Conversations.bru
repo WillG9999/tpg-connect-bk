@@ -1,0 +1,38 @@
+meta {
+  name: Get Conversations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/conversations?page=0&limit=20&unreadOnly=false
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  page: 0
+  limit: 20
+  unreadOnly: false
+}
+
+docs {
+  # Get Conversations
+  
+  Get the user's conversations/matches.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - page: Page number for pagination (default: 0)
+  - limit: Number of conversations per page (default: 20)
+  - unreadOnly: Boolean to only return unread conversations (default: false)
+  
+  Returns:
+  - Array of conversation objects with conversation details
+}

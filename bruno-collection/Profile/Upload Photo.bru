@@ -1,0 +1,39 @@
+meta {
+  name: Upload Photo
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/profile/photos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "photoUrl": "https://example.com/path/to/photo.jpg",
+    "isPrimary": true
+  }
+}
+
+docs {
+  # Upload Photo
+  
+  Add a new photo to the user's profile.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - photoUrl: URL of the uploaded photo
+  - isPrimary: Boolean indicating if this should be the primary photo
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

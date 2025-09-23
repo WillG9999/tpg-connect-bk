@@ -1,0 +1,40 @@
+meta {
+  name: Create Match Action
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/matches
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "targetUserId": "user_456",
+    "action": "LIKE"
+  }
+}
+
+docs {
+  # Create Match Action
+  
+  Create a match action (like or pass) for another user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - targetUserId: The ID of the user to act on
+  - action: The action to take ("LIKE" or "PASS")
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Result object with match information
+  - message: Success or error message
+}

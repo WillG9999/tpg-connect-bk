@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
+// @Service  // Temporarily disabled for schema migration
 public class ProfileManagementService {
 
     @Autowired
@@ -50,22 +50,21 @@ public class ProfileManagementService {
         // Update basic info
         if (request.getName() != null) existingProfile.setName(request.getName());
         if (request.getAge() != null) existingProfile.setAge(request.getAge());
-        if (request.getBio() != null) existingProfile.setBio(request.getBio());
         if (request.getLocation() != null) existingProfile.setLocation(request.getLocation());
         if (request.getInterests() != null) existingProfile.setInterests(request.getInterests());
 
         // Update profile details
-        UserProfile profile = existingProfile.getProfile();
+        DetailedProfile profile = existingProfile.getProfile();
         if (profile == null) {
-            profile = new UserProfile();
+            profile = new DetailedProfile();
             existingProfile.setProfile(profile);
         }
 
-        updateUserProfileFields(profile, request);
+        updateDetailedProfileFields(profile, request);
 
         // Update photos
         if (request.getPhotos() != null) {
-            existingProfile.setPhotos(convertToPhotos(request.getPhotos()));
+            existingProfile.setPhotos(convertToEnhancedPhotos(request.getPhotos()));
         }
 
         // Update prompts
@@ -116,19 +115,18 @@ public class ProfileManagementService {
         }
 
         if (request.getName() != null) existingProfile.setName(request.getName());
-        if (request.getBio() != null) existingProfile.setBio(request.getBio());
         if (request.getLocation() != null) existingProfile.setLocation(request.getLocation());
         if (request.getInterests() != null) existingProfile.setInterests(request.getInterests());
         if (request.getLanguages() != null) {
-            UserProfile profile = getOrCreateUserProfile(existingProfile);
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
             profile.setLanguages(request.getLanguages());
         }
         if (request.getJobTitle() != null) {
-            UserProfile profile = getOrCreateUserProfile(existingProfile);
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
             profile.setJobTitle(request.getJobTitle());
         }
         if (request.getCompany() != null) {
-            UserProfile profile = getOrCreateUserProfile(existingProfile);
+            DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
             profile.setCompany(request.getCompany());
         }
 
@@ -148,7 +146,7 @@ public class ProfileManagementService {
             throw new IllegalArgumentException("Profile not found for user: " + userId);
         }
 
-        List<Photo> photos = profile.getPhotos();
+        List<EnhancedPhoto> photos = profile.getPhotos();
         if (photos == null) {
             photos = new ArrayList<>();
             profile.setPhotos(photos);
@@ -163,7 +161,7 @@ public class ProfileManagementService {
             photos.forEach(photo -> photo.setPrimary(false));
         }
 
-        Photo newPhoto = new Photo();
+        EnhancedPhoto newPhoto = new EnhancedPhoto();
         newPhoto.setId(UUID.randomUUID().toString());
         newPhoto.setUrl(photoUrl);
         newPhoto.setPrimary(isPrimary || photos.isEmpty()); // First photo is always primary
@@ -187,7 +185,7 @@ public class ProfileManagementService {
             throw new IllegalArgumentException("Profile not found for user: " + userId);
         }
 
-        List<Photo> photos = profile.getPhotos();
+        List<EnhancedPhoto> photos = profile.getPhotos();
         if (photos == null || photos.isEmpty()) {
             throw new IllegalArgumentException("No photos to remove");
         }
@@ -227,9 +225,9 @@ public class ProfileManagementService {
             throw new IllegalArgumentException("Maximum of 6 photos allowed");
         }
 
-        List<Photo> photos = new ArrayList<>();
+        List<EnhancedPhoto> photos = new ArrayList<>();
         for (int i = 0; i < photoUrls.size(); i++) {
-            Photo photo = new Photo();
+            EnhancedPhoto photo = new EnhancedPhoto();
             photo.setId(UUID.randomUUID().toString());
             photo.setUrl(photoUrls.get(i));
             photo.setPrimary(i == 0); // First photo is primary
@@ -325,16 +323,16 @@ public class ProfileManagementService {
         return userProfileRepository.save(profile);
     }
 
-    private UserProfile getOrCreateUserProfile(CompleteUserProfile completeProfile) {
-        UserProfile profile = completeProfile.getProfile();
+    private DetailedProfile getOrCreateDetailedProfile(CompleteUserProfile completeProfile) {
+        DetailedProfile profile = completeProfile.getProfile();
         if (profile == null) {
-            profile = new UserProfile();
+            profile = new DetailedProfile();
             completeProfile.setProfile(profile);
         }
         return profile;
     }
 
-    private void updateUserProfileFields(UserProfile profile, ProfileUpdateRequest request) {
+    private void updateDetailedProfileFields(DetailedProfile profile, ProfileUpdateRequest request) {
         if (request.getPronouns() != null) profile.setPronouns(request.getPronouns());
         if (request.getGender() != null) profile.setGender(request.getGender());
         if (request.getSexuality() != null) profile.setSexuality(request.getSexuality());
@@ -357,12 +355,12 @@ public class ProfileManagementService {
         if (request.getZodiacSign() != null) profile.setZodiacSign(request.getZodiacSign());
     }
 
-    private List<Photo> convertToPhotos(List<String> photoUrls) {
+    private List<EnhancedPhoto> convertToEnhancedPhotos(List<String> photoUrls) {
         if (photoUrls == null) return null;
         
-        List<Photo> photos = new ArrayList<>();
+        List<EnhancedPhoto> photos = new ArrayList<>();
         for (int i = 0; i < photoUrls.size(); i++) {
-            Photo photo = new Photo();
+            EnhancedPhoto photo = new EnhancedPhoto();
             photo.setId(UUID.randomUUID().toString());
             photo.setUrl(photoUrls.get(i));
             photo.setPrimary(i == 0);
@@ -390,7 +388,8 @@ public class ProfileManagementService {
                 return new PollPrompt(
                     (String) data.get("prompt"),
                     (String) data.get("question"),
-                    options
+                    options,
+                    (String) data.get("selectedOption")
                 );
             })
             .collect(Collectors.toList());
@@ -418,9 +417,9 @@ public class ProfileManagementService {
         if (data.containsKey("smokingPreference")) preferences.setSmokingPreference((String) data.get("smokingPreference"));
     }
 
-    private void reorderPhotos(List<Photo> photos) {
+    private void reorderPhotos(List<EnhancedPhoto> photos) {
         // Ensure there's always a primary photo
-        boolean hasPrimary = photos.stream().anyMatch(Photo::isPrimary);
+        boolean hasPrimary = photos.stream().anyMatch(EnhancedPhoto::isPrimary);
         if (!hasPrimary && !photos.isEmpty()) {
             photos.get(0).setPrimary(true);
         }

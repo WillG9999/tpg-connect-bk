@@ -3,9 +3,11 @@ package com.tpg.connect.model.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
+import java.time.Period;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +19,7 @@ public class RegisterRequest {
     
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]", 
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]*$", 
              message = "Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character")
     private String password;
     
@@ -32,9 +34,9 @@ public class RegisterRequest {
     @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
     private String lastName;
     
-    @NotNull(message = "Date of birth is required")
-    @Past(message = "Date of birth must be in the past")
-    private LocalDate dateOfBirth;
+    @NotBlank(message = "Date of birth is required")
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of birth must be in YYYY-MM-DD format")
+    private String dateOfBirth;
     
     @NotBlank(message = "Gender is required")
     private String gender;
@@ -49,8 +51,12 @@ public class RegisterRequest {
     
     @AssertTrue(message = "User must be at least 18 years old")
     public boolean isAgeValid() {
-        if (dateOfBirth == null) return false;
-        return LocalDate.now().minusYears(18).isAfter(dateOfBirth) || 
-               LocalDate.now().minusYears(18).equals(dateOfBirth);
+        if (dateOfBirth == null || dateOfBirth.trim().isEmpty()) return false;
+        try {
+            LocalDate birthDate = LocalDate.parse(dateOfBirth);
+            return Period.between(birthDate, LocalDate.now()).getYears() >= 18;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

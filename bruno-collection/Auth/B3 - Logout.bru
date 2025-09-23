@@ -1,0 +1,28 @@
+meta {
+  name: B3 - Logout
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # User Logout
+  
+  Logout the current user and invalidate their token.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success message
+}

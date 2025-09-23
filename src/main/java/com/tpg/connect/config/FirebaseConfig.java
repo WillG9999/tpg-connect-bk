@@ -13,6 +13,7 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.cloud.StorageClient;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,9 +46,10 @@ public class FirebaseConfig {
     private String projectId;
 
     @Bean
-    @Profile("!test")
     public FirebaseApp firebaseApp() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {
+            logger.debug("Firebase config path value received: '{}'", firebaseConfigPath);
+            
             if (firebaseConfigPath == null || firebaseConfigPath.isEmpty()) {
                 throw new RuntimeException("Firebase config path not specified. Please set firebase.config.path property or pass --firebase.config.path=/path/to/your/service-account.json");
             }
@@ -90,7 +92,14 @@ public class FirebaseConfig {
     @Bean
     public Firestore firestore() throws IOException {
         logger.info("Creating Firestore client");
-        return FirestoreClient.getFirestore(firebaseApp());
+        try {
+            Firestore firestore = FirestoreClient.getFirestore(firebaseApp());
+            logger.info("Firestore client created successfully");
+            return firestore;
+        } catch (Exception e) {
+            logger.error("Failed to create Firestore client: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize Firestore", e);
+        }
     }
 
     @Bean
@@ -100,13 +109,18 @@ public class FirebaseConfig {
     }
 
     @Bean
+    public FirebaseMessaging firebaseMessaging() throws IOException {
+        logger.info("Creating Firebase Messaging client");
+        return FirebaseMessaging.getInstance(firebaseApp());
+    }
+
+    @Bean
     public StorageClient firebaseStorage() throws IOException {
         logger.info("Creating Firebase Storage client");
         return StorageClient.getInstance(firebaseApp());
     }
 
     @Bean
-    @Profile("!test")
     public Storage cloudStorage() throws IOException {
         logger.info("Creating Google Cloud Storage client");
         

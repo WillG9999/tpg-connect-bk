@@ -1,0 +1,41 @@
+meta {
+  name: Get User Notifications
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/notifications?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+docs {
+  # Get User Notifications
+  
+  Get notifications for the current user with pagination.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - page: Page number for pagination (default: 0)
+  - size: Number of notifications per page (default: 20)
+  
+  Returns:
+  - Object containing:
+    - notifications: Array of notification objects
+    - unreadCount: Number of unread notifications
+    - totalCount: Total number of notifications
+    - page: Current page number
+    - size: Page size
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Get Daily Batch Status
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/matches/daily/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Daily Batch Status
+  
+  Get the status of the daily match batch for the user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing:
+    - batchReady: Boolean indicating if batch is ready
+    - nextBatchTime: Time when next batch will be available
+    - currentBatchDate: Date of current batch
+    - matchesAvailable: Boolean indicating if matches are available
+}

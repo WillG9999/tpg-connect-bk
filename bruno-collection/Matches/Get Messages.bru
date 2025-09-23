@@ -1,0 +1,41 @@
+meta {
+  name: Get Messages
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/matches/match_123/messages?page=0&size=50&since=2024-01-01T00:00:00Z
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  page: 0
+  size: 50
+  since: 2024-01-01T00:00:00Z
+}
+
+docs {
+  # Get Messages
+  
+  Get messages from a match conversation.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - matchId: The ID of the match/conversation
+  
+  Query parameters:
+  - page: Page number for pagination (default: 0)
+  - size: Number of messages per page (default: 50)
+  - since: ISO timestamp to get messages since a specific time
+  
+  Returns:
+  - Array of message objects with message details
+}

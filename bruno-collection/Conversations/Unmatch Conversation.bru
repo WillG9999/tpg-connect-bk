@@ -1,0 +1,32 @@
+meta {
+  name: Unmatch Conversation
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/conversations/conversation_123/unmatch
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Unmatch Conversation
+  
+  Unmatch a conversation and end communication.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - conversationId: The ID of the conversation to unmatch
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - conversationId: The conversation ID that was unmatched
+}

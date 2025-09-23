@@ -1,0 +1,31 @@
+meta {
+  name: Remove Photo
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/profile/photos/photo123
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Remove Photo
+  
+  Remove a photo from the user's profile.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - photoId: The ID of the photo to remove
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

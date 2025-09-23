@@ -9,7 +9,7 @@ import com.tpg.connect.model.dto.UpdateProfileRequest;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.services.AuthService;
-import com.tpg.connect.services.ProfileManagementService;
+import com.tpg.connect.services.MockProfileManagementService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,7 +28,7 @@ public class ProfileController extends BaseController implements ProfileControll
     private AuthService authService;
 
     @Autowired
-    private ProfileManagementService profileService;
+    private MockProfileManagementService profileService;
     
     @Autowired
     private UserService userService;

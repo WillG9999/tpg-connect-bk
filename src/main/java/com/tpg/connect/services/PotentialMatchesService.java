@@ -33,8 +33,6 @@ public class PotentialMatchesService {
     @Autowired
     private MatchService matchService;
 
-    @Autowired
-    private DiscoveryService discoveryService;
 
     @Autowired
     private NotificationService notificationService;

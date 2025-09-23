@@ -1,0 +1,28 @@
+meta {
+  name: Get Unread Count
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/notifications/count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Unread Count
+  
+  Get the count of unread notifications for the current user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - Object containing:
+    - unreadCount: Number of unread notifications
+}

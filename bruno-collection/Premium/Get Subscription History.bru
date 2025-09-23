@@ -1,0 +1,27 @@
+meta {
+  name: Get Subscription History
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/premium/subscription/history
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Subscription History
+  
+  Get the user's subscription history.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - Array of Subscription objects representing the user's subscription history
+}

@@ -4,13 +4,15 @@ import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
-import com.tpg.connect.services.AuthService;
-import com.tpg.connect.services.ProfileManagementService;
+import com.tpg.connect.services.AuthenticationService;
+import com.tpg.connect.services.CloudStorageService;
+import com.tpg.connect.services.MockProfileManagementService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,13 +24,16 @@ import java.util.stream.Collectors;
 public class UserController extends BaseController {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     @Autowired
-    private ProfileManagementService profileService;
+    private MockProfileManagementService profileService;
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private CloudStorageService cloudStorageService;
 
     // Get current user (frontend expects /api/users/me)
     @GetMapping("/me")
@@ -78,7 +83,6 @@ public class UserController extends BaseController {
             
             // Map the fields from frontend format to backend format
             if (updateData.containsKey("name")) request.setName((String) updateData.get("name"));
-            if (updateData.containsKey("bio")) request.setBio((String) updateData.get("bio"));
             if (updateData.containsKey("location")) request.setLocation((String) updateData.get("location"));
             if (updateData.containsKey("interests")) request.setInterests((List<String>) updateData.get("interests"));
             if (updateData.containsKey("languages")) request.setLanguages((List<String>) updateData.get("languages"));
@@ -229,6 +233,91 @@ public class UserController extends BaseController {
         }
     }
 
+    // Upload profile photo (frontend expects POST /api/users/photos)
+    @PostMapping("/photos")
+    public ResponseEntity<Map<String, Object>> uploadPhoto(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam("photo") MultipartFile photo,
+            @RequestParam(value = "isPrimary", defaultValue = "false") boolean isPrimary) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+
+        try {
+            // Upload photo to cloud storage
+            String photoUrl = cloudStorageService.uploadProfilePhoto(userId, photo);
+            
+            // Update profile with new photo
+            CompleteUserProfile updatedProfile = profileService.addPhoto(userId, photoUrl, isPrimary);
+            UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(updatedProfile);
+            
+            return successResponse(Map.of(
+                "profile", dto,
+                "photoUrl", photoUrl,
+                "message", "Photo uploaded successfully"
+            ));
+        } catch (Exception e) {
+            return errorResponse("Failed to upload photo: " + e.getMessage());
+        }
+    }
+
+    // Update user photos (frontend expects PUT /api/users/photos)
+    @PutMapping("/photos")
+    public ResponseEntity<Map<String, Object>> updatePhotos(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, Object> request) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<String> photoUrls = (List<String>) request.get("photos");
+            
+            if (photoUrls == null || photoUrls.isEmpty()) {
+                return errorResponse("At least one photo URL is required");
+            }
+
+            CompleteUserProfile updatedProfile = profileService.updatePhotos(userId, photoUrls);
+            UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(updatedProfile);
+            
+            return successResponse(Map.of(
+                "profile", dto,
+                "message", "Photos updated successfully"
+            ));
+        } catch (Exception e) {
+            return errorResponse("Failed to update photos: " + e.getMessage());
+        }
+    }
+
+    // Remove photo (frontend expects DELETE /api/users/photos/{photoId})
+    @DeleteMapping("/photos/{photoId}")
+    public ResponseEntity<Map<String, Object>> removePhoto(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String photoId) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+
+        try {
+            CompleteUserProfile updatedProfile = profileService.removePhoto(userId, photoId);
+            UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(updatedProfile);
+            
+            return successResponse(Map.of(
+                "profile", dto,
+                "message", "Photo removed successfully"
+            ));
+        } catch (Exception e) {
+            return errorResponse("Failed to remove photo: " + e.getMessage());
+        }
+    }
+
     // Delete user (frontend expects DELETE /api/users/{userId})
     @DeleteMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> deleteUser(
@@ -266,25 +355,12 @@ public class UserController extends BaseController {
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
+        return authService.extractUserIdFromToken(token);
     }
 
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
-    }
 
 }

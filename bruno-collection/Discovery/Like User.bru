@@ -1,0 +1,33 @@
+meta {
+  name: Like User
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/discovery/like/user_456
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Like User (Discovery)
+  
+  Like a user from the discovery/matching flow.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - userId: The ID of the user to like
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - isMatch: Boolean indicating if this created a mutual match
+  - matchId: Match ID if a mutual match was created
+}

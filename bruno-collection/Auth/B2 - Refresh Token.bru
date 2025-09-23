@@ -1,0 +1,43 @@
+meta {
+  name: B2 - Refresh Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/refresh
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+tests {
+  test("Token refresh successful", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    
+    // Update the stored token
+    if (res.getBody().accessToken) {
+      bru.setEnvVar("authToken", res.getBody().accessToken);
+    }
+  });
+}
+
+docs {
+  # Refresh Token
+  
+  Refresh an existing JWT token to extend session.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - token: New JWT authentication token
+  - refreshToken: New refresh token
+  - user: Updated user information
+}

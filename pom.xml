@@ -27,11 +27,11 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<spring-cloud-gcp.version>7.3.0</spring-cloud-gcp.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
 	</properties>
-<profiles>
+	<profiles>
 		<profile>
 			<id>dev</id>
 			<properties>
@@ -39,7 +39,7 @@
 				<groups>unit,integration</groups>
 			</properties>
 		</profile>
-<profiles>
+	</profiles>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -105,11 +105,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
-		<!-- MongoDB Dependencies -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-mongodb</artifactId>
-		</dependency>
 		<!-- Validation Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -135,6 +130,47 @@
             <artifactId>annotations</artifactId>
             <version>RELEASE</version>
             <scope>compile</scope>
+        </dependency>
+        
+        <!-- Cucumber Dependencies -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-spring</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>7.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 	<dependencyManagement>
@@ -178,6 +214,10 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<jvmArguments>
+						--add-opens=java.base/java.time=ALL-UNNAMED
+						--add-opens=java.base/java.time.chrono=ALL-UNNAMED
+					</jvmArguments>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
@@ -185,6 +225,34 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<includes>
+						<include>**/*Test.java</include>
+						<include>**/CucumberTestRunner.java</include>
+					</includes>
+					<argLine>--add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/CucumberTestRunner.java</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

@@ -1,0 +1,35 @@
+meta {
+  name: A2 - Verify Email
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/auth/verify-email?token={{verificationToken}}
+  body: none
+  auth: none
+}
+
+params:query {
+  token: {{verificationToken}}
+}
+
+tests {
+  test("Email verification successful", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+  });
+}
+
+docs {
+  # Verify Email
+  
+  Verify user's email address using token from email.
+  
+  Query parameters:
+  - token: Email verification token from email
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+}

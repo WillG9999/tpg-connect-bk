@@ -1,0 +1,32 @@
+meta {
+  name: Dislike User
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/users/user_456/dislike
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Dislike User
+  
+  Dislike another user. This creates a user action indicating disinterest.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - targetUserId: The ID of the user to dislike
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Result object
+  - message: Success or error message
+}

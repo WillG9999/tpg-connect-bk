@@ -3,8 +3,6 @@ package com.tpg.connect.model.document;
 import com.tpg.connect.model.conversation.Message;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,9 +10,7 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-@Document(collection = "conversations")
 public class ConversationDocument {
-    @Id
     private String id;
     
     private String matchId;

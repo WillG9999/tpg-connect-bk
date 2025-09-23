@@ -1,0 +1,35 @@
+meta {
+  name: Cancel Subscription
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/premium/subscription/cancel?reason=too_expensive
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  reason: too_expensive
+}
+
+docs {
+  # Cancel Subscription
+  
+  Cancel the user's current subscription.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - reason: Optional reason for cancellation
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with cancellation details and effective date
+}

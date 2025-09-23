@@ -1,0 +1,27 @@
+meta {
+  name: Get Current Subscription
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/premium/subscription/current
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Current Subscription
+  
+  Get the user's current subscription details.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - Subscription object with current subscription details, or null if no active subscription
+}

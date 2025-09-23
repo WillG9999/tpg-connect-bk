@@ -1,0 +1,56 @@
+meta {
+  name: Payment Webhook
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/premium/subscription/webhook
+  body: json
+  auth: none
+}
+
+headers {
+  Stripe-Signature: whsec_test_signature_example
+}
+
+body:json {
+  {
+    "id": "evt_1234567890",
+    "object": "event",
+    "api_version": "2023-10-16",
+    "created": 1699123456,
+    "data": {
+      "object": {
+        "id": "sub_1234567890",
+        "object": "subscription",
+        "status": "active",
+        "customer": "cus_1234567890"
+      }
+    },
+    "livemode": false,
+    "pending_webhooks": 1,
+    "request": {
+      "id": "req_1234567890",
+      "idempotency_key": null
+    },
+    "type": "customer.subscription.updated"
+  }
+}
+
+docs {
+  # Payment Webhook
+  
+  Webhook endpoint for payment processor notifications (e.g., Stripe).
+  
+  Headers:
+  - Stripe-Signature: Webhook signature for verification
+  
+  Request body:
+  - Payment processor webhook payload
+  
+  Returns:
+  - Object with received confirmation
+  
+  Note: This endpoint is typically called by the payment processor, not by client applications.
+}

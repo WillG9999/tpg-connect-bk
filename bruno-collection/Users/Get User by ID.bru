@@ -1,0 +1,31 @@
+meta {
+  name: Get User by ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/users/user_123
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get User by ID
+  
+  Get another user's profile information by their user ID.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - userId: The ID of the user to retrieve
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: User profile data (UserProfileDTO)
+}

@@ -1,6 +1,8 @@
 package com.tpg.connect.config;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,13 +10,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+
 @Configuration
 public class CloudStorageConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudStorageConfig.class);
 
-    @Value("${gcp.storage.bucket}")
+    @Value("${gcp.storage.bucket:#{null}}")
     private String storageBucket;
+
+    @Value("${gcp.project.id:#{null}}")
+    private String projectId;
+
+    @Value("${gcp.storage.credentials.location:#{null}}")
+    private String credentialsLocation;
 
     @Value("${app.profile.photo.max-size:5MB}")
     private String maxPhotoSize;
@@ -26,6 +37,39 @@ public class CloudStorageConfig {
     private String allowedPhotoTypes;
 
     @Bean
+    public Storage storage() {
+        try {
+            StorageOptions.Builder builder = StorageOptions.newBuilder();
+            
+            if (projectId != null) {
+                builder.setProjectId(projectId);
+                logger.info("Cloud Storage configured with project ID: {}", projectId);
+            }
+            
+            // Configure credentials if path is provided
+            if (credentialsLocation != null) {
+                try (FileInputStream serviceAccountStream = new FileInputStream(credentialsLocation)) {
+                    GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccountStream);
+                    builder.setCredentials(credentials);
+                    logger.info("Cloud Storage configured with service account from: {}", credentialsLocation);
+                } catch (IOException e) {
+                    logger.error("Failed to load service account credentials from: {}", credentialsLocation, e);
+                    throw new RuntimeException("Failed to load Cloud Storage credentials", e);
+                }
+            } else {
+                logger.warn("No Cloud Storage credentials path configured - using default credentials");
+            }
+            
+            Storage storage = builder.build().getService();
+            logger.info("Cloud Storage service initialized successfully");
+            return storage;
+        } catch (Exception e) {
+            logger.error("Failed to initialize Cloud Storage service", e);
+            throw new RuntimeException("Failed to initialize Cloud Storage service", e);
+        }
+    }
+
+    @Bean
     public CloudStorageProperties cloudStorageProperties() {
         CloudStorageProperties properties = new CloudStorageProperties();
         properties.setBucketName(storageBucket);
@@ -33,7 +77,11 @@ public class CloudStorageConfig {
         properties.setMaxPhotoCount(maxPhotoCount);
         properties.setAllowedPhotoTypes(allowedPhotoTypes.split(","));
         
-        logger.info("Cloud Storage configured with bucket: {}", storageBucket);
+        if (storageBucket != null) {
+            logger.info("Cloud Storage configured with bucket: {}", storageBucket);
+        } else {
+            logger.warn("Cloud Storage bucket not configured - storage operations may fail");
+        }
         logger.info("Photo upload settings - Max size: {}, Max count: {}, Allowed types: {}", 
                    maxPhotoSize, maxPhotoCount, allowedPhotoTypes);
         

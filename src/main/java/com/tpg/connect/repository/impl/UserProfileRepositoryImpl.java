@@ -1,13 +1,23 @@
 package com.tpg.connect.repository.impl;
 
-import com.tpg.connect.model.UserProfile;
 import com.tpg.connect.model.user.CompleteUserProfile;
+import com.tpg.connect.model.user.DetailedProfile;
+import com.tpg.connect.model.user.EnhancedPhoto;
+import com.tpg.connect.model.user.WrittenPrompt;
+import com.tpg.connect.model.user.PollPrompt;
+import com.tpg.connect.model.user.FieldVisibility;
+import com.tpg.connect.model.user.UserPreferences;
+import com.tpg.connect.model.user.NotificationSettings;
+import com.tpg.connect.model.user.PhotoPrompt;
 import com.tpg.connect.repository.UserProfileRepository;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -19,6 +29,73 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     
     @Autowired
     private Firestore firestore;
+
+    @Override
+    public CompleteUserProfile save(CompleteUserProfile profile) {
+        try {
+            if (profile.getCreatedAt() == null) {
+                profile.setCreatedAt(LocalDateTime.now());
+            }
+            profile.setUpdatedAt(LocalDateTime.now());
+            profile.setActive(true);
+            if (profile.getVersion() == 0) {
+                profile.setVersion(1);
+            } else {
+                profile.setVersion(profile.getVersion() + 1);
+            }
+            
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(profile.getConnectId());
+            docRef.set(convertToMap(profile)).get();
+            
+            return profile;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to save user profile", e);
+        }
+    }
+
+    @Override
+    public Optional<CompleteUserProfile> findByConnectId(String connectId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
+                    .document(connectId)
+                    .get()
+                    .get();
+                    
+            return doc.exists() ? Optional.of(convertToCompleteUserProfile(doc)) : Optional.empty();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find profile by connectId", e);
+        }
+    }
+
+    @Override
+    public CompleteUserProfile findByUserId(String userId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
+                    .document(userId)
+                    .get()
+                    .get();
+                    
+            return doc.exists() ? convertToCompleteUserProfile(doc) : null;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find profile by userId", e);
+        }
+    }
+
+    @Override
+    public List<CompleteUserProfile> findActiveProfiles() {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("active", true)
+                    .get()
+                    .get();
+                    
+            return querySnapshot.getDocuments().stream()
+                    .map(this::convertToCompleteUserProfile)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find active profiles", e);
+        }
+    }
 
     @Override
     public List<CompleteUserProfile> findAll() {
@@ -37,53 +114,6 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile createProfile(UserProfile profile) {
-        try {
-            profile.setCreatedAt(Timestamp.now());
-            profile.setUpdatedAt(Timestamp.now());
-            profile.setActive(true);
-            profile.setVersion(1);
-            
-            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(profile.getConnectId());
-            docRef.set(convertToMap(profile)).get();
-            
-            return profile;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to create profile", e);
-        }
-    }
-
-    @Override
-    public Optional<UserProfile> findByConnectId(String connectId) {
-        try {
-            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
-                    .document(connectId)
-                    .get()
-                    .get();
-                    
-            return doc.exists() ? Optional.of(convertToProfile(doc)) : Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to find profile by connectId", e);
-        }
-    }
-
-    @Override
-    public List<UserProfile> findActiveProfiles() {
-        try {
-            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
-                    .whereEqualTo("active", true)
-                    .get()
-                    .get();
-                    
-            return querySnapshot.getDocuments().stream()
-                    .map(this::convertToProfile)
-                    .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to find active profiles", e);
-        }
-    }
-
-    @Override
     public boolean existsByConnectId(String connectId) {
         try {
             DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
@@ -97,33 +127,20 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateProfile(UserProfile profile) {
-        try {
-            profile.setUpdatedAt(Timestamp.now());
-            profile.setVersion(profile.getVersion() != null ? profile.getVersion() + 1 : 1);
-            
-            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(profile.getConnectId());
-            docRef.set(convertToMap(profile)).get();
-            
-            return profile;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to update profile", e);
-        }
+    public CompleteUserProfile updateProfile(CompleteUserProfile profile) {
+        return save(profile);
     }
 
     @Override
-    public UserProfile updateBasicInfo(String connectId, String firstName, String lastName, Integer age, String location) {
+    public CompleteUserProfile updateBasicInfo(String connectId, String firstName, String lastName, Integer age, String location) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
             Map<String, Object> updates = new HashMap<>();
-            if (firstName != null) updates.put("firstName", firstName);
-            if (lastName != null) updates.put("lastName", lastName);
-            if (firstName != null && lastName != null) {
-                updates.put("name", firstName + " " + lastName);
-            }
-            if (age != null) updates.put("age", age);
-            if (location != null) updates.put("location", location);
+            updates.put("firstName", firstName);
+            updates.put("lastName", lastName);
+            updates.put("age", age);
+            updates.put("location", location);
             updates.put("updatedAt", FieldValue.serverTimestamp());
             updates.put("version", FieldValue.increment(1));
             
@@ -136,7 +153,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateEmailVerification(String connectId, boolean verified, Timestamp verifiedAt) {
+    public CompleteUserProfile updateEmailVerification(String connectId, boolean verified, Timestamp verifiedAt) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -155,12 +172,12 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile addPhoto(String connectId, UserProfile.Photo photo) {
+    public CompleteUserProfile addPhoto(String connectId, EnhancedPhoto photo) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
             Map<String, Object> updates = new HashMap<>();
-            updates.put("photos", FieldValue.arrayUnion(convertPhotoToMap(photo)));
+            updates.put("photos", FieldValue.arrayUnion(convertEnhancedPhotoToMap(photo)));
             updates.put("updatedAt", FieldValue.serverTimestamp());
             updates.put("version", FieldValue.increment(1));
             
@@ -173,44 +190,29 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile removePhoto(String connectId, String photoId) {
+    public CompleteUserProfile removePhoto(String connectId, String photoId) {
         try {
-            Optional<UserProfile> profileOpt = findByConnectId(connectId);
-            if (!profileOpt.isPresent()) {
-                throw new RuntimeException("Profile not found");
-            }
+            CompleteUserProfile profile = findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
             
-            UserProfile profile = profileOpt.get();
             if (profile.getPhotos() != null) {
-                List<UserProfile.Photo> updatedPhotos = profile.getPhotos().stream()
-                        .filter(photo -> !photoId.equals(photo.getId()))
-                        .collect(Collectors.toList());
-                
-                DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
-                Map<String, Object> updates = new HashMap<>();
-                updates.put("photos", updatedPhotos.stream()
-                        .map(this::convertPhotoToMap)
-                        .collect(Collectors.toList()));
-                updates.put("updatedAt", FieldValue.serverTimestamp());
-                updates.put("version", FieldValue.increment(1));
-                
-                docRef.update(updates).get();
+                profile.getPhotos().removeIf(photo -> photoId.equals(photo.getId()));
+                return save(profile);
             }
             
-            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
-        } catch (InterruptedException | ExecutionException e) {
+            return profile;
+        } catch (Exception e) {
             throw new RuntimeException("Failed to remove photo", e);
         }
     }
 
     @Override
-    public UserProfile updatePhotoOrder(String connectId, List<UserProfile.Photo> photos) {
+    public CompleteUserProfile updatePhotoOrder(String connectId, List<EnhancedPhoto> photos) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
             Map<String, Object> updates = new HashMap<>();
             updates.put("photos", photos.stream()
-                    .map(this::convertPhotoToMap)
+                    .map(this::convertEnhancedPhotoToMap)
                     .collect(Collectors.toList()));
             updates.put("updatedAt", FieldValue.serverTimestamp());
             updates.put("version", FieldValue.increment(1));
@@ -224,7 +226,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateInterests(String connectId, List<String> interests) {
+    public CompleteUserProfile updateInterests(String connectId, List<String> interests) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -242,7 +244,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateDetailedProfile(String connectId, UserProfile.Profile profile) {
+    public CompleteUserProfile updateDetailedProfile(String connectId, DetailedProfile profile) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -260,7 +262,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateWrittenPrompts(String connectId, List<UserProfile.WrittenPrompt> prompts) {
+    public CompleteUserProfile updateWrittenPrompts(String connectId, List<WrittenPrompt> prompts) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -280,7 +282,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updatePollPrompts(String connectId, List<UserProfile.PollPrompt> prompts) {
+    public CompleteUserProfile updatePollPrompts(String connectId, List<PollPrompt> prompts) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -300,7 +302,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateFieldVisibility(String connectId, UserProfile.FieldVisibility visibility) {
+    public CompleteUserProfile updateFieldVisibility(String connectId, FieldVisibility visibility) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -318,12 +320,12 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updatePreferences(String connectId, UserProfile.Preferences preferences) {
+    public CompleteUserProfile updatePreferences(String connectId, UserPreferences preferences) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
             Map<String, Object> updates = new HashMap<>();
-            updates.put("preferences", convertPreferencesToMap(preferences));
+            updates.put("preferences", convertUserPreferencesToMap(preferences));
             updates.put("updatedAt", FieldValue.serverTimestamp());
             updates.put("version", FieldValue.increment(1));
             
@@ -336,7 +338,7 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateNotificationSettings(String connectId, UserProfile.NotificationSettings settings) {
+    public CompleteUserProfile updateNotificationSettings(String connectId, NotificationSettings settings) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
@@ -354,13 +356,14 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public UserProfile updateLastActive(String connectId, Timestamp lastActive) {
+    public CompleteUserProfile updateLastActive(String connectId, Timestamp lastActive) {
         try {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             
             Map<String, Object> updates = new HashMap<>();
             updates.put("lastActive", lastActive);
             updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
             
             docRef.update(updates).get();
             
@@ -396,23 +399,21 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public List<UserProfile> findProfilesByConnectIds(List<String> connectIds) {
+    public List<CompleteUserProfile> findProfilesByConnectIds(List<String> connectIds) {
         try {
-            List<UserProfile> profiles = new ArrayList<>();
+            List<CompleteUserProfile> profiles = new ArrayList<>();
             
-            List<List<String>> batches = new ArrayList<>();
-            for (int i = 0; i < connectIds.size(); i += 10) {
-                batches.add(connectIds.subList(i, Math.min(i + 10, connectIds.size())));
-            }
+            // Firestore has a limit of 10 documents per 'in' query
+            List<List<String>> chunks = partitionList(connectIds, 10);
             
-            for (List<String> batch : batches) {
+            for (List<String> chunk : chunks) {
                 QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
-                        .whereIn(FieldPath.documentId(), batch)
+                        .whereIn(FieldPath.documentId(), chunk)
                         .get()
                         .get();
                         
                 profiles.addAll(querySnapshot.getDocuments().stream()
-                        .map(this::convertToProfile)
+                        .map(this::convertToCompleteUserProfile)
                         .collect(Collectors.toList()));
             }
             
@@ -423,26 +424,28 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
     }
 
     @Override
-    public Map<String, UserProfile> findProfileMapByConnectIds(List<String> connectIds) {
-        List<UserProfile> profiles = findProfilesByConnectIds(connectIds);
+    public Map<String, CompleteUserProfile> findProfileMapByConnectIds(List<String> connectIds) {
+        List<CompleteUserProfile> profiles = findProfilesByConnectIds(connectIds);
         return profiles.stream()
-                .collect(Collectors.toMap(UserProfile::getConnectId, profile -> profile));
+                .collect(Collectors.toMap(CompleteUserProfile::getConnectId, profile -> profile));
     }
 
     // Helper conversion methods
-    private Map<String, Object> convertToMap(UserProfile profile) {
+    private Map<String, Object> convertToMap(CompleteUserProfile profile) {
         Map<String, Object> map = new HashMap<>();
         map.put("connectId", profile.getConnectId());
-        map.put("userId", profile.getUserId());
         map.put("firstName", profile.getFirstName());
         map.put("lastName", profile.getLastName());
-        map.put("name", profile.getName());
-        map.put("age", profile.getAge());
-        map.put("dateOfBirth", profile.getDateOfBirth());
+        map.put("gender", profile.getGender());
+        map.put("email", profile.getEmail());
         map.put("location", profile.getLocation());
-        map.put("emailVerified", profile.getEmailVerified());
-        map.put("emailVerifiedAt", profile.getEmailVerifiedAt());
+        map.put("dateOfBirth", profile.getDateOfBirth() != null ? profile.getDateOfBirth().toString() : null);
         map.put("active", profile.getActive());
+        map.put("isOnline", profile.getOnline());
+        map.put("isPremium", profile.getPremium());
+        map.put("isVerified", profile.getVerified());
+        map.put("subscriptionType", profile.getSubscriptionType());
+        map.put("interests", profile.getInterests());
         map.put("createdAt", profile.getCreatedAt());
         map.put("updatedAt", profile.getUpdatedAt());
         map.put("lastActive", profile.getLastActive());
@@ -450,12 +453,8 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         
         if (profile.getPhotos() != null) {
             map.put("photos", profile.getPhotos().stream()
-                    .map(this::convertPhotoToMap)
+                    .map(this::convertEnhancedPhotoToMap)
                     .collect(Collectors.toList()));
-        }
-        
-        if (profile.getInterests() != null) {
-            map.put("interests", profile.getInterests());
         }
         
         if (profile.getProfile() != null) {
@@ -479,93 +478,141 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         }
         
         if (profile.getPreferences() != null) {
-            map.put("preferences", convertPreferencesToMap(profile.getPreferences()));
+            map.put("preferences", convertUserPreferencesToMap(profile.getPreferences()));
         }
         
-        if (profile.getNotificationSettings() != null) {
-            map.put("notificationSettings", convertNotificationSettingsToMap(profile.getNotificationSettings()));
+        if (profile.getNotifications() != null) {
+            map.put("notifications", convertNotificationSettingsToMap(profile.getNotifications()));
         }
         
         return map;
     }
 
-    private UserProfile convertToProfile(DocumentSnapshot doc) {
+    private CompleteUserProfile convertToCompleteUserProfile(DocumentSnapshot doc) {
         Map<String, Object> data = doc.getData();
         if (data == null) {
             throw new RuntimeException("Document data is null");
         }
         
-        return UserProfile.builder()
-                .connectId(doc.getId())
-                .userId((String) data.get("userId"))
-                .firstName((String) data.get("firstName"))
-                .lastName((String) data.get("lastName"))
-                .name((String) data.get("name"))
-                .age((Integer) data.get("age"))
-                .dateOfBirth((Timestamp) data.get("dateOfBirth"))
-                .location((String) data.get("location"))
-                .emailVerified((Boolean) data.get("emailVerified"))
-                .emailVerifiedAt((Timestamp) data.get("emailVerifiedAt"))
-                .photos(convertToPhotoList((List<Map<String, Object>>) data.get("photos")))
-                .interests((List<String>) data.get("interests"))
-                .profile(convertToDetailedProfile((Map<String, Object>) data.get("profile")))
-                .writtenPrompts(convertToWrittenPromptList((List<Map<String, Object>>) data.get("writtenPrompts")))
-                .pollPrompts(convertToPollPromptList((List<Map<String, Object>>) data.get("pollPrompts")))
-                .fieldVisibility(convertToFieldVisibility((Map<String, Object>) data.get("fieldVisibility")))
-                .preferences(convertToPreferences((Map<String, Object>) data.get("preferences")))
-                .notificationSettings(convertToNotificationSettings((Map<String, Object>) data.get("notificationSettings")))
-                .active((Boolean) data.get("active"))
-                .createdAt((Timestamp) data.get("createdAt"))
-                .updatedAt((Timestamp) data.get("updatedAt"))
-                .lastActive((Timestamp) data.get("lastActive"))
-                .version((Integer) data.get("version"))
-                .build();
+        CompleteUserProfile profile = new CompleteUserProfile();
+        profile.setConnectId(doc.getId());
+        profile.setFirstName((String) data.get("firstName"));
+        profile.setLastName((String) data.get("lastName"));
+        profile.setGender((String) data.get("gender"));
+        profile.setEmail((String) data.get("email"));
+        profile.setLocation((String) data.get("location"));
+        profile.setActive(data.get("active") != null ? (Boolean) data.get("active") : true);
+        profile.setOnline(data.get("isOnline") != null ? (Boolean) data.get("isOnline") : false);
+        profile.setPremium(data.get("isPremium") != null ? (Boolean) data.get("isPremium") : false);
+        profile.setVerified(data.get("isVerified") != null ? (Boolean) data.get("isVerified") : false);
+        profile.setSubscriptionType((String) data.get("subscriptionType"));
+        profile.setInterests((List<String>) data.get("interests"));
+        Object versionObj = data.get("version");
+        if (versionObj instanceof Long) {
+            profile.setVersion(((Long) versionObj).intValue());
+        } else if (versionObj instanceof Integer) {
+            profile.setVersion((Integer) versionObj);
+        } else {
+            profile.setVersion(1); // Default version
+        }
+        
+        if (data.get("dateOfBirth") != null) {
+            Object dateOfBirth = data.get("dateOfBirth");
+            if (dateOfBirth instanceof String) {
+                profile.setDateOfBirth(LocalDate.parse((String) dateOfBirth));
+            }
+        }
+        
+        profile.setPhotos(convertToEnhancedPhotoList((List<Map<String, Object>>) data.get("photos")));
+        profile.setProfile(convertToDetailedProfile((Map<String, Object>) data.get("profile")));
+        profile.setWrittenPrompts(convertToWrittenPromptList((List<Map<String, Object>>) data.get("writtenPrompts")));
+        profile.setPollPrompts(convertToPollPromptList((List<Map<String, Object>>) data.get("pollPrompts")));
+        profile.setFieldVisibility(convertToFieldVisibility((Map<String, Object>) data.get("fieldVisibility")));
+        profile.setPreferences(convertToUserPreferences((Map<String, Object>) data.get("preferences")));
+        profile.setNotifications(convertToNotificationSettings((Map<String, Object>) data.get("notifications")));
+        
+        if (data.get("createdAt") != null) {
+            Object createdAt = data.get("createdAt");
+            if (createdAt instanceof Timestamp) {
+                profile.setCreatedAt(((Timestamp) createdAt).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            } else if (createdAt instanceof Map) {
+                profile.setCreatedAt(LocalDateTime.now());
+            }
+        }
+        
+        if (data.get("updatedAt") != null) {
+            Object updatedAt = data.get("updatedAt");
+            if (updatedAt instanceof Timestamp) {
+                profile.setUpdatedAt(((Timestamp) updatedAt).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            } else if (updatedAt instanceof Map) {
+                profile.setUpdatedAt(LocalDateTime.now());
+            }
+        }
+        
+        if (data.get("lastActive") != null) {
+            Object lastActive = data.get("lastActive");
+            if (lastActive instanceof Timestamp) {
+                profile.setLastActive(((Timestamp) lastActive).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            }
+        }
+        
+        return profile;
     }
 
-    private Map<String, Object> convertPhotoToMap(UserProfile.Photo photo) {
+    // Enhanced Photo conversion methods
+    private Map<String, Object> convertEnhancedPhotoToMap(EnhancedPhoto photo) {
+        if (photo == null) return null;
+        
         Map<String, Object> map = new HashMap<>();
         map.put("id", photo.getId());
         map.put("url", photo.getUrl());
-        map.put("isPrimary", photo.getIsPrimary());
+        map.put("isPrimary", photo.isPrimary());
         map.put("order", photo.getOrder());
+        
         if (photo.getPrompts() != null) {
             map.put("prompts", photo.getPrompts().stream()
                     .map(this::convertPhotoPromptToMap)
                     .collect(Collectors.toList()));
         }
+        
         return map;
     }
 
-    private UserProfile.Photo convertToPhoto(Map<String, Object> photoMap) {
-        if (photoMap == null) return null;
-        
-        return UserProfile.Photo.builder()
-                .id((String) photoMap.get("id"))
-                .url((String) photoMap.get("url"))
-                .isPrimary((Boolean) photoMap.get("isPrimary"))
-                .order((Integer) photoMap.get("order"))
-                .prompts(convertToPhotoPromptList((List<Map<String, Object>>) photoMap.get("prompts")))
-                .build();
-    }
-
-    private List<UserProfile.Photo> convertToPhotoList(List<Map<String, Object>> photoMaps) {
-        if (photoMaps == null) return new ArrayList<>();
+    private List<EnhancedPhoto> convertToEnhancedPhotoList(List<Map<String, Object>> photoMaps) {
+        if (photoMaps == null) return null;
         
         return photoMaps.stream()
-                .map(this::convertToPhoto)
+                .map(this::convertToEnhancedPhoto)
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> convertPhotoPromptToMap(UserProfile.PhotoPrompt prompt) {
+    private EnhancedPhoto convertToEnhancedPhoto(Map<String, Object> photoMap) {
+        if (photoMap == null) return null;
+        
+        EnhancedPhoto photo = new EnhancedPhoto();
+        photo.setId((String) photoMap.get("id"));
+        photo.setUrl((String) photoMap.get("url"));
+        photo.setPrimary((Boolean) photoMap.get("isPrimary"));
+        photo.setOrder((Integer) photoMap.get("order"));
+        photo.setPrompts(convertToPhotoPromptList((List<Map<String, Object>>) photoMap.get("prompts")));
+        
+        return photo;
+    }
+
+    private Map<String, Object> convertPhotoPromptToMap(PhotoPrompt prompt) {
+        if (prompt == null) return null;
+        
         Map<String, Object> map = new HashMap<>();
         map.put("id", prompt.getId());
         map.put("text", prompt.getText());
+        
         if (prompt.getPosition() != null) {
             Map<String, Object> positionMap = new HashMap<>();
             positionMap.put("x", prompt.getPosition().getX());
             positionMap.put("y", prompt.getPosition().getY());
             map.put("position", positionMap);
         }
+        
         if (prompt.getStyle() != null) {
             Map<String, Object> styleMap = new HashMap<>();
             styleMap.put("backgroundColor", prompt.getStyle().getBackgroundColor());
@@ -573,48 +620,47 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
             styleMap.put("fontSize", prompt.getStyle().getFontSize());
             map.put("style", styleMap);
         }
+        
         return map;
     }
 
-    private UserProfile.PhotoPrompt convertToPhotoPrompt(Map<String, Object> promptMap) {
-        if (promptMap == null) return null;
-        
-        UserProfile.Position position = null;
-        Map<String, Object> positionMap = (Map<String, Object>) promptMap.get("position");
-        if (positionMap != null) {
-            position = UserProfile.Position.builder()
-                    .x((Double) positionMap.get("x"))
-                    .y((Double) positionMap.get("y"))
-                    .build();
-        }
-        
-        UserProfile.Style style = null;
-        Map<String, Object> styleMap = (Map<String, Object>) promptMap.get("style");
-        if (styleMap != null) {
-            style = UserProfile.Style.builder()
-                    .backgroundColor((String) styleMap.get("backgroundColor"))
-                    .textColor((String) styleMap.get("textColor"))
-                    .fontSize((Integer) styleMap.get("fontSize"))
-                    .build();
-        }
-        
-        return UserProfile.PhotoPrompt.builder()
-                .id((String) promptMap.get("id"))
-                .text((String) promptMap.get("text"))
-                .position(position)
-                .style(style)
-                .build();
-    }
-
-    private List<UserProfile.PhotoPrompt> convertToPhotoPromptList(List<Map<String, Object>> promptMaps) {
-        if (promptMaps == null) return new ArrayList<>();
+    private List<PhotoPrompt> convertToPhotoPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return null;
         
         return promptMaps.stream()
                 .map(this::convertToPhotoPrompt)
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> convertDetailedProfileToMap(UserProfile.Profile profile) {
+    private PhotoPrompt convertToPhotoPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        PhotoPrompt prompt = new PhotoPrompt();
+        prompt.setId((String) promptMap.get("id"));
+        prompt.setText((String) promptMap.get("text"));
+        
+        Map<String, Object> positionMap = (Map<String, Object>) promptMap.get("position");
+        if (positionMap != null) {
+            PhotoPrompt.PhotoPosition position = new PhotoPrompt.PhotoPosition();
+            position.setX((Double) positionMap.get("x"));
+            position.setY((Double) positionMap.get("y"));
+            prompt.setPosition(position);
+        }
+        
+        Map<String, Object> styleMap = (Map<String, Object>) promptMap.get("style");
+        if (styleMap != null) {
+            PhotoPrompt.PhotoStyle style = new PhotoPrompt.PhotoStyle();
+            style.setBackgroundColor((String) styleMap.get("backgroundColor"));
+            style.setTextColor((String) styleMap.get("textColor"));
+            style.setFontSize((Integer) styleMap.get("fontSize"));
+            prompt.setStyle(style);
+        }
+        
+        return prompt;
+    }
+
+    // Detailed Profile conversion methods
+    private Map<String, Object> convertDetailedProfileToMap(DetailedProfile profile) {
         if (profile == null) return null;
         
         Map<String, Object> map = new HashMap<>();
@@ -638,287 +684,225 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         map.put("familyPlans", profile.getFamilyPlans());
         map.put("pets", profile.getPets());
         map.put("zodiacSign", profile.getZodiacSign());
+        
         return map;
     }
 
-    private UserProfile.Profile convertToDetailedProfile(Map<String, Object> profileMap) {
+    private DetailedProfile convertToDetailedProfile(Map<String, Object> profileMap) {
         if (profileMap == null) return null;
         
-        return UserProfile.Profile.builder()
-                .pronouns((String) profileMap.get("pronouns"))
-                .gender((String) profileMap.get("gender"))
-                .sexuality((String) profileMap.get("sexuality"))
-                .interestedIn((String) profileMap.get("interestedIn"))
-                .jobTitle((String) profileMap.get("jobTitle"))
-                .company((String) profileMap.get("company"))
-                .university((String) profileMap.get("university"))
-                .educationLevel((String) profileMap.get("educationLevel"))
-                .religiousBeliefs((String) profileMap.get("religiousBeliefs"))
-                .hometown((String) profileMap.get("hometown"))
-                .politics((String) profileMap.get("politics"))
-                .languages((List<String>) profileMap.get("languages"))
-                .datingIntentions((String) profileMap.get("datingIntentions"))
-                .relationshipType((String) profileMap.get("relationshipType"))
-                .height((String) profileMap.get("height"))
-                .ethnicity((String) profileMap.get("ethnicity"))
-                .children((String) profileMap.get("children"))
-                .familyPlans((String) profileMap.get("familyPlans"))
-                .pets((String) profileMap.get("pets"))
-                .zodiacSign((String) profileMap.get("zodiacSign"))
-                .build();
+        DetailedProfile profile = new DetailedProfile();
+        profile.setPronouns((String) profileMap.get("pronouns"));
+        profile.setGender((String) profileMap.get("gender"));
+        profile.setSexuality((String) profileMap.get("sexuality"));
+        profile.setInterestedIn((String) profileMap.get("interestedIn"));
+        profile.setJobTitle((String) profileMap.get("jobTitle"));
+        profile.setCompany((String) profileMap.get("company"));
+        profile.setUniversity((String) profileMap.get("university"));
+        profile.setEducationLevel((String) profileMap.get("educationLevel"));
+        profile.setReligiousBeliefs((String) profileMap.get("religiousBeliefs"));
+        profile.setHometown((String) profileMap.get("hometown"));
+        profile.setPolitics((String) profileMap.get("politics"));
+        profile.setLanguages((List<String>) profileMap.get("languages"));
+        profile.setDatingIntentions((String) profileMap.get("datingIntentions"));
+        profile.setRelationshipType((String) profileMap.get("relationshipType"));
+        profile.setHeight((String) profileMap.get("height"));
+        profile.setEthnicity((String) profileMap.get("ethnicity"));
+        profile.setChildren((String) profileMap.get("children"));
+        profile.setFamilyPlans((String) profileMap.get("familyPlans"));
+        profile.setPets((String) profileMap.get("pets"));
+        profile.setZodiacSign((String) profileMap.get("zodiacSign"));
+        
+        return profile;
     }
 
-    private Map<String, Object> convertWrittenPromptToMap(UserProfile.WrittenPrompt prompt) {
+    // Written Prompt conversion methods
+    private Map<String, Object> convertWrittenPromptToMap(WrittenPrompt prompt) {
+        if (prompt == null) return null;
+        
         Map<String, Object> map = new HashMap<>();
         map.put("question", prompt.getQuestion());
         map.put("answer", prompt.getAnswer());
+        
         return map;
     }
 
-    private UserProfile.WrittenPrompt convertToWrittenPrompt(Map<String, Object> promptMap) {
-        if (promptMap == null) return null;
-        
-        return UserProfile.WrittenPrompt.builder()
-                .question((String) promptMap.get("question"))
-                .answer((String) promptMap.get("answer"))
-                .build();
-    }
-
-    private List<UserProfile.WrittenPrompt> convertToWrittenPromptList(List<Map<String, Object>> promptMaps) {
-        if (promptMaps == null) return new ArrayList<>();
+    private List<WrittenPrompt> convertToWrittenPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return null;
         
         return promptMaps.stream()
                 .map(this::convertToWrittenPrompt)
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> convertPollPromptToMap(UserProfile.PollPrompt prompt) {
+    private WrittenPrompt convertToWrittenPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        WrittenPrompt prompt = new WrittenPrompt();
+        prompt.setQuestion((String) promptMap.get("question"));
+        prompt.setAnswer((String) promptMap.get("answer"));
+        
+        return prompt;
+    }
+
+    // Poll Prompt conversion methods
+    private Map<String, Object> convertPollPromptToMap(PollPrompt prompt) {
+        if (prompt == null) return null;
+        
         Map<String, Object> map = new HashMap<>();
         map.put("question", prompt.getQuestion());
         map.put("description", prompt.getDescription());
         map.put("options", prompt.getOptions());
         map.put("selectedOption", prompt.getSelectedOption());
+        
         return map;
     }
 
-    private UserProfile.PollPrompt convertToPollPrompt(Map<String, Object> promptMap) {
-        if (promptMap == null) return null;
-        
-        return UserProfile.PollPrompt.builder()
-                .question((String) promptMap.get("question"))
-                .description((String) promptMap.get("description"))
-                .options((List<String>) promptMap.get("options"))
-                .selectedOption((String) promptMap.get("selectedOption"))
-                .build();
-    }
-
-    private List<UserProfile.PollPrompt> convertToPollPromptList(List<Map<String, Object>> promptMaps) {
-        if (promptMaps == null) return new ArrayList<>();
+    private List<PollPrompt> convertToPollPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return null;
         
         return promptMaps.stream()
                 .map(this::convertToPollPrompt)
                 .collect(Collectors.toList());
     }
 
-    private Map<String, Object> convertFieldVisibilityToMap(UserProfile.FieldVisibility visibility) {
+    private PollPrompt convertToPollPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        PollPrompt prompt = new PollPrompt();
+        prompt.setQuestion((String) promptMap.get("question"));
+        prompt.setDescription((String) promptMap.get("description"));
+        prompt.setOptions((List<String>) promptMap.get("options"));
+        prompt.setSelectedOption((String) promptMap.get("selectedOption"));
+        
+        return prompt;
+    }
+
+    // Field Visibility conversion methods
+    private Map<String, Object> convertFieldVisibilityToMap(FieldVisibility visibility) {
         if (visibility == null) return null;
         
         Map<String, Object> map = new HashMap<>();
-        map.put("jobTitle", visibility.getJobTitle());
-        map.put("university", visibility.getUniversity());
-        map.put("religiousBeliefs", visibility.getReligiousBeliefs());
-        map.put("politics", visibility.getPolitics());
-        map.put("height", visibility.getHeight());
-        map.put("ethnicity", visibility.getEthnicity());
+        map.put("jobTitle", visibility.isJobTitle());
+        map.put("company", visibility.isCompany());
+        map.put("university", visibility.isUniversity());
+        map.put("religiousBeliefs", visibility.isReligiousBeliefs());
+        map.put("politics", visibility.isPolitics());
+        map.put("height", visibility.isHeight());
+        map.put("ethnicity", visibility.isEthnicity());
+        map.put("hometown", visibility.isHometown());
+        
         return map;
     }
 
-    private UserProfile.FieldVisibility convertToFieldVisibility(Map<String, Object> visibilityMap) {
+    private FieldVisibility convertToFieldVisibility(Map<String, Object> visibilityMap) {
         if (visibilityMap == null) return null;
         
-        return UserProfile.FieldVisibility.builder()
-                .jobTitle((Boolean) visibilityMap.get("jobTitle"))
-                .university((Boolean) visibilityMap.get("university"))
-                .religiousBeliefs((Boolean) visibilityMap.get("religiousBeliefs"))
-                .politics((Boolean) visibilityMap.get("politics"))
-                .height((Boolean) visibilityMap.get("height"))
-                .ethnicity((Boolean) visibilityMap.get("ethnicity"))
-                .build();
+        FieldVisibility visibility = new FieldVisibility();
+        visibility.setJobTitle((Boolean) visibilityMap.get("jobTitle"));
+        visibility.setCompany((Boolean) visibilityMap.get("company"));
+        visibility.setUniversity((Boolean) visibilityMap.get("university"));
+        visibility.setReligiousBeliefs((Boolean) visibilityMap.get("religiousBeliefs"));
+        visibility.setPolitics((Boolean) visibilityMap.get("politics"));
+        visibility.setHeight((Boolean) visibilityMap.get("height"));
+        visibility.setEthnicity((Boolean) visibilityMap.get("ethnicity"));
+        visibility.setHometown((Boolean) visibilityMap.get("hometown"));
+        
+        return visibility;
     }
 
-    private Map<String, Object> convertPreferencesToMap(UserProfile.Preferences preferences) {
+    // User Preferences conversion methods
+    private Map<String, Object> convertUserPreferencesToMap(UserPreferences preferences) {
         if (preferences == null) return null;
         
         Map<String, Object> map = new HashMap<>();
         map.put("preferredGender", preferences.getPreferredGender());
-        map.put("minAge", preferences.getMinAge());
-        map.put("maxAge", preferences.getMaxAge());
         map.put("maxDistance", preferences.getMaxDistance());
-        map.put("minHeight", preferences.getMinHeight());
-        map.put("maxHeight", preferences.getMaxHeight());
-        map.put("datingIntention", preferences.getDatingIntention());
-        map.put("drinkingPreference", preferences.getDrinkingPreference());
-        map.put("smokingPreference", preferences.getSmokingPreference());
-        map.put("religionImportance", preferences.getReligionImportance());
-        map.put("wantsChildren", preferences.getWantsChildren());
+        map.put("datingIntentions", preferences.getDatingIntention());
+        map.put("dealBreakers", preferences.getDealBreakers());
+        map.put("mustHaves", preferences.getMustHaves());
+        
+        if (preferences.getAgeRange() != null) {
+            Map<String, Object> ageRange = new HashMap<>();
+            ageRange.put("min", preferences.getAgeRange().getMin());
+            ageRange.put("max", preferences.getAgeRange().getMax());
+            map.put("ageRange", ageRange);
+        }
+        
+        if (preferences.getHeightRange() != null) {
+            Map<String, Object> heightRange = new HashMap<>();
+            heightRange.put("min", preferences.getHeightRange().getMin());
+            heightRange.put("max", preferences.getHeightRange().getMax());
+            map.put("heightRange", heightRange);
+        }
+        
         return map;
     }
 
-    private UserProfile.Preferences convertToPreferences(Map<String, Object> preferencesMap) {
+    private UserPreferences convertToUserPreferences(Map<String, Object> preferencesMap) {
         if (preferencesMap == null) return null;
         
-        return UserProfile.Preferences.builder()
-                .preferredGender((String) preferencesMap.get("preferredGender"))
-                .minAge((Integer) preferencesMap.get("minAge"))
-                .maxAge((Integer) preferencesMap.get("maxAge"))
-                .maxDistance((Integer) preferencesMap.get("maxDistance"))
-                .minHeight((Integer) preferencesMap.get("minHeight"))
-                .maxHeight((Integer) preferencesMap.get("maxHeight"))
-                .datingIntention((String) preferencesMap.get("datingIntention"))
-                .drinkingPreference((String) preferencesMap.get("drinkingPreference"))
-                .smokingPreference((String) preferencesMap.get("smokingPreference"))
-                .religionImportance((String) preferencesMap.get("religionImportance"))
-                .wantsChildren((Boolean) preferencesMap.get("wantsChildren"))
-                .build();
+        UserPreferences preferences = new UserPreferences();
+        preferences.setPreferredGender((String) preferencesMap.get("preferredGender"));
+        preferences.setMaxDistance((Integer) preferencesMap.get("maxDistance"));
+        preferences.setDatingIntention((String) preferencesMap.get("datingIntentions"));
+        preferences.setDealBreakers((List<String>) preferencesMap.get("dealBreakers"));
+        preferences.setMustHaves((List<String>) preferencesMap.get("mustHaves"));
+        
+        Map<String, Object> ageRangeMap = (Map<String, Object>) preferencesMap.get("ageRange");
+        if (ageRangeMap != null) {
+            UserPreferences.AgeRange ageRange = new UserPreferences.AgeRange();
+            ageRange.setMin((Integer) ageRangeMap.get("min"));
+            ageRange.setMax((Integer) ageRangeMap.get("max"));
+            preferences.setAgeRange(ageRange);
+        }
+        
+        Map<String, Object> heightRangeMap = (Map<String, Object>) preferencesMap.get("heightRange");
+        if (heightRangeMap != null) {
+            UserPreferences.HeightRange heightRange = new UserPreferences.HeightRange();
+            heightRange.setMin((Integer) heightRangeMap.get("min"));
+            heightRange.setMax((Integer) heightRangeMap.get("max"));
+            preferences.setHeightRange(heightRange);
+        }
+        
+        return preferences;
     }
 
-    private Map<String, Object> convertNotificationSettingsToMap(UserProfile.NotificationSettings settings) {
+    // Notification Settings conversion methods
+    private Map<String, Object> convertNotificationSettingsToMap(NotificationSettings settings) {
         if (settings == null) return null;
         
         Map<String, Object> map = new HashMap<>();
-        map.put("pushEnabled", settings.getPushEnabled());
-        map.put("newMatches", settings.getNewMatches());
-        map.put("messages", settings.getMessages());
-        map.put("profileViews", settings.getProfileViews());
-        map.put("matchReminders", settings.getMatchReminders());
-        map.put("marketing", settings.getMarketing());
-        map.put("safety", settings.getSafety());
-        map.put("systemUpdates", settings.getSystemUpdates());
-        
-        if (settings.getQuietHours() != null) {
-            Map<String, Object> quietHoursMap = new HashMap<>();
-            quietHoursMap.put("enabled", settings.getQuietHours().getEnabled());
-            quietHoursMap.put("start", settings.getQuietHours().getStart());
-            quietHoursMap.put("end", settings.getQuietHours().getEnd());
-            map.put("quietHours", quietHoursMap);
-        }
+        map.put("newMatches", settings.isNewMatches());
+        map.put("messages", settings.isMessages());
+        map.put("likes", settings.isLikes());
+        map.put("superLikes", settings.isSuperLikes());
+        map.put("promotions", settings.isPromotions());
+        map.put("emailUpdates", settings.isEmailUpdates());
         
         return map;
     }
 
-    private UserProfile.NotificationSettings convertToNotificationSettings(Map<String, Object> settingsMap) {
+    private NotificationSettings convertToNotificationSettings(Map<String, Object> settingsMap) {
         if (settingsMap == null) return null;
         
-        UserProfile.QuietHours quietHours = null;
-        Map<String, Object> quietHoursMap = (Map<String, Object>) settingsMap.get("quietHours");
-        if (quietHoursMap != null) {
-            quietHours = UserProfile.QuietHours.builder()
-                    .enabled((Boolean) quietHoursMap.get("enabled"))
-                    .start((String) quietHoursMap.get("start"))
-                    .end((String) quietHoursMap.get("end"))
-                    .build();
-        }
+        NotificationSettings settings = new NotificationSettings();
+        settings.setNewMatches((Boolean) settingsMap.get("newMatches"));
+        settings.setMessages((Boolean) settingsMap.get("messages"));
+        settings.setLikes((Boolean) settingsMap.get("likes"));
+        settings.setSuperLikes((Boolean) settingsMap.get("superLikes"));
+        settings.setPromotions((Boolean) settingsMap.get("promotions"));
+        settings.setEmailUpdates((Boolean) settingsMap.get("emailUpdates"));
         
-        return UserProfile.NotificationSettings.builder()
-                .pushEnabled((Boolean) settingsMap.get("pushEnabled"))
-                .newMatches((Boolean) settingsMap.get("newMatches"))
-                .messages((Boolean) settingsMap.get("messages"))
-                .profileViews((Boolean) settingsMap.get("profileViews"))
-                .matchReminders((Boolean) settingsMap.get("matchReminders"))
-                .marketing((Boolean) settingsMap.get("marketing"))
-                .safety((Boolean) settingsMap.get("safety"))
-                .systemUpdates((Boolean) settingsMap.get("systemUpdates"))
-                .quietHours(quietHours)
-                .build();
+        return settings;
     }
 
-    @Override
-    public CompleteUserProfile save(CompleteUserProfile profile) {
-        try {
-            if (profile.getCreatedAt() == null) {
-                profile.setCreatedAt(java.time.LocalDateTime.now());
-            }
-            profile.setUpdatedAt(java.time.LocalDateTime.now());
-            
-            DocumentReference docRef = firestore.collection("users").document(profile.getUserId());
-            docRef.set(convertCompleteUserProfileToMap(profile)).get();
-            
-            return profile;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to save complete user profile", e);
+    // Utility methods
+    private <T> List<List<T>> partitionList(List<T> list, int partitionSize) {
+        List<List<T>> partitions = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += partitionSize) {
+            partitions.add(list.subList(i, Math.min(i + partitionSize, list.size())));
         }
-    }
-
-    @Override
-    public CompleteUserProfile findByUserId(String userId) {
-        try {
-            DocumentSnapshot doc = firestore.collection("users")
-                    .document(userId)
-                    .get()
-                    .get();
-                    
-            return doc.exists() ? convertToCompleteUserProfile(doc) : null;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to find complete user profile by userId", e);
-        }
-    }
-
-    private Map<String, Object> convertCompleteUserProfileToMap(CompleteUserProfile profile) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", profile.getId());
-        map.put("userId", profile.getUserId());
-        map.put("name", profile.getName());
-        map.put("firstName", profile.getFirstName());
-        map.put("lastName", profile.getLastName());
-        map.put("age", profile.getAge());
-        map.put("bio", profile.getBio());
-        map.put("location", profile.getLocation());
-        map.put("interests", profile.getInterests());
-        map.put("dateOfBirth", profile.getDateOfBirth());
-        map.put("gender", profile.getGender());
-        map.put("active", profile.isActive());
-        map.put("jobTitle", profile.getJobTitle());
-        map.put("university", profile.getUniversity());
-        map.put("createdAt", profile.getCreatedAt());
-        map.put("updatedAt", profile.getUpdatedAt());
-        map.put("lastActive", profile.getLastActive());
-        map.put("version", profile.getVersion());
-        return map;
-    }
-
-    private CompleteUserProfile convertToCompleteUserProfile(DocumentSnapshot doc) {
-        Map<String, Object> data = doc.getData();
-        if (data == null) {
-            throw new RuntimeException("Document data is null");
-        }
-        
-        CompleteUserProfile profile = new CompleteUserProfile();
-        profile.setId(doc.getId());
-        profile.setUserId((String) data.get("userId"));
-        profile.setName((String) data.get("name"));
-        profile.setFirstName((String) data.get("firstName"));
-        profile.setLastName((String) data.get("lastName"));
-        profile.setAge(data.get("age") != null ? ((Number) data.get("age")).intValue() : 0);
-        profile.setBio((String) data.get("bio"));
-        profile.setLocation((String) data.get("location"));
-        profile.setInterests((List<String>) data.get("interests"));
-        if (data.get("dateOfBirth") != null) {
-            profile.setDateOfBirth(((java.sql.Date) data.get("dateOfBirth")).toLocalDate());
-        }
-        profile.setGender((String) data.get("gender"));
-        profile.setActive(data.get("active") != null ? (Boolean) data.get("active") : true);
-        profile.setJobTitle((String) data.get("jobTitle"));
-        profile.setUniversity((String) data.get("university"));
-        if (data.get("createdAt") != null) {
-            profile.setCreatedAt((java.time.LocalDateTime) data.get("createdAt"));
-        }
-        if (data.get("updatedAt") != null) {
-            profile.setUpdatedAt((java.time.LocalDateTime) data.get("updatedAt"));
-        }
-        if (data.get("lastActive") != null) {
-            profile.setLastActive((java.time.LocalDateTime) data.get("lastActive"));
-        }
-        profile.setVersion(data.get("version") != null ? ((Number) data.get("version")).intValue() : 1);
-        return profile;
+        return partitions;
     }
 }

@@ -1,0 +1,41 @@
+meta {
+  name: Report User
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/users/user_456/report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "reason": "inappropriate_content"
+  }
+}
+
+docs {
+  # Report User
+  
+  Report another user for inappropriate behavior or content.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - targetUserId: The ID of the user to report
+  
+  Request body:
+  - reason: Reason for reporting (e.g., "inappropriate_content", "harassment", "fake_profile")
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Result object
+  - message: Success or error message
+}

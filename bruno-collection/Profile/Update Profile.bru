@@ -1,0 +1,56 @@
+meta {
+  name: Update Profile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "basicInfo": {
+      "name": "John Doe",
+      "bio": "Adventure seeker and coffee enthusiast",
+      "location": "San Francisco, CA",
+      "jobTitle": "Software Engineer",
+      "company": "Tech Innovations Inc.",
+      "education": "Stanford University"
+    },
+    "interests": ["hiking", "photography", "cooking", "traveling"],
+    "languages": ["English", "Spanish", "French"],
+    "preferences": {
+      "ageRangeMin": 25,
+      "ageRangeMax": 35,
+      "maxDistance": 50,
+      "genderPreference": "ALL"
+    }
+  }
+}
+
+docs {
+  # Update Profile
+  
+  Update the user's complete profile information.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - basicInfo: Object containing basic profile information
+  - interests: Array of user interests
+  - languages: Array of languages spoken
+  - preferences: Object containing matching preferences
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - data: Updated user profile data (UserProfileDTO)
+}

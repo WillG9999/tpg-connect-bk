@@ -1,0 +1,31 @@
+meta {
+  name: Delete Notification
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/notifications/notification_123
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete Notification
+  
+  Delete a specific notification.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - notificationId: The ID of the notification to delete
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+}

@@ -265,10 +265,8 @@ public class SafetyService {
                 return false; // Placeholder
             
             case "CONTENT_FILTER":
-                // Check for inappropriate content in bio
-                return user.getBio() != null && 
-                       (user.getBio().toLowerCase().contains("spam") || 
-                        user.getBio().toLowerCase().contains("fake"));
+                // Content filter checks removed (bio field no longer exists)
+                return false;
             
             default:
                 return false;
@@ -299,7 +297,7 @@ public class SafetyService {
         // If user has 5+ reports in the last week, automatically disable their account
         if (recentReports.size() >= 5) {
             CompleteUserProfile user = userProfileRepository.findByUserId(userId);
-            if (user != null && user.isActive()) {
+            if (user != null && user.getActive()) {
                 user.setActive(false);
                 user.setUpdatedAt(LocalDateTime.now());
                 userProfileRepository.save(user);

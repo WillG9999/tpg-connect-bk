@@ -1,0 +1,28 @@
+meta {
+  name: E1 - Delete Account
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/api/auth/delete-account
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete Account
+  
+  Permanently delete user's account and all associated data.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+}

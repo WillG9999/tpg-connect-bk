@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WrittenPrompt {
-    private String prompt;
-    private String answer;
+    private String question;              // Prompt question
+    private String answer;                // User's answer
 }

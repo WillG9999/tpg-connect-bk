@@ -1,0 +1,52 @@
+meta {
+  name: Update User
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/users/user_123
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "John Doe Updated",
+    "bio": "Updated bio - Love hiking, reading, and traveling!",
+    "location": "Los Angeles, CA",
+    "interests": ["hiking", "reading", "traveling", "photography"],
+    "languages": ["English", "Spanish"],
+    "jobTitle": "Software Engineer",
+    "company": "Tech Corp"
+  }
+}
+
+docs {
+  # Update User
+  
+  Update user's profile information. Users can only update their own profile.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - userId: The ID of the user to update (must match authenticated user)
+  
+  Request body fields (all optional):
+  - name: User's display name
+  - bio: User's biography
+  - location: User's location
+  - interests: Array of user interests
+  - languages: Array of languages spoken
+  - jobTitle: User's job title
+  - company: User's company
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Updated user profile data (UserProfileDTO)
+}

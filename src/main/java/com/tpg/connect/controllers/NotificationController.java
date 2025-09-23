@@ -1,10 +1,8 @@
 package com.tpg.connect.controllers;
 
 import com.tpg.connect.model.dto.NotificationRequest;
-import com.tpg.connect.model.notifications.DeviceToken;
 import com.tpg.connect.model.notifications.Notification;
 import com.tpg.connect.services.NotificationService;
-import com.tpg.connect.services.PushNotificationService;
 import com.tpg.connect.utilities.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,8 +23,6 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
-    @Autowired
-    private PushNotificationService pushNotificationService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -155,54 +151,6 @@ public class NotificationController {
         ));
     }
 
-    @PostMapping("/device-token")
-    @Operation(summary = "Register device token", description = "Register a device token for push notifications")
-    public ResponseEntity<Map<String, Object>> registerDeviceToken(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody Map<String, String> tokenData) {
-        
-        String userId = extractUserIdFromToken(authHeader);
-        String token = tokenData.get("token");
-        String deviceType = tokenData.get("deviceType");
-        String deviceId = tokenData.get("deviceId");
-        
-        if (token == null || deviceType == null || deviceId == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", "Missing required fields: token, deviceType, deviceId"
-            ));
-        }
-        
-        DeviceToken.DeviceType type;
-        try {
-            type = DeviceToken.DeviceType.valueOf(deviceType.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", "Invalid device type. Must be IOS, ANDROID, or WEB"
-            ));
-        }
-        
-        pushNotificationService.registerDeviceToken(userId, token, type, deviceId);
-        
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "message", "Device token registered successfully"
-        ));
-    }
-
-    @DeleteMapping("/device-token")
-    @Operation(summary = "Unregister device token", description = "Unregister a device token")
-    public ResponseEntity<Map<String, Object>> unregisterDeviceToken(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestParam String deviceId) {
-        
-        String userId = extractUserIdFromToken(authHeader);
-        pushNotificationService.unregisterDeviceToken(userId, deviceId);
-        
-        return ResponseEntity.ok(Map.of(
-            "success", true,
-            "message", "Device token unregistered successfully"
-        ));
-    }
 
     @PostMapping("/test")
     @Operation(summary = "Send test notification", description = "Send a test notification to the current user")

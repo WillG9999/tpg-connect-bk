@@ -1,0 +1,40 @@
+meta {
+  name: Block User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/safety/block
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "targetUserId": "user_456",
+    "reason": "harassment"
+  }
+}
+
+docs {
+  # Block User
+  
+  Block another user for safety reasons.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - targetUserId: The ID of the user to block
+  - reason: Reason for blocking (e.g., "harassment", "inappropriate_behavior", "spam")
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with block confirmation and blocked user ID
+  - message: Success or error message
+}

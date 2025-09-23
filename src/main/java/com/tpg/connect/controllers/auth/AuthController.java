@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.Map;
+import java.util.HashMap;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,6 +26,9 @@ public class AuthController extends BaseController implements AuthControllerApi 
 
     @Autowired
     private AuthenticationService authenticationService;
+    
+    @Value("${app.dev.expose-reset-tokens:false}")
+    private boolean exposeResetTokens;
 
     @Override
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -85,11 +90,20 @@ public class AuthController extends BaseController implements AuthControllerApi 
     @Override
     public ResponseEntity<Map<String, Object>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         try {
-            authenticationService.initiatePasswordReset(request.getEmail());
-            return successResponse(Map.of(
+            String resetToken = authenticationService.initiatePasswordReset(request.getEmail());
+            Map<String, Object> response = Map.of(
                 "message", "Password reset email sent if account exists",
                 "email", request.getEmail()
-            ));
+            );
+            
+            // In development mode, include the reset token for testing
+            if (resetToken != null && isDevelopmentMode()) {
+                Map<String, Object> devResponse = new HashMap<>(response);
+                devResponse.put("resetToken", resetToken);
+                return successResponse(devResponse);
+            }
+            
+            return successResponse(response);
         } catch (Exception e) {
             // Always return success for security (don't reveal if email exists)
             return successResponse(Map.of(
@@ -201,5 +215,20 @@ public class AuthController extends BaseController implements AuthControllerApi 
     protected ResponseEntity<Map<String, Object>> errorResponse(String message) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("success", false, "message", message));
+    }
+    
+    private boolean isDevelopmentMode() {
+        return exposeResetTokens;
+    }
+    
+    // Test endpoint for JSON deserialization
+    @PostMapping("/test-json")
+    public ResponseEntity<Map<String, Object>> testJsonDeserialization(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(Map.of(
+            "message", "JSON deserialization working",
+            "email", request.getEmail() != null ? request.getEmail() : "null",
+            "password", request.getPassword() != null ? "[present]" : "null",
+            "rememberMe", request.isRememberMe()
+        ));
     }
 }

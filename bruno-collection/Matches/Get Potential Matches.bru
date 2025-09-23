@@ -1,0 +1,42 @@
+meta {
+  name: Get Potential Matches
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/matches/discover?count=10&lat=37.7749&lng=-122.4194&maxDistance=25&exclude=user_456,user_789
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  count: 10
+  lat: 37.7749
+  lng: -122.4194
+  maxDistance: 25
+  exclude: user_456,user_789
+}
+
+docs {
+  # Get Potential Matches (Alternative Endpoint)
+  
+  Alternative endpoint to get potential matches for discovery.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - count: Number of matches to return (default: 10)
+  - lat: User's current latitude
+  - lng: User's current longitude
+  - maxDistance: Maximum distance in miles/km
+  - exclude: Comma-separated list of user IDs to exclude
+  
+  Returns:
+  - Array of UserProfileDTO objects representing potential matches
+}

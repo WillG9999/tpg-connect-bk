@@ -1,7 +1,6 @@
 package com.tpg.connect.util;
 
 import com.tpg.connect.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
@@ -14,10 +13,7 @@ public class ConnectIdGenerator {
     private static final long MAX_CONNECT_ID = 999999999999L;
     private final Random random = new SecureRandom();
 
-    @Autowired
-    private UserRepository userRepository;
-
-    public String generateUniqueConnectId() {
+    public String generateUniqueConnectId(UserRepository userRepository) {
         String connectId;
         int attempts = 0;
         do {

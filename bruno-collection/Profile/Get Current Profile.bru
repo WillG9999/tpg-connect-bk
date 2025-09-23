@@ -1,0 +1,35 @@
+meta {
+  name: Get Current Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/profile?includePreferences=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  includePreferences: true
+}
+
+docs {
+  # Get Current Profile
+  
+  Get the current user's detailed profile information.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - includePreferences: Boolean to include user preferences (default: false)
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Detailed user profile data (UserProfileDTO)
+}

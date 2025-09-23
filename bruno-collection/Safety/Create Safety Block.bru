@@ -1,0 +1,48 @@
+meta {
+  name: Create Safety Block
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/safety/blocks
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "blockType": "MESSAGING_RESTRICTION",
+    "reason": "Multiple reports of inappropriate behavior",
+    "duration": "7_DAYS",
+    "restrictions": {
+      "canSendMessages": false,
+      "canLikeProfiles": true,
+      "canCreateMatches": true
+    }
+  }
+}
+
+docs {
+  # Create Safety Block
+  
+  Create a safety block/restriction (typically admin only).
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - blockType: Type of safety block
+  - reason: Reason for the block
+  - duration: Duration of the block
+  - restrictions: Object defining specific restrictions
+  
+  Returns:
+  - SafetyBlock object with the created safety block details
+  
+  Note: This endpoint is typically restricted to admin users.
+}

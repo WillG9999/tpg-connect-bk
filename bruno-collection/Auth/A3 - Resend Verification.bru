@@ -1,0 +1,29 @@
+meta {
+  name: A3 - Resend Verification
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/resend-verification?email=testuser@example.com
+  body: none
+  auth: none
+}
+
+params:query {
+  email: testuser@example.com
+}
+
+docs {
+  # Resend Email Verification
+  
+  Resend email verification link to user.
+  
+  Query parameters:
+  - email: User's email address
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success message (always success for security)
+  - email: Email address used
+}

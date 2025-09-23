@@ -10,7 +10,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PollPrompt {
-    private String prompt;
-    private String question;
-    private List<String> options;
+    private String question;              // Poll question
+    private String description;           // Poll description
+    private List<String> options;         // Poll options
+    private String selectedOption;        // User's selection
 }

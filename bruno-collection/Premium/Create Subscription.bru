@@ -1,0 +1,45 @@
+meta {
+  name: Create Subscription
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/premium/subscription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "planId": "premium_monthly",
+    "paymentMethodId": "pm_1234567890",
+    "billingCycle": "MONTHLY",
+    "autoRenew": true,
+    "promoCode": "SAVE20"
+  }
+}
+
+docs {
+  # Create Subscription
+  
+  Create a new premium subscription for the user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - planId: ID of the subscription plan
+  - paymentMethodId: Payment method identifier from payment processor
+  - billingCycle: Billing cycle (MONTHLY, YEARLY)
+  - autoRenew: Boolean for auto-renewal
+  - promoCode: Optional promotional code
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with subscription creation details
+}

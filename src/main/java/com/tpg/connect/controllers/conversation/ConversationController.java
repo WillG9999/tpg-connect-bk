@@ -2,7 +2,7 @@ package com.tpg.connect.controllers.conversation;
 
 import com.tpg.connect.constants.enums.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
-import com.tpg.connect.services.AuthService;
+import com.tpg.connect.services.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.Map;
 public class ConversationController extends BaseController {
 
     @Autowired
-    private AuthService authService;
+    private AuthenticationService authService;
 
     // Get conversations (frontend expects /api/conversations)
     @GetMapping
@@ -72,24 +72,11 @@ public class ConversationController extends BaseController {
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
         
-        if (!authService.validateToken(token)) {
+        if (!authService.isTokenValid(token)) {
             return null;
         }
 
-        String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
+        return authService.extractUserIdFromToken(token);
     }
 
-    private String getUserIdFromUsername(String username) {
-        switch (username) {
-            case "admin":
-                return "1";
-            case "user":
-                return "2";
-            case "alex":
-                return "user_123";
-            default:
-                return null;
-        }
-    }
 }

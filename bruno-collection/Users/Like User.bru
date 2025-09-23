@@ -1,0 +1,32 @@
+meta {
+  name: Like User
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/users/user_456/like
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Like User
+  
+  Like another user. This creates a user action and checks for potential matches.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - targetUserId: The ID of the user to like
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Result object with match information
+  - message: Success or error message
+}

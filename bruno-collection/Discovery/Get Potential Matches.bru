@@ -1,0 +1,53 @@
+meta {
+  name: Get Potential Matches
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/discovery/potential-matches
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "count": 10,
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "maxDistance": 25,
+    "excludeUserIds": ["user_456", "user_789"],
+    "preferences": {
+      "ageRangeMin": 25,
+      "ageRangeMax": 35,
+      "genderPreference": "ALL"
+    }
+  }
+}
+
+docs {
+  # Get Potential Matches
+  
+  Get a list of potential matches based on user preferences and location.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body (all optional):
+  - count: Number of matches to return (default: 10)
+  - latitude: User's current latitude
+  - longitude: User's current longitude
+  - maxDistance: Maximum distance in miles/km
+  - excludeUserIds: Array of user IDs to exclude
+  - preferences: Object with matching preferences
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - data: Array of potential matches (CompleteUserProfile)
+  - batchId: Unique identifier for this batch of matches
+}

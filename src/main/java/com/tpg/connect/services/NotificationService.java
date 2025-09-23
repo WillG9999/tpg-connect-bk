@@ -9,7 +9,6 @@ import com.tpg.connect.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +28,6 @@ public class NotificationService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private PushNotificationService pushNotificationService;
 
     @Async
     public void createAndSendNotification(NotificationRequest request) {
@@ -73,7 +70,7 @@ public class NotificationService {
         try {
             switch (notification.getChannel()) {
                 case PUSH:
-                    pushNotificationService.sendPushNotification(notification);
+                    notification.markAsSent();
                     break;
                 case EMAIL:
                     break;
@@ -99,7 +96,7 @@ public class NotificationService {
         if (page == 0 && size == 50) {
             return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
         }
-        return notificationRepository.findTopByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        return notificationRepository.findTopByUserIdOrderByCreatedAtDesc(userId, page, size);
     }
 
     public List<Notification> getUnreadNotifications(String userId) {

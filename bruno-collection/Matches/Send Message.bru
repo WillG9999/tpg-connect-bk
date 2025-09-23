@@ -1,0 +1,43 @@
+meta {
+  name: Send Message
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/matches/match_123/messages
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "content": "Hey! I loved your photo from the hiking trip. Which trail was that?",
+    "type": "text"
+  }
+}
+
+docs {
+  # Send Message
+  
+  Send a message in a match conversation.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - matchId: The ID of the match/conversation
+  
+  Request body:
+  - content: The message content
+  - type: Message type (default: "text")
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing the sent message details
+  - message: Success or error message
+}

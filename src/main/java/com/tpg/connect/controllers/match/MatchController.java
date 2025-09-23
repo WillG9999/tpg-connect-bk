@@ -289,10 +289,17 @@ public class MatchController extends BaseController {
         }
 
         String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
+        String userId = getUserIdFromUsername(username);
+        return userId;
     }
 
     private String getUserIdFromUsername(String username) {
+        // First check if the "username" is already a user ID (from JWT subject)
+        if (username != null && username.matches("\\d+")) {
+            return username;
+        }
+        
+        // Fallback to hardcoded mappings for test users
         switch (username) {
             case "admin":
                 return "1";

@@ -1,0 +1,32 @@
+meta {
+  name: Block User
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/users/user_456/block
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Block User
+  
+  Block another user to prevent them from seeing your profile or contacting you.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - targetUserId: The ID of the user to block
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Result object
+  - message: Success or error message
+}

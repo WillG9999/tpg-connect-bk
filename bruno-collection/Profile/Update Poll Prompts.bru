@@ -1,0 +1,58 @@
+meta {
+  name: Update Poll Prompts
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{baseUrl}}/api/profile/poll-prompts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  [
+    {
+      "promptId": "morning_routine",
+      "question": "What's your morning routine?",
+      "options": ["Coffee first", "Exercise first", "Check phone first", "Meditation first"],
+      "selectedOption": "Coffee first"
+    },
+    {
+      "promptId": "ideal_date",
+      "question": "What's your ideal first date?",
+      "options": ["Coffee shop", "Restaurant dinner", "Outdoor activity", "Museum or gallery"],
+      "selectedOption": "Outdoor activity"
+    },
+    {
+      "promptId": "communication_style",
+      "question": "How do you prefer to communicate?",
+      "options": ["Text messages", "Phone calls", "Video calls", "In person only"],
+      "selectedOption": "Text messages"
+    }
+  ]
+}
+
+docs {
+  # Update Poll Prompts
+  
+  Update the user's poll prompt responses.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - Array of poll objects with:
+    - promptId: Unique identifier for the prompt
+    - question: The poll question
+    - options: Array of available options
+    - selectedOption: User's selected option
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

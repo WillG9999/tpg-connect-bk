@@ -1,0 +1,46 @@
+meta {
+  name: Search Users
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/users/search?minAge=25&maxAge=35&location=San Francisco&interests=hiking,reading&page=0&size=20&sortBy=distance
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  minAge: 25
+  maxAge: 35
+  location: San Francisco
+  interests: hiking,reading
+  page: 0
+  size: 20
+  sortBy: distance
+}
+
+docs {
+  # Search Users
+  
+  Search for users based on various criteria.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters (all optional):
+  - minAge: Minimum age filter
+  - maxAge: Maximum age filter
+  - location: Location filter
+  - interests: Comma-separated list of interests
+  - page: Page number for pagination (default: 0)
+  - size: Number of results per page (default: 20)
+  - sortBy: Sort criteria (distance, age, etc.)
+  
+  Returns:
+  - Array of UserProfileDTO objects matching the search criteria
+}

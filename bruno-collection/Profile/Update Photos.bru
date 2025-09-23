@@ -1,0 +1,39 @@
+meta {
+  name: Update Photos
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/profile/photos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  [
+    "https://example.com/path/to/photo1.jpg",
+    "https://example.com/path/to/photo2.jpg",
+    "https://example.com/path/to/photo3.jpg"
+  ]
+}
+
+docs {
+  # Update Photos
+  
+  Update all photos for the user's profile in order.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - Array of photo URLs in display order
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

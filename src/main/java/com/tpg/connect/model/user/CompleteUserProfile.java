@@ -2,60 +2,121 @@ package com.tpg.connect.model.user;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.validation.constraints.*;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
-@Document(collection = "users")
 public class CompleteUserProfile {
-    @Id
-    private String id;
+    private String connectId;  // 12-digit ConnectID - Document ID
     
-    @NotBlank
-    @Size(min = 2, max = 50)
-    private String name;
-    
-    @Min(18)
-    @Max(100)
-    private int age;
-    
-    @Size(max = 500)
-    private String bio;
-    
-    @NotEmpty
-    @Size(min = 1, max = 6)
-    private List<Photo> photos;
-    
-    @Size(max = 100)
+    private String firstName;
+    private String lastName;
+    private LocalDate dateOfBirth;
+    private String gender;
+    private String email;
+    private List<EnhancedPhoto> photos;
     private String location;
     
-    @Size(max = 10)
-    private List<String> interests;
-    
-    private UserProfile profile;
+    private DetailedProfile profile;
     private List<WrittenPrompt> writtenPrompts;
     private List<PollPrompt> pollPrompts;
     private FieldVisibility fieldVisibility;
     private UserPreferences preferences;
+    private NotificationSettings notifications;
     
-    // Missing fields needed by AuthenticationService
-    private String userId;
-    private String firstName;
-    private String lastName;
-    private java.time.LocalDate dateOfBirth;
-    private String gender;
+    // Additional profile fields from Firebase schema
     private boolean active = true;
-    private String jobTitle;
-    private String university;
+    private boolean isOnline = false;
+    private boolean isPremium = false;
+    private boolean isVerified = false;
+    private String subscriptionType;
     
     // NoSQL metadata
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastActive;
-    private int version;
+    private int version = 1;
+    
+    // Computed/Helper methods for backward compatibility
+    public String getName() {
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        }
+        return firstName != null ? firstName : (lastName != null ? lastName : "");
+    }
+    
+    public void setName(String name) {
+        // For backward compatibility - split name into first/last
+        if (name != null && !name.trim().isEmpty()) {
+            String[] parts = name.trim().split("\\s+", 2);
+            this.firstName = parts[0];
+            this.lastName = parts.length > 1 ? parts[1] : "";
+        }
+    }
+    
+    public int getAge() {
+        if (dateOfBirth != null) {
+            return java.time.Period.between(dateOfBirth, java.time.LocalDate.now()).getYears();
+        }
+        return 0;
+    }
+    
+    public void setAge(Integer age) {
+        // For backward compatibility - estimate birth year
+        if (age != null && age > 0) {
+            this.dateOfBirth = java.time.LocalDate.now().minusYears(age);
+        }
+    }
+    
+    public String getId() {
+        return connectId;
+    }
+    
+    public void setId(String id) {
+        this.connectId = id;
+    }
+    
+    public String getUserId() {
+        return connectId;
+    }
+    
+    public void setUserId(String userId) {
+        this.connectId = userId;
+    }
+    
+    public List<String> getInterests() {
+        // Extract interests from detailed profile or return empty list
+        if (profile != null && profile.getLanguages() != null) {
+            return profile.getLanguages(); // Using languages as placeholder for interests
+        }
+        return new java.util.ArrayList<>();
+    }
+    
+    public void setInterests(List<String> interests) {
+        // Store interests in detailed profile
+        if (profile == null) {
+            profile = new DetailedProfile();
+        }
+        profile.setLanguages(interests); // Using languages as placeholder for interests
+    }
+    
+    // Additional getter methods for boolean fields
+    public boolean getActive() {
+        return active;
+    }
+    
+    public boolean getOnline() {
+        return isOnline;
+    }
+    
+    public boolean getPremium() {
+        return isPremium;
+    }
+    
+    public boolean getVerified() {
+        return isVerified;
+    }
 }

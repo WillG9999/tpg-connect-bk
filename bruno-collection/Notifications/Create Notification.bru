@@ -1,0 +1,52 @@
+meta {
+  name: Create Notification
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/notifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "userId": "user_123",
+    "type": "NEW_MATCH",
+    "title": "You have a new match!",
+    "message": "Sarah liked your profile and you matched!",
+    "priority": "HIGH",
+    "data": {
+      "matchId": "match_456",
+      "otherUserId": "user_789"
+    }
+  }
+}
+
+docs {
+  # Create Notification
+  
+  Create a new notification (typically admin only).
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - userId: Target user ID for the notification
+  - type: Notification type (NEW_MATCH, NEW_MESSAGE, SYSTEM_MAINTENANCE, etc.)
+  - title: Notification title
+  - message: Notification message
+  - priority: Priority level (LOW, NORMAL, HIGH, URGENT)
+  - data: Optional object with additional notification data
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  
+  Note: This endpoint is typically restricted to admin users or system processes.
+}

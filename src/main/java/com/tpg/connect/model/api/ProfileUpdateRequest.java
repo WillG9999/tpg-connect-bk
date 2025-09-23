@@ -20,9 +20,6 @@ public class ProfileUpdateRequest {
     @Max(100)
     private Integer age;
     
-    @Size(max = 500)
-    private String bio;
-    
     @Size(max = 100)
     private String location;
     

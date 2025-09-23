@@ -1,0 +1,34 @@
+meta {
+  name: Delete Safety Block
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/safety/blocks/block_123
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete Safety Block
+  
+  Delete/remove a safety block/restriction (typically admin only).
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - safetyBlockId: The ID of the safety block to delete
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with deletion confirmation
+  - message: Success or error message
+  
+  Note: This endpoint is typically restricted to admin users.
+}

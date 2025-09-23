@@ -28,8 +28,6 @@ public class DiscoveryService {
     @Autowired
     private MatchService matchService;
 
-    @Autowired
-    private PotentialMatchesService potentialMatchesService;
 
     private static final int DEFAULT_DISCOVERY_LIMIT = 10;
     private static final int MAX_DISCOVERY_LIMIT = 50;

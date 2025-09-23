@@ -132,18 +132,29 @@ public class DiscoveryController extends BaseController implements DiscoveryCont
     }
 
     private String validateAndExtractUserId(String authHeader) {
+        System.out.println("🔐 DiscoveryController.validateAndExtractUserId called");
+        System.out.println("🔐 Auth header: " + (authHeader != null ? authHeader.substring(0, Math.min(50, authHeader.length())) + "..." : "null"));
+        
         if (authHeader == null || !authHeader.startsWith(EndpointConstants.Headers.BEARER_PREFIX)) {
+            System.out.println("❌ Auth header is null or doesn't start with Bearer prefix");
+            System.out.println("❌ Expected prefix: '" + EndpointConstants.Headers.BEARER_PREFIX + "'");
             return null;
         }
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
+        System.out.println("🔐 Extracted token: " + (token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null"));
         
         if (!authService.validateToken(token)) {
+            System.out.println("❌ Token validation failed");
             return null;
         }
 
+        System.out.println("✅ Token validation successful, extracting username");
         String username = authService.extractUsername(token);
-        return getUserIdFromUsername(username);
+        System.out.println("🔐 Extracted username: " + username);
+        String userId = getUserIdFromUsername(username);
+        System.out.println("🔐 Mapped to userId: " + userId);
+        return userId;
     }
 
     private String getUserIdFromUsername(String username) {

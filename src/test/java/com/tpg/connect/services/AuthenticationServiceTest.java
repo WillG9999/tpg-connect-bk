@@ -1,12 +1,13 @@
 package com.tpg.connect.services;
 
-import com.tpg.connect.client.database.UserRepository;
-import com.tpg.connect.client.database.UserProfileRepository;
+import com.tpg.connect.repository.UserRepository;
+import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.model.api.LoginResponse;
 import com.tpg.connect.model.api.RegisterResponse;
 import com.tpg.connect.model.dto.LoginRequest;
 import com.tpg.connect.model.dto.RegisterRequest;
-import com.tpg.connect.model.user.auth.User;
+import com.tpg.connect.model.dto.UserProfileDTO;
+import com.tpg.connect.model.User;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,13 +16,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,9 +47,22 @@ class AuthenticationServiceTest {
     private BCryptPasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         passwordEncoder = new BCryptPasswordEncoder();
-        // We can't easily mock the private passwordEncoder, so we'll work around it
+        
+        // Set JWT secret using reflection for testing
+        Field jwtSecretField = AuthenticationService.class.getDeclaredField("jwtSecret");
+        jwtSecretField.setAccessible(true);
+        jwtSecretField.set(authenticationService, "test-jwt-secret-key-for-unit-tests-minimum-512-bits-long-key");
+        
+        // Set JWT expiration using reflection for testing
+        Field jwtExpirationField = AuthenticationService.class.getDeclaredField("jwtExpirationInSeconds");
+        jwtExpirationField.setAccessible(true);
+        jwtExpirationField.set(authenticationService, 3600);
+        
+        Field refreshExpirationField = AuthenticationService.class.getDeclaredField("refreshTokenExpirationInSeconds");
+        refreshExpirationField.setAccessible(true);
+        refreshExpirationField.set(authenticationService, 86400);
     }
 
     @Test
@@ -59,12 +74,12 @@ class AuthenticationServiceTest {
         request.setEmail("john@example.com");
         request.setPassword("password123");
         request.setConfirmPassword("password123");
-        request.setDateOfBirth(LocalDate.of(1995, 1, 1));
+        request.setDateOfBirth("1995-01-01");
         request.setGender("Male");
         request.setLocation("Test City");
 
-        when(userRepository.findByEmail("john@example.com")).thenReturn(null);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.existsByEmail("john@example.com")).thenReturn(false);
+        when(userRepository.createUser(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userProfileRepository.save(any(CompleteUserProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doNothing().when(emailService).sendEmailVerification(anyString(), anyString(), anyString());
 
@@ -76,10 +91,10 @@ class AuthenticationServiceTest {
         assertEquals("Registration successful. Please verify your email.", response.getMessage());
         assertNotNull(response.getAccessToken());
         assertNotNull(response.getUser());
-        assertEquals("John Doe", response.getUser().getName());
+        assertEquals("John Doe", ((UserProfileDTO) response.getUser()).getName());
 
-        verify(userRepository).findByEmail("john@example.com");
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).existsByEmail("john@example.com");
+        verify(userRepository).createUser(any(User.class));
         verify(userProfileRepository).save(any(CompleteUserProfile.class));
         verify(emailService).sendEmailVerification(anyString(), anyString(), anyString());
     }
@@ -105,7 +120,7 @@ class AuthenticationServiceTest {
         RegisterRequest request = new RegisterRequest();
         request.setPassword("password123");
         request.setConfirmPassword("password123");
-        request.setDateOfBirth(LocalDate.of(2010, 1, 1)); // Too young
+        request.setDateOfBirth("2010-01-01"); // Too young
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -122,11 +137,9 @@ class AuthenticationServiceTest {
         request.setEmail("existing@example.com");
         request.setPassword("password123");
         request.setConfirmPassword("password123");
-        request.setDateOfBirth(LocalDate.of(1995, 1, 1));
+        request.setDateOfBirth("1995-01-01");
 
-        User existingUser = new User();
-        existingUser.setEmail("existing@example.com");
-        when(userRepository.findByEmail("existing@example.com")).thenReturn(existingUser);
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -142,9 +155,10 @@ class AuthenticationServiceTest {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@example.com");
         request.setPassword("password123");
+        request.setDeviceType("WEB");
 
         User user = new User();
-        user.setId("user_123");
+        user.setConnectId("user_123");
         user.setEmail("test@example.com");
         user.setPasswordHash(passwordEncoder.encode("password123"));
         user.setActive(true);
@@ -154,8 +168,8 @@ class AuthenticationServiceTest {
         profile.setName("Test User");
         profile.setAge(28);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.updateLastLogin(eq("user_123"), any(), eq("WEB"))).thenReturn(user);
         when(userProfileRepository.findByUserId("user_123")).thenReturn(profile);
 
         // Act
@@ -167,10 +181,10 @@ class AuthenticationServiceTest {
         assertNotNull(response.getAccessToken());
         assertNotNull(response.getRefreshToken());
         assertNotNull(response.getUser());
-        assertEquals("Test User", response.getUser().getName());
+        assertEquals("Test User", ((UserProfileDTO) response.getUser()).getName());
 
         verify(userRepository).findByEmail("test@example.com");
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).updateLastLogin(eq("user_123"), any(), any());
         verify(userProfileRepository).findByUserId("user_123");
     }
 
@@ -180,8 +194,9 @@ class AuthenticationServiceTest {
         LoginRequest request = new LoginRequest();
         request.setEmail("nonexistent@example.com");
         request.setPassword("password123");
+        request.setDeviceType("WEB");
 
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(null);
+        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(java.util.Optional.empty());
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -197,14 +212,15 @@ class AuthenticationServiceTest {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@example.com");
         request.setPassword("wrong_password");
+        request.setDeviceType("WEB");
 
         User user = new User();
-        user.setId("user_123");
+        user.setConnectId("user_123");
         user.setEmail("test@example.com");
         user.setPasswordHash(passwordEncoder.encode("correct_password"));
         user.setActive(true);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -220,14 +236,15 @@ class AuthenticationServiceTest {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@example.com");
         request.setPassword("password123");
+        request.setDeviceType("WEB");
 
         User user = new User();
-        user.setId("user_123");
+        user.setConnectId("user_123");
         user.setEmail("test@example.com");
         user.setPasswordHash(passwordEncoder.encode("password123"));
         user.setActive(false); // Inactive account
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(

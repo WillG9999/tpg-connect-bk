@@ -3,6 +3,7 @@ package com.tpg.connect.utilities;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -13,7 +14,9 @@ import java.util.Set;
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "mySecretKeyForJWTTokenGenerationThatIsLongEnough123456789";
+    @Value("${jwt.secret:mySecretKey}")
+    private String SECRET_KEY;
+    
     private final long ACCESS_TOKEN_EXPIRATION = 3600000; // 1 hour
     private final long REFRESH_TOKEN_EXPIRATION = 604800000; // 7 days
     
@@ -54,9 +57,14 @@ public class JwtUtil {
 
     public boolean validateToken(String token) {
         try {
+            if (token == null || token.trim().isEmpty()) {
+                return false;
+            }
+            
             if (blacklistedTokens.contains(token)) {
                 return false;
             }
+            
             Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()

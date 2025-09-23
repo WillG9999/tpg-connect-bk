@@ -1,0 +1,28 @@
+meta {
+  name: Delete All Notifications
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/notifications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete All Notifications
+  
+  Delete all notifications for the current user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+}

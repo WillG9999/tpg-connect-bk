@@ -1,0 +1,18 @@
+meta {
+  name: Test Connection
+  type: http
+  seq: 0
+}
+
+get {
+  url: http://localhost:8080/api/health
+  body: none
+  auth: none
+}
+
+docs {
+  # Test Connection
+  
+  Simple test to verify the server is running without using environment variables.
+  This should return: {"status":"UP","message":"Application is running"}
+}

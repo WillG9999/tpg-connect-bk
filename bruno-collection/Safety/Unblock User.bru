@@ -1,0 +1,32 @@
+meta {
+  name: Unblock User
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/safety/unblock/user_456
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Unblock User
+  
+  Unblock a previously blocked user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - targetUserId: The ID of the user to unblock
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with unblock confirmation and unblocked user ID
+  - message: Success or error message
+}

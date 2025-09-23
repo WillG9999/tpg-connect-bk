@@ -1,0 +1,60 @@
+meta {
+  name: Update Discovery Settings
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/discovery/settings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "ageRangeMin": 25,
+    "ageRangeMax": 35,
+    "maxDistance": 50,
+    "genderPreference": "ALL",
+    "showMeOnConnect": true,
+    "pauseDiscovery": false,
+    "advancedFilters": {
+      "education": ["Bachelor's", "Master's", "PhD"],
+      "height": {
+        "min": 160,
+        "max": 190
+      },
+      "lifestyle": {
+        "smoking": "NEVER",
+        "drinking": "SOCIALLY",
+        "exercise": "REGULARLY"
+      }
+    }
+  }
+}
+
+docs {
+  # Update Discovery Settings
+  
+  Update the user's discovery and matching preferences.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - ageRangeMin: Minimum age preference
+  - ageRangeMax: Maximum age preference
+  - maxDistance: Maximum distance for matches (miles/km)
+  - genderPreference: Gender preference (MALE, FEMALE, ALL)
+  - showMeOnConnect: Boolean to show profile in discovery
+  - pauseDiscovery: Boolean to pause discovery temporarily
+  - advancedFilters: Object with additional filtering options
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated settings and success message
+}

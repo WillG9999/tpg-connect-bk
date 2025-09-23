@@ -1,0 +1,40 @@
+meta {
+  name: Get Matches
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/matches?status=active&page=0&size=20&since=2024-01-01
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  status: active
+  page: 0
+  size: 20
+  since: 2024-01-01
+}
+
+docs {
+  # Get Matches
+  
+  Get the user's current matches.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - status: Filter by match status (active, inactive, etc.)
+  - page: Page number for pagination (default: 0)
+  - size: Number of results per page (default: 20)
+  - since: ISO date string to get matches since a specific date
+  
+  Returns:
+  - Array of match objects with match details
+}

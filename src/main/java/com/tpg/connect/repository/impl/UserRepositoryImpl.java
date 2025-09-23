@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Repository
 public class UserRepositoryImpl implements UserRepository {
 
-    private static final String COLLECTION_NAME = "users";
+    private static final String COLLECTION_NAME = "userAuth";
     
     @Autowired
     private Firestore firestore;
@@ -25,7 +25,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public User createUser(User user) {
-        String connectId = connectIdGenerator.generateUniqueConnectId();
+        String connectId = connectIdGenerator.generateUniqueConnectId(this);
         return createUserWithConnectId(user, connectId);
     }
 

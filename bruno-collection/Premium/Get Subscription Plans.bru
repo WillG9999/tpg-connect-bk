@@ -1,0 +1,23 @@
+meta {
+  name: Get Subscription Plans
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/premium/subscription/plans
+  body: none
+  auth: none
+}
+
+docs {
+  # Get Subscription Plans
+  
+  Get available premium subscription plans.
+  
+  No authentication required.
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing available subscription plans with pricing and features
+}

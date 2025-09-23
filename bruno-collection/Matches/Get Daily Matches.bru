@@ -1,0 +1,42 @@
+meta {
+  name: Get Daily Matches
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/matches/daily/2024-01-15?includeResults=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  includeResults: true
+}
+
+docs {
+  # Get Daily Matches
+  
+  Get matches for a specific date from the daily batch.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - date: Date in YYYY-MM-DD format
+  
+  Query parameters:
+  - includeResults: Boolean to include previous action results (default: false)
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing:
+    - date: The requested date
+    - matches: Array of UserProfileDTO objects
+    - totalCount: Total number of matches
+    - includeResults: Whether results were included
+}

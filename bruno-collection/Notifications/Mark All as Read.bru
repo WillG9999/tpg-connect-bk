@@ -1,0 +1,28 @@
+meta {
+  name: Mark All as Read
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/notifications/read-all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Mark All as Read
+  
+  Mark all notifications as read for the current user.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+}

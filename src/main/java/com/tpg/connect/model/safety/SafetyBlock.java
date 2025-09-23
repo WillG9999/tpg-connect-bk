@@ -3,17 +3,13 @@ package com.tpg.connect.model.safety;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "safety_blocks")
 public class SafetyBlock {
-    @Id
     private String id;
     private String userId;           // User who created this safety block
     private SafetyBlockType blockType;

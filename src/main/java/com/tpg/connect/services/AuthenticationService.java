@@ -2,6 +2,7 @@ package com.tpg.connect.services;
 
 import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.repository.UserRepository;
+import com.tpg.connect.util.ConnectIdGenerator;
 import com.tpg.connect.model.api.LoginResponse;
 import com.tpg.connect.model.api.RegisterResponse;
 import com.tpg.connect.model.dto.ChangePasswordRequest;
@@ -38,22 +39,28 @@ public class AuthenticationService {
     @Autowired
     private UserProfileRepository userProfileRepository;
 
-    @Autowired
-    private ProfileManagementService profileManagementService;
+    // @Autowired
+    // private ProfileManagementService profileManagementService;
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private ConnectIdGenerator connectIdGenerator;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     @Value("${jwt.secret:mySecretKey}")
     private String jwtSecret;
     
-    @Value("${jwt.expiration:86400}")
-    private int jwtExpirationInSeconds;
+    @Value("${app.jwt.access-token-expiration:3600000}")
+    private long jwtExpirationInMilliseconds;
     
-    @Value("${jwt.refresh.expiration:604800}")
-    private int refreshTokenExpirationInSeconds;
+    @Value("${app.jwt.refresh-token-expiration:604800000}")
+    private long refreshTokenExpirationInMilliseconds;
+    
+    @Value("${app.dev.expose-reset-tokens:false}")
+    private boolean exposeResetTokens;
 
     // In-memory store for invalidated tokens (in production, use Redis)
     private final Set<String> invalidatedTokens = ConcurrentHashMap.newKeySet();
@@ -82,7 +89,7 @@ public class AuthenticationService {
 
         // Create user account
         User user = User.builder()
-                .connectId(UUID.randomUUID().toString())
+                .connectId(connectIdGenerator.generateUniqueConnectId(userRepository))
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .createdAt(Timestamp.now())
@@ -94,15 +101,14 @@ public class AuthenticationService {
 
         user = userRepository.createUser(user);
 
-        // Create complete user profile
+        // Create complete user profile  
         CompleteUserProfile profile = new CompleteUserProfile();
-        profile.setUserId(user.getConnectId());
+        profile.setConnectId(user.getConnectId()); // Set connectId for document ID
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());
-        profile.setName(request.getFirstName() + " " + request.getLastName());
-        profile.setAge(calculateAge(request.getDateOfBirth()));
-        profile.setDateOfBirth(request.getDateOfBirth());
+        profile.setDateOfBirth(LocalDate.parse(request.getDateOfBirth()));
         profile.setGender(request.getGender());
+        profile.setEmail(request.getEmail());
         profile.setLocation(request.getLocation());
         profile.setCreatedAt(LocalDateTime.now());
         profile.setUpdatedAt(LocalDateTime.now());
@@ -119,7 +125,15 @@ public class AuthenticationService {
         // Generate JWT token for immediate login
         String accessToken = generateAccessToken(user.getConnectId(), request.getEmail());
 
+        // Create UserProfileDTO for response (should work with fixed Jackson config)
         UserProfileDTO profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+        
+        // In development mode, include verification token for testing
+        if (isDevelopmentMode()) {
+            return new RegisterResponse(true, "Registration successful. Please verify your email.", 
+                                      accessToken, profileDTO, verificationToken);
+        }
+        
         return new RegisterResponse(true, "Registration successful. Please verify your email.", 
                                   accessToken, profileDTO);
     }
@@ -139,18 +153,41 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Update last login
-        user = userRepository.updateLastLogin(user.getConnectId(), Timestamp.now(), request.getDeviceType());
+        try {
+            // Update last login
+            user = userRepository.updateLastLogin(user.getConnectId(), Timestamp.now(), request.getDeviceType());
+        } catch (Exception e) {
+            System.err.println("Error updating last login: " + e.getMessage());
+            e.printStackTrace();
+        }
 
-        // Get user profile
-        CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
+        try {
+            // Get user profile
+            CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
+            
+            if (profile == null) {
+                throw new RuntimeException("User profile not found for user: " + user.getConnectId());
+            }
 
-        // Generate tokens
-        String accessToken = generateAccessToken(user.getConnectId(), user.getEmail());
-        String refreshToken = generateRefreshToken(user.getConnectId());
+            // Generate tokens
+            String accessToken = generateAccessToken(user.getConnectId(), user.getEmail());
+            String refreshToken = generateRefreshToken(user.getConnectId());
 
-        UserProfileDTO profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
-        return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO);
+            UserProfileDTO profileDTO;
+            try {
+                profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+            } catch (Exception e) {
+                // Fallback to minimal profile if conversion fails
+                profileDTO = createMinimalProfile(user, profile);
+                System.err.println("Profile conversion failed, using minimal profile: " + e.getMessage());
+                e.printStackTrace();
+            }
+            return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO);
+        } catch (Exception e) {
+            System.err.println("Error in login process: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     public void logoutUser(String authHeader) {
@@ -197,14 +234,16 @@ public class AuthenticationService {
         }
     }
 
-    public void initiatePasswordReset(String email) {
+    public String initiatePasswordReset(String email) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent() && userOpt.get().getActive()) {
             User user = userOpt.get();
             String resetToken = generatePasswordResetToken(user.getConnectId(), email);
             emailService.sendPasswordReset(email, resetToken);
+            return resetToken; // Return token for development/testing
         }
         // Always succeed for security (don't reveal if email exists)
+        return null;
     }
 
     public void resetPassword(ResetPasswordRequest request) {
@@ -331,7 +370,7 @@ public class AuthenticationService {
     }
 
     private String generateAccessToken(String userId, String email) {
-        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationInSeconds * 1000L);
+        Date expiryDate = new Date(System.currentTimeMillis() + jwtExpirationInMilliseconds);
         
         return Jwts.builder()
                 .subject(userId)
@@ -344,7 +383,7 @@ public class AuthenticationService {
     }
 
     private String generateRefreshToken(String userId) {
-        Date expiryDate = new Date(System.currentTimeMillis() + refreshTokenExpirationInSeconds * 1000L);
+        Date expiryDate = new Date(System.currentTimeMillis() + refreshTokenExpirationInMilliseconds);
         
         return Jwts.builder()
                 .subject(userId)
@@ -387,13 +426,28 @@ public class AuthenticationService {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    private boolean isUserOldEnough(LocalDate dateOfBirth) {
-        return Period.between(dateOfBirth, LocalDate.now()).getYears() >= 18;
+    private boolean isUserOldEnough(String dateOfBirth) {
+        try {
+            LocalDate birthDate = LocalDate.parse(dateOfBirth);
+            return Period.between(birthDate, LocalDate.now()).getYears() >= 18;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    private int calculateAge(LocalDate dateOfBirth) {
-        return Period.between(dateOfBirth, LocalDate.now()).getYears();
+    private int calculateAge(String dateOfBirth) {
+        try {
+            LocalDate birthDate = LocalDate.parse(dateOfBirth);
+            return Period.between(birthDate, LocalDate.now()).getYears();
+        } catch (Exception e) {
+            return 0;
+        }
     }
+    
+    private boolean isDevelopmentMode() {
+        return exposeResetTokens;
+    }
+    
 
     // Helper classes for token management
     private static class PasswordResetToken {
@@ -426,5 +480,38 @@ public class AuthenticationService {
         public String getUserId() { return userId; }
         public String getEmail() { return email; }
         public boolean isExpired() { return LocalDateTime.now().isAfter(expiryTime); }
+    }
+
+    private UserProfileDTO createMinimalProfile(User user, CompleteUserProfile profile) {
+        UserProfileDTO dto = new UserProfileDTO();
+        dto.setId(user.getConnectId());
+        dto.setName(profile.getFirstName() + " " + profile.getLastName());
+        
+        // Calculate age safely
+        if (profile.getDateOfBirth() != null) {
+            dto.setAge(Period.between(profile.getDateOfBirth(), LocalDate.now()).getYears());
+        } else {
+            dto.setAge(25); // Default age
+        }
+        
+        dto.setLocation(profile.getLocation() != null ? profile.getLocation() : "");
+        dto.setGender(profile.getGender() != null ? profile.getGender() : "");
+        dto.setPhotos(List.of());
+        dto.setWrittenPrompts(List.of());
+        dto.setPollPrompts(List.of());
+        
+        // Default field visibility
+        dto.setFieldVisibility(Map.of(
+            "jobTitle", true,
+            "company", true,
+            "university", true,
+            "religiousBeliefs", true,
+            "politics", true,
+            "hometown", true,
+            "height", true,
+            "ethnicity", true
+        ));
+        
+        return dto;
     }
 }

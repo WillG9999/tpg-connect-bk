@@ -1,7 +1,13 @@
 package com.tpg.connect.repository;
 
-import com.tpg.connect.model.UserProfile;
 import com.tpg.connect.model.user.CompleteUserProfile;
+import com.tpg.connect.model.user.DetailedProfile;
+import com.tpg.connect.model.user.EnhancedPhoto;
+import com.tpg.connect.model.user.WrittenPrompt;
+import com.tpg.connect.model.user.PollPrompt;
+import com.tpg.connect.model.user.FieldVisibility;
+import com.tpg.connect.model.user.UserPreferences;
+import com.tpg.connect.model.user.NotificationSettings;
 import com.google.cloud.Timestamp;
 
 import java.util.List;
@@ -11,37 +17,36 @@ import java.util.Optional;
 public interface UserProfileRepository {
     
     // Create Operations
-    UserProfile createProfile(UserProfile profile);
     CompleteUserProfile save(CompleteUserProfile profile);
     
     // Read Operations
-    Optional<UserProfile> findByConnectId(String connectId);
+    Optional<CompleteUserProfile> findByConnectId(String connectId);
     CompleteUserProfile findByUserId(String userId);
-    List<UserProfile> findActiveProfiles();
+    List<CompleteUserProfile> findActiveProfiles();
     List<CompleteUserProfile> findAll();
     boolean existsByConnectId(String connectId);
     
     // Update Operations
-    UserProfile updateProfile(UserProfile profile);
-    UserProfile updateBasicInfo(String connectId, String firstName, String lastName, Integer age, String location);
-    UserProfile updateEmailVerification(String connectId, boolean verified, Timestamp verifiedAt);
-    UserProfile addPhoto(String connectId, UserProfile.Photo photo);
-    UserProfile removePhoto(String connectId, String photoId);
-    UserProfile updatePhotoOrder(String connectId, List<UserProfile.Photo> photos);
-    UserProfile updateInterests(String connectId, List<String> interests);
-    UserProfile updateDetailedProfile(String connectId, UserProfile.Profile profile);
-    UserProfile updateWrittenPrompts(String connectId, List<UserProfile.WrittenPrompt> prompts);
-    UserProfile updatePollPrompts(String connectId, List<UserProfile.PollPrompt> prompts);
-    UserProfile updateFieldVisibility(String connectId, UserProfile.FieldVisibility visibility);
-    UserProfile updatePreferences(String connectId, UserProfile.Preferences preferences);
-    UserProfile updateNotificationSettings(String connectId, UserProfile.NotificationSettings settings);
-    UserProfile updateLastActive(String connectId, Timestamp lastActive);
+    CompleteUserProfile updateProfile(CompleteUserProfile profile);
+    CompleteUserProfile updateBasicInfo(String connectId, String firstName, String lastName, Integer age, String location);
+    CompleteUserProfile updateEmailVerification(String connectId, boolean verified, Timestamp verifiedAt);
+    CompleteUserProfile addPhoto(String connectId, EnhancedPhoto photo);
+    CompleteUserProfile removePhoto(String connectId, String photoId);
+    CompleteUserProfile updatePhotoOrder(String connectId, List<EnhancedPhoto> photos);
+    CompleteUserProfile updateInterests(String connectId, List<String> interests);
+    CompleteUserProfile updateDetailedProfile(String connectId, DetailedProfile profile);
+    CompleteUserProfile updateWrittenPrompts(String connectId, List<WrittenPrompt> prompts);
+    CompleteUserProfile updatePollPrompts(String connectId, List<PollPrompt> prompts);
+    CompleteUserProfile updateFieldVisibility(String connectId, FieldVisibility visibility);
+    CompleteUserProfile updatePreferences(String connectId, UserPreferences preferences);
+    CompleteUserProfile updateNotificationSettings(String connectId, NotificationSettings settings);
+    CompleteUserProfile updateLastActive(String connectId, Timestamp lastActive);
     
     // Delete Operations
     void deactivateProfile(String connectId);
     void deleteProfile(String connectId);
     
     // Batch Operations
-    List<UserProfile> findProfilesByConnectIds(List<String> connectIds);
-    Map<String, UserProfile> findProfileMapByConnectIds(List<String> connectIds);
+    List<CompleteUserProfile> findProfilesByConnectIds(List<String> connectIds);
+    Map<String, CompleteUserProfile> findProfileMapByConnectIds(List<String> connectIds);
 }

@@ -1,0 +1,1316 @@
+package com.tpg.connect.repository.impl;
+
+import com.tpg.connect.model.UserProfile;
+import com.tpg.connect.model.user.CompleteUserProfile;
+import com.tpg.connect.repository.UserProfileRepository;
+import com.google.cloud.Timestamp;
+import com.google.cloud.firestore.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import java.time.ZoneId;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+
+@Repository
+public class UserProfileRepositoryImpl implements UserProfileRepository {
+
+    private static final String COLLECTION_NAME = "user_profiles";
+    
+    @Autowired
+    private Firestore firestore;
+
+    @Override
+    public List<CompleteUserProfile> findAll() {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .get()
+                    .get();
+                    
+            return querySnapshot.getDocuments().stream()
+                    .map(this::convertToCompleteUserProfile)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find all user profiles", e);
+        }
+    }
+
+    @Override
+    public UserProfile createProfile(UserProfile profile) {
+        try {
+            profile.setCreatedAt(Timestamp.now());
+            profile.setUpdatedAt(Timestamp.now());
+            profile.setActive(true);
+            profile.setVersion(1);
+            
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(profile.getConnectId());
+            docRef.set(convertToMap(profile)).get();
+            
+            return profile;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to create profile", e);
+        }
+    }
+
+    @Override
+    public Optional<UserProfile> findByConnectId(String connectId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
+                    .document(connectId)
+                    .get()
+                    .get();
+                    
+            return doc.exists() ? Optional.of(convertToProfile(doc)) : Optional.empty();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find profile by connectId", e);
+        }
+    }
+
+    @Override
+    public List<UserProfile> findActiveProfiles() {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("active", true)
+                    .get()
+                    .get();
+                    
+            return querySnapshot.getDocuments().stream()
+                    .map(this::convertToProfile)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find active profiles", e);
+        }
+    }
+
+    @Override
+    public boolean existsByConnectId(String connectId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
+                    .document(connectId)
+                    .get()
+                    .get();
+            return doc.exists();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to check if profile exists", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateProfile(UserProfile profile) {
+        try {
+            profile.setUpdatedAt(Timestamp.now());
+            profile.setVersion(profile.getVersion() != null ? profile.getVersion() + 1 : 1);
+            
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(profile.getConnectId());
+            docRef.set(convertToMap(profile)).get();
+            
+            return profile;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update profile", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateBasicInfo(String connectId, String firstName, String lastName, Integer age, String location) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            if (firstName != null) updates.put("firstName", firstName);
+            if (lastName != null) updates.put("lastName", lastName);
+            if (firstName != null && lastName != null) {
+                updates.put("name", firstName + " " + lastName);
+            }
+            if (age != null) updates.put("age", age);
+            if (location != null) updates.put("location", location);
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update basic info", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateEmailVerification(String connectId, boolean verified, Timestamp verifiedAt) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("emailVerified", verified);
+            updates.put("emailVerifiedAt", verifiedAt);
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update email verification", e);
+        }
+    }
+
+    @Override
+    public UserProfile addPhoto(String connectId, com.tpg.connect.model.user.EnhancedPhoto photo) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("photos", FieldValue.arrayUnion(convertEnhancedPhotoToMap(photo)));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to add photo", e);
+        }
+    }
+
+    @Override
+    public UserProfile removePhoto(String connectId, String photoId) {
+        try {
+            Optional<UserProfile> profileOpt = findByConnectId(connectId);
+            if (!profileOpt.isPresent()) {
+                throw new RuntimeException("Profile not found");
+            }
+            
+            UserProfile profile = profileOpt.get();
+            if (profile.getPhotos() != null) {
+                List<UserProfile.Photo> updatedPhotos = profile.getPhotos().stream()
+                        .filter(photo -> !photoId.equals(photo.getId()))
+                        .collect(Collectors.toList());
+                
+                DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("photos", updatedPhotos.stream()
+                        .map(this::convertPhotoToMap)
+                        .collect(Collectors.toList()));
+                updates.put("updatedAt", FieldValue.serverTimestamp());
+                updates.put("version", FieldValue.increment(1));
+                
+                docRef.update(updates).get();
+            }
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to remove photo", e);
+        }
+    }
+
+    @Override
+    public UserProfile updatePhotoOrder(String connectId, List<com.tpg.connect.model.user.EnhancedPhoto> photos) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("photos", photos.stream()
+                    .map(this::convertEnhancedPhotoToMap)
+                    .collect(Collectors.toList()));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update photo order", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateInterests(String connectId, List<String> interests) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("interests", interests);
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update interests", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateDetailedProfile(String connectId, com.tpg.connect.model.user.DetailedProfile profile) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("profile", convertDetailedProfileToMap(profile));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update detailed profile", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateWrittenPrompts(String connectId, List<com.tpg.connect.model.user.WrittenPrompt> prompts) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("writtenPrompts", prompts.stream()
+                    .map(this::convertWrittenPromptToMap)
+                    .collect(Collectors.toList()));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update written prompts", e);
+        }
+    }
+
+    @Override
+    public UserProfile updatePollPrompts(String connectId, List<com.tpg.connect.model.user.PollPrompt> prompts) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("pollPrompts", prompts.stream()
+                    .map(this::convertPollPromptToMap)
+                    .collect(Collectors.toList()));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update poll prompts", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateFieldVisibility(String connectId, com.tpg.connect.model.user.FieldVisibility visibility) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("fieldVisibility", convertFieldVisibilityToMap(visibility));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update field visibility", e);
+        }
+    }
+
+    @Override
+    public UserProfile updatePreferences(String connectId, com.tpg.connect.model.user.UserPreferences preferences) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("preferences", convertUserPreferencesToMap(preferences));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update preferences", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateNotificationSettings(String connectId, com.tpg.connect.model.user.NotificationSettings settings) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("notificationSettings", convertNotificationSettingsToMap(settings));
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update notification settings", e);
+        }
+    }
+
+    @Override
+    public UserProfile updateLastActive(String connectId, Timestamp lastActive) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("lastActive", lastActive);
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            
+            docRef.update(updates).get();
+            
+            return findByConnectId(connectId).orElseThrow(() -> new RuntimeException("Profile not found"));
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update last active", e);
+        }
+    }
+
+    @Override
+    public void deactivateProfile(String connectId) {
+        try {
+            DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("active", false);
+            updates.put("updatedAt", FieldValue.serverTimestamp());
+            updates.put("version", FieldValue.increment(1));
+            
+            docRef.update(updates).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to deactivate profile", e);
+        }
+    }
+
+    @Override
+    public void deleteProfile(String connectId) {
+        try {
+            firestore.collection(COLLECTION_NAME).document(connectId).delete().get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to delete profile", e);
+        }
+    }
+
+    @Override
+    public List<UserProfile> findProfilesByConnectIds(List<String> connectIds) {
+        try {
+            List<UserProfile> profiles = new ArrayList<>();
+            
+            List<List<String>> batches = new ArrayList<>();
+            for (int i = 0; i < connectIds.size(); i += 10) {
+                batches.add(connectIds.subList(i, Math.min(i + 10, connectIds.size())));
+            }
+            
+            for (List<String> batch : batches) {
+                QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                        .whereIn(FieldPath.documentId(), batch)
+                        .get()
+                        .get();
+                        
+                profiles.addAll(querySnapshot.getDocuments().stream()
+                        .map(this::convertToProfile)
+                        .collect(Collectors.toList()));
+            }
+            
+            return profiles;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find profiles by connectIds", e);
+        }
+    }
+
+    @Override
+    public Map<String, UserProfile> findProfileMapByConnectIds(List<String> connectIds) {
+        List<UserProfile> profiles = findProfilesByConnectIds(connectIds);
+        return profiles.stream()
+                .collect(Collectors.toMap(UserProfile::getConnectId, profile -> profile));
+    }
+
+    // Helper conversion methods
+    private Map<String, Object> convertToMap(UserProfile profile) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("connectId", profile.getConnectId());
+        map.put("userId", profile.getUserId());
+        map.put("firstName", profile.getFirstName());
+        map.put("lastName", profile.getLastName());
+        map.put("name", profile.getName());
+        map.put("age", profile.getAge());
+        map.put("dateOfBirth", profile.getDateOfBirth() != null ? profile.getDateOfBirth().toString() : null);
+        map.put("location", profile.getLocation());
+        map.put("emailVerified", profile.getEmailVerified());
+        map.put("emailVerifiedAt", profile.getEmailVerifiedAt());
+        map.put("active", profile.getActive());
+        map.put("createdAt", profile.getCreatedAt());
+        map.put("updatedAt", profile.getUpdatedAt());
+        map.put("lastActive", profile.getLastActive());
+        map.put("version", profile.getVersion());
+        
+        if (profile.getPhotos() != null) {
+            map.put("photos", profile.getPhotos().stream()
+                    .map(this::convertPhotoToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getInterests() != null) {
+            map.put("interests", profile.getInterests());
+        }
+        
+        if (profile.getProfile() != null) {
+            map.put("profile", convertOldProfileToMap(profile.getProfile()));
+        }
+        
+        if (profile.getWrittenPrompts() != null) {
+            map.put("writtenPrompts", profile.getWrittenPrompts().stream()
+                    .map(this::convertOldWrittenPromptToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getPollPrompts() != null) {
+            map.put("pollPrompts", profile.getPollPrompts().stream()
+                    .map(this::convertOldPollPromptToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getFieldVisibility() != null) {
+            map.put("fieldVisibility", convertOldFieldVisibilityToMap(profile.getFieldVisibility()));
+        }
+        
+        if (profile.getPreferences() != null) {
+            map.put("preferences", convertOldPreferencesToMap(profile.getPreferences()));
+        }
+        
+        if (profile.getNotificationSettings() != null) {
+            map.put("notificationSettings", convertOldNotificationSettingsToMap(profile.getNotificationSettings()));
+        }
+        
+        return map;
+    }
+
+    private UserProfile convertToProfile(DocumentSnapshot doc) {
+        Map<String, Object> data = doc.getData();
+        if (data == null) {
+            throw new RuntimeException("Document data is null");
+        }
+        
+        return UserProfile.builder()
+                .connectId(doc.getId())
+                .userId((String) data.get("userId"))
+                .firstName((String) data.get("firstName"))
+                .lastName((String) data.get("lastName"))
+                .name((String) data.get("name"))
+                .age((Integer) data.get("age"))
+                .dateOfBirth((Timestamp) data.get("dateOfBirth"))
+                .location((String) data.get("location"))
+                .emailVerified((Boolean) data.get("emailVerified"))
+                .emailVerifiedAt((Timestamp) data.get("emailVerifiedAt"))
+                .photos(convertToPhotoList((List<Map<String, Object>>) data.get("photos")))
+                .interests((List<String>) data.get("interests"))
+                .profile(convertToOldProfile((Map<String, Object>) data.get("profile")))
+                .writtenPrompts(convertToOldWrittenPromptList((List<Map<String, Object>>) data.get("writtenPrompts")))
+                .pollPrompts(convertToOldPollPromptList((List<Map<String, Object>>) data.get("pollPrompts")))
+                .fieldVisibility(convertToOldFieldVisibility((Map<String, Object>) data.get("fieldVisibility")))
+                .preferences(convertToOldPreferences((Map<String, Object>) data.get("preferences")))
+                .notificationSettings(convertToOldNotificationSettings((Map<String, Object>) data.get("notificationSettings")))
+                .active((Boolean) data.get("active"))
+                .createdAt((Timestamp) data.get("createdAt"))
+                .updatedAt((Timestamp) data.get("updatedAt"))
+                .lastActive((Timestamp) data.get("lastActive"))
+                .version((Integer) data.get("version"))
+                .build();
+    }
+
+    private Map<String, Object> convertPhotoToMap(UserProfile.Photo photo) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", photo.getId());
+        map.put("url", photo.getUrl());
+        map.put("isPrimary", photo.getIsPrimary());
+        map.put("order", photo.getOrder());
+        if (photo.getPrompts() != null) {
+            map.put("prompts", photo.getPrompts().stream()
+                    .map(this::convertPhotoPromptToMap)
+                    .collect(Collectors.toList()));
+        }
+        return map;
+    }
+
+    private UserProfile.Photo convertToPhoto(Map<String, Object> photoMap) {
+        if (photoMap == null) return null;
+        
+        return UserProfile.Photo.builder()
+                .id((String) photoMap.get("id"))
+                .url((String) photoMap.get("url"))
+                .isPrimary((Boolean) photoMap.get("isPrimary"))
+                .order((Integer) photoMap.get("order"))
+                .prompts(convertToPhotoPromptList((List<Map<String, Object>>) photoMap.get("prompts")))
+                .build();
+    }
+
+    private List<UserProfile.Photo> convertToPhotoList(List<Map<String, Object>> photoMaps) {
+        if (photoMaps == null) return new ArrayList<>();
+        
+        return photoMaps.stream()
+                .map(this::convertToPhoto)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> convertPhotoPromptToMap(UserProfile.PhotoPrompt prompt) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", prompt.getId());
+        map.put("text", prompt.getText());
+        if (prompt.getPosition() != null) {
+            Map<String, Object> positionMap = new HashMap<>();
+            positionMap.put("x", prompt.getPosition().getX());
+            positionMap.put("y", prompt.getPosition().getY());
+            map.put("position", positionMap);
+        }
+        if (prompt.getStyle() != null) {
+            Map<String, Object> styleMap = new HashMap<>();
+            styleMap.put("backgroundColor", prompt.getStyle().getBackgroundColor());
+            styleMap.put("textColor", prompt.getStyle().getTextColor());
+            styleMap.put("fontSize", prompt.getStyle().getFontSize());
+            map.put("style", styleMap);
+        }
+        return map;
+    }
+
+    private UserProfile.PhotoPrompt convertToPhotoPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        UserProfile.Position position = null;
+        Map<String, Object> positionMap = (Map<String, Object>) promptMap.get("position");
+        if (positionMap != null) {
+            position = UserProfile.Position.builder()
+                    .x((Double) positionMap.get("x"))
+                    .y((Double) positionMap.get("y"))
+                    .build();
+        }
+        
+        UserProfile.Style style = null;
+        Map<String, Object> styleMap = (Map<String, Object>) promptMap.get("style");
+        if (styleMap != null) {
+            style = UserProfile.Style.builder()
+                    .backgroundColor((String) styleMap.get("backgroundColor"))
+                    .textColor((String) styleMap.get("textColor"))
+                    .fontSize((Integer) styleMap.get("fontSize"))
+                    .build();
+        }
+        
+        return UserProfile.PhotoPrompt.builder()
+                .id((String) promptMap.get("id"))
+                .text((String) promptMap.get("text"))
+                .position(position)
+                .style(style)
+                .build();
+    }
+
+    private List<UserProfile.PhotoPrompt> convertToPhotoPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return new ArrayList<>();
+        
+        return promptMaps.stream()
+                .map(this::convertToPhotoPrompt)
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
+
+    @Override
+    public CompleteUserProfile save(CompleteUserProfile profile) {
+        try {
+            if (profile.getCreatedAt() == null) {
+                profile.setCreatedAt(java.time.LocalDateTime.now());
+            }
+            profile.setUpdatedAt(java.time.LocalDateTime.now());
+            
+            DocumentReference docRef = firestore.collection("userProfiles").document(profile.getConnectId());
+            docRef.set(convertCompleteUserProfileToMap(profile)).get();
+            
+            return profile;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to save complete user profile", e);
+        }
+    }
+
+    @Override
+    public CompleteUserProfile findByUserId(String userId) {
+        try {
+            DocumentSnapshot doc = firestore.collection("userProfiles")
+                    .document(userId)
+                    .get()
+                    .get();
+                    
+            return doc.exists() ? convertToCompleteUserProfile(doc) : null;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find complete user profile by userId", e);
+        }
+    }
+
+    private Map<String, Object> convertCompleteUserProfileToMap(CompleteUserProfile profile) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("connectId", profile.getConnectId());
+        map.put("firstName", profile.getFirstName());
+        map.put("lastName", profile.getLastName());
+        map.put("dateOfBirth", profile.getDateOfBirth() != null ? profile.getDateOfBirth().toString() : null);
+        map.put("gender", profile.getGender());
+        map.put("email", profile.getEmail());
+        map.put("location", profile.getLocation());
+        map.put("active", profile.isActive());
+        map.put("isOnline", profile.isOnline());
+        map.put("isPremium", profile.isPremium());
+        map.put("isVerified", profile.isVerified());
+        map.put("subscriptionType", profile.getSubscriptionType());
+        
+        if (profile.getPhotos() != null) {
+            map.put("photos", profile.getPhotos().stream()
+                    .map(this::convertEnhancedPhotoToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getProfile() != null) {
+            map.put("profile", convertDetailedProfileToMap(profile.getProfile()));
+        }
+        
+        if (profile.getWrittenPrompts() != null) {
+            map.put("writtenPrompts", profile.getWrittenPrompts().stream()
+                    .map(this::convertWrittenPromptToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getPollPrompts() != null) {
+            map.put("pollPrompts", profile.getPollPrompts().stream()
+                    .map(this::convertPollPromptToMap)
+                    .collect(Collectors.toList()));
+        }
+        
+        if (profile.getFieldVisibility() != null) {
+            map.put("fieldVisibility", convertFieldVisibilityToMap(profile.getFieldVisibility()));
+        }
+        
+        if (profile.getPreferences() != null) {
+            map.put("preferences", convertUserPreferencesToMap(profile.getPreferences()));
+        }
+        
+        if (profile.getNotifications() != null) {
+            map.put("notifications", convertNotificationSettingsToMap(profile.getNotifications()));
+        }
+        
+        map.put("createdAt", profile.getCreatedAt());
+        map.put("updatedAt", profile.getUpdatedAt());
+        map.put("lastActive", profile.getLastActive());
+        map.put("version", profile.getVersion());
+        
+        return map;
+    }
+
+    private CompleteUserProfile convertToCompleteUserProfile(DocumentSnapshot doc) {
+        Map<String, Object> data = doc.getData();
+        if (data == null) {
+            throw new RuntimeException("Document data is null");
+        }
+        
+        CompleteUserProfile profile = new CompleteUserProfile();
+        profile.setConnectId(doc.getId());
+        profile.setFirstName((String) data.get("firstName"));
+        profile.setLastName((String) data.get("lastName"));
+        profile.setGender((String) data.get("gender"));
+        profile.setEmail((String) data.get("email"));
+        profile.setLocation((String) data.get("location"));
+        profile.setActive(data.get("active") != null ? (Boolean) data.get("active") : true);
+        profile.setOnline(data.get("isOnline") != null ? (Boolean) data.get("isOnline") : false);
+        profile.setPremium(data.get("isPremium") != null ? (Boolean) data.get("isPremium") : false);
+        profile.setVerified(data.get("isVerified") != null ? (Boolean) data.get("isVerified") : false);
+        profile.setSubscriptionType((String) data.get("subscriptionType"));
+        
+        if (data.get("dateOfBirth") != null) {
+            Object dateOfBirth = data.get("dateOfBirth");
+            if (dateOfBirth instanceof String) {
+                profile.setDateOfBirth(java.time.LocalDate.parse((String) dateOfBirth));
+            } else if (dateOfBirth instanceof java.sql.Date) {
+                profile.setDateOfBirth(((java.sql.Date) dateOfBirth).toLocalDate());
+            } else if (dateOfBirth instanceof java.util.Date) {
+                profile.setDateOfBirth(((java.util.Date) dateOfBirth).toInstant()
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+            }
+        }
+        
+        profile.setPhotos(convertToEnhancedPhotoList((List<Map<String, Object>>) data.get("photos")));
+        profile.setProfile(convertToDetailedProfile((Map<String, Object>) data.get("profile")));
+        profile.setWrittenPrompts(convertToWrittenPromptList((List<Map<String, Object>>) data.get("writtenPrompts")));
+        profile.setPollPrompts(convertToPollPromptList((List<Map<String, Object>>) data.get("pollPrompts")));
+        profile.setFieldVisibility(convertToFieldVisibility((Map<String, Object>) data.get("fieldVisibility")));
+        profile.setPreferences(convertToUserPreferences((Map<String, Object>) data.get("preferences")));
+        profile.setNotifications(convertToNotificationSettings((Map<String, Object>) data.get("notifications")));
+        
+        if (data.get("createdAt") != null) {
+            Object createdAt = data.get("createdAt");
+            if (createdAt instanceof Timestamp) {
+                profile.setCreatedAt(((Timestamp) createdAt).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            } else if (createdAt instanceof Map) {
+                profile.setCreatedAt(java.time.LocalDateTime.now());
+            }
+        }
+        
+        if (data.get("updatedAt") != null) {
+            Object updatedAt = data.get("updatedAt");
+            if (updatedAt instanceof Timestamp) {
+                profile.setUpdatedAt(((Timestamp) updatedAt).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            } else if (updatedAt instanceof Map) {
+                profile.setUpdatedAt(java.time.LocalDateTime.now());
+            }
+        }
+        
+        if (data.get("lastActive") != null) {
+            Object lastActive = data.get("lastActive");
+            if (lastActive instanceof Timestamp) {
+                profile.setLastActive(((Timestamp) lastActive).toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+            } else if (lastActive instanceof Map) {
+                profile.setLastActive(java.time.LocalDateTime.now());
+            }
+        }
+        
+        profile.setVersion(data.get("version") != null ? ((Number) data.get("version")).intValue() : 1);
+        return profile;
+    }
+
+    // New helper methods for enhanced models
+    private Map<String, Object> convertEnhancedPhotoToMap(com.tpg.connect.model.user.EnhancedPhoto photo) {
+        if (photo == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", photo.getId());
+        map.put("url", photo.getUrl());
+        map.put("isPrimary", photo.isPrimary());
+        map.put("order", photo.getOrder());
+        
+        if (photo.getPrompts() != null) {
+            map.put("prompts", photo.getPrompts().stream()
+                    .map(this::convertPhotoPromptToMapNew)
+                    .collect(Collectors.toList()));
+        }
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.EnhancedPhoto convertToEnhancedPhoto(Map<String, Object> photoMap) {
+        if (photoMap == null) return null;
+        
+        com.tpg.connect.model.user.EnhancedPhoto photo = new com.tpg.connect.model.user.EnhancedPhoto();
+        photo.setId((String) photoMap.get("id"));
+        photo.setUrl((String) photoMap.get("url"));
+        photo.setPrimary((Boolean) photoMap.get("isPrimary"));
+        photo.setOrder((Integer) photoMap.get("order"));
+        photo.setPrompts(convertToPhotoPromptListNew((List<Map<String, Object>>) photoMap.get("prompts")));
+        
+        return photo;
+    }
+    
+    private List<com.tpg.connect.model.user.EnhancedPhoto> convertToEnhancedPhotoList(List<Map<String, Object>> photoMaps) {
+        if (photoMaps == null) return new ArrayList<>();
+        
+        return photoMaps.stream()
+                .map(this::convertToEnhancedPhoto)
+                .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> convertPhotoPromptToMapNew(com.tpg.connect.model.user.PhotoPrompt prompt) {
+        if (prompt == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", prompt.getId());
+        map.put("text", prompt.getText());
+        
+        if (prompt.getPosition() != null) {
+            Map<String, Object> positionMap = new HashMap<>();
+            positionMap.put("x", prompt.getPosition().getX());
+            positionMap.put("y", prompt.getPosition().getY());
+            map.put("position", positionMap);
+        }
+        
+        if (prompt.getStyle() != null) {
+            Map<String, Object> styleMap = new HashMap<>();
+            styleMap.put("backgroundColor", prompt.getStyle().getBackgroundColor());
+            styleMap.put("textColor", prompt.getStyle().getTextColor());
+            styleMap.put("fontSize", prompt.getStyle().getFontSize());
+            map.put("style", styleMap);
+        }
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.PhotoPrompt convertToPhotoPromptNew(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        com.tpg.connect.model.user.PhotoPrompt prompt = new com.tpg.connect.model.user.PhotoPrompt();
+        prompt.setId((String) promptMap.get("id"));
+        prompt.setText((String) promptMap.get("text"));
+        
+        Map<String, Object> positionMap = (Map<String, Object>) promptMap.get("position");
+        if (positionMap != null) {
+            com.tpg.connect.model.user.PhotoPrompt.PhotoPosition position = new com.tpg.connect.model.user.PhotoPrompt.PhotoPosition();
+            position.setX((Double) positionMap.get("x"));
+            position.setY((Double) positionMap.get("y"));
+            prompt.setPosition(position);
+        }
+        
+        Map<String, Object> styleMap = (Map<String, Object>) promptMap.get("style");
+        if (styleMap != null) {
+            com.tpg.connect.model.user.PhotoPrompt.PhotoStyle style = new com.tpg.connect.model.user.PhotoPrompt.PhotoStyle();
+            style.setBackgroundColor((String) styleMap.get("backgroundColor"));
+            style.setTextColor((String) styleMap.get("textColor"));
+            style.setFontSize((Integer) styleMap.get("fontSize"));
+            prompt.setStyle(style);
+        }
+        
+        return prompt;
+    }
+    
+    private List<com.tpg.connect.model.user.PhotoPrompt> convertToPhotoPromptListNew(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return new ArrayList<>();
+        
+        return promptMaps.stream()
+                .map(this::convertToPhotoPromptNew)
+                .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> convertDetailedProfileToMap(com.tpg.connect.model.user.DetailedProfile profile) {
+        if (profile == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("pronouns", profile.getPronouns());
+        map.put("gender", profile.getGender());
+        map.put("sexuality", profile.getSexuality());
+        map.put("interestedIn", profile.getInterestedIn());
+        map.put("jobTitle", profile.getJobTitle());
+        map.put("company", profile.getCompany());
+        map.put("university", profile.getUniversity());
+        map.put("educationLevel", profile.getEducationLevel());
+        map.put("religiousBeliefs", profile.getReligiousBeliefs());
+        map.put("hometown", profile.getHometown());
+        map.put("politics", profile.getPolitics());
+        map.put("languages", profile.getLanguages());
+        map.put("datingIntentions", profile.getDatingIntentions());
+        map.put("relationshipType", profile.getRelationshipType());
+        map.put("height", profile.getHeight());
+        map.put("ethnicity", profile.getEthnicity());
+        map.put("children", profile.getChildren());
+        map.put("familyPlans", profile.getFamilyPlans());
+        map.put("pets", profile.getPets());
+        map.put("zodiacSign", profile.getZodiacSign());
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.DetailedProfile convertToDetailedProfile(Map<String, Object> profileMap) {
+        if (profileMap == null) return null;
+        
+        com.tpg.connect.model.user.DetailedProfile profile = new com.tpg.connect.model.user.DetailedProfile();
+        profile.setPronouns((String) profileMap.get("pronouns"));
+        profile.setGender((String) profileMap.get("gender"));
+        profile.setSexuality((String) profileMap.get("sexuality"));
+        profile.setInterestedIn((String) profileMap.get("interestedIn"));
+        profile.setJobTitle((String) profileMap.get("jobTitle"));
+        profile.setCompany((String) profileMap.get("company"));
+        profile.setUniversity((String) profileMap.get("university"));
+        profile.setEducationLevel((String) profileMap.get("educationLevel"));
+        profile.setReligiousBeliefs((String) profileMap.get("religiousBeliefs"));
+        profile.setHometown((String) profileMap.get("hometown"));
+        profile.setPolitics((String) profileMap.get("politics"));
+        profile.setLanguages((List<String>) profileMap.get("languages"));
+        profile.setDatingIntentions((String) profileMap.get("datingIntentions"));
+        profile.setRelationshipType((String) profileMap.get("relationshipType"));
+        profile.setHeight((String) profileMap.get("height"));
+        profile.setEthnicity((String) profileMap.get("ethnicity"));
+        profile.setChildren((String) profileMap.get("children"));
+        profile.setFamilyPlans((String) profileMap.get("familyPlans"));
+        profile.setPets((String) profileMap.get("pets"));
+        profile.setZodiacSign((String) profileMap.get("zodiacSign"));
+        
+        return profile;
+    }
+    
+    private Map<String, Object> convertWrittenPromptToMap(com.tpg.connect.model.user.WrittenPrompt prompt) {
+        if (prompt == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("question", prompt.getQuestion());
+        map.put("answer", prompt.getAnswer());
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.WrittenPrompt convertToWrittenPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        com.tpg.connect.model.user.WrittenPrompt prompt = new com.tpg.connect.model.user.WrittenPrompt();
+        prompt.setQuestion((String) promptMap.get("question"));
+        prompt.setAnswer((String) promptMap.get("answer"));
+        
+        return prompt;
+    }
+    
+    private List<com.tpg.connect.model.user.WrittenPrompt> convertToWrittenPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return new ArrayList<>();
+        
+        return promptMaps.stream()
+                .map(this::convertToWrittenPrompt)
+                .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> convertPollPromptToMap(com.tpg.connect.model.user.PollPrompt prompt) {
+        if (prompt == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("question", prompt.getQuestion());
+        map.put("description", prompt.getDescription());
+        map.put("options", prompt.getOptions());
+        map.put("selectedOption", prompt.getSelectedOption());
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.PollPrompt convertToPollPrompt(Map<String, Object> promptMap) {
+        if (promptMap == null) return null;
+        
+        com.tpg.connect.model.user.PollPrompt prompt = new com.tpg.connect.model.user.PollPrompt();
+        prompt.setQuestion((String) promptMap.get("question"));
+        prompt.setDescription((String) promptMap.get("description"));
+        prompt.setOptions((List<String>) promptMap.get("options"));
+        prompt.setSelectedOption((String) promptMap.get("selectedOption"));
+        
+        return prompt;
+    }
+    
+    private List<com.tpg.connect.model.user.PollPrompt> convertToPollPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return new ArrayList<>();
+        
+        return promptMaps.stream()
+                .map(this::convertToPollPrompt)
+                .collect(Collectors.toList());
+    }
+    
+    private Map<String, Object> convertFieldVisibilityToMap(com.tpg.connect.model.user.FieldVisibility visibility) {
+        if (visibility == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("jobTitle", visibility.isJobTitle());
+        map.put("company", visibility.isCompany());
+        map.put("university", visibility.isUniversity());
+        map.put("religiousBeliefs", visibility.isReligiousBeliefs());
+        map.put("politics", visibility.isPolitics());
+        map.put("hometown", visibility.isHometown());
+        map.put("height", visibility.isHeight());
+        map.put("ethnicity", visibility.isEthnicity());
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.FieldVisibility convertToFieldVisibility(Map<String, Object> visibilityMap) {
+        if (visibilityMap == null) return null;
+        
+        com.tpg.connect.model.user.FieldVisibility visibility = new com.tpg.connect.model.user.FieldVisibility();
+        visibility.setJobTitle((Boolean) visibilityMap.get("jobTitle"));
+        visibility.setCompany((Boolean) visibilityMap.get("company"));
+        visibility.setUniversity((Boolean) visibilityMap.get("university"));
+        visibility.setReligiousBeliefs((Boolean) visibilityMap.get("religiousBeliefs"));
+        visibility.setPolitics((Boolean) visibilityMap.get("politics"));
+        visibility.setHometown((Boolean) visibilityMap.get("hometown"));
+        visibility.setHeight((Boolean) visibilityMap.get("height"));
+        visibility.setEthnicity((Boolean) visibilityMap.get("ethnicity"));
+        
+        return visibility;
+    }
+    
+    private Map<String, Object> convertUserPreferencesToMap(com.tpg.connect.model.user.UserPreferences preferences) {
+        if (preferences == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("interestedIn", preferences.getInterestedIn());
+        map.put("maxDistance", preferences.getMaxDistance());
+        map.put("dealBreakers", preferences.getDealBreakers());
+        map.put("mustHaves", preferences.getMustHaves());
+        
+        if (preferences.getAgeRange() != null) {
+            Map<String, Object> ageRangeMap = new HashMap<>();
+            ageRangeMap.put("min", preferences.getAgeRange().getMin());
+            ageRangeMap.put("max", preferences.getAgeRange().getMax());
+            map.put("ageRange", ageRangeMap);
+        }
+        
+        if (preferences.getHeightRange() != null) {
+            Map<String, Object> heightRangeMap = new HashMap<>();
+            heightRangeMap.put("min", preferences.getHeightRange().getMin());
+            heightRangeMap.put("max", preferences.getHeightRange().getMax());
+            map.put("heightRange", heightRangeMap);
+        }
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.UserPreferences convertToUserPreferences(Map<String, Object> preferencesMap) {
+        if (preferencesMap == null) return null;
+        
+        com.tpg.connect.model.user.UserPreferences preferences = new com.tpg.connect.model.user.UserPreferences();
+        preferences.setInterestedIn((List<String>) preferencesMap.get("interestedIn"));
+        preferences.setMaxDistance((Integer) preferencesMap.get("maxDistance"));
+        preferences.setDealBreakers((List<String>) preferencesMap.get("dealBreakers"));
+        preferences.setMustHaves((List<String>) preferencesMap.get("mustHaves"));
+        
+        Map<String, Object> ageRangeMap = (Map<String, Object>) preferencesMap.get("ageRange");
+        if (ageRangeMap != null) {
+            com.tpg.connect.model.user.UserPreferences.AgeRange ageRange = new com.tpg.connect.model.user.UserPreferences.AgeRange();
+            ageRange.setMin((Integer) ageRangeMap.get("min"));
+            ageRange.setMax((Integer) ageRangeMap.get("max"));
+            preferences.setAgeRange(ageRange);
+        }
+        
+        Map<String, Object> heightRangeMap = (Map<String, Object>) preferencesMap.get("heightRange");
+        if (heightRangeMap != null) {
+            com.tpg.connect.model.user.UserPreferences.HeightRange heightRange = new com.tpg.connect.model.user.UserPreferences.HeightRange();
+            heightRange.setMin((Integer) heightRangeMap.get("min"));
+            heightRange.setMax((Integer) heightRangeMap.get("max"));
+            preferences.setHeightRange(heightRange);
+        }
+        
+        return preferences;
+    }
+    
+    private Map<String, Object> convertNotificationSettingsToMap(com.tpg.connect.model.user.NotificationSettings settings) {
+        if (settings == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("newMatches", settings.isNewMatches());
+        map.put("messages", settings.isMessages());
+        map.put("likes", settings.isLikes());
+        map.put("superLikes", settings.isSuperLikes());
+        map.put("promotions", settings.isPromotions());
+        map.put("emailUpdates", settings.isEmailUpdates());
+        
+        return map;
+    }
+    
+    private com.tpg.connect.model.user.NotificationSettings convertToNotificationSettings(Map<String, Object> settingsMap) {
+        if (settingsMap == null) return null;
+        
+        com.tpg.connect.model.user.NotificationSettings settings = new com.tpg.connect.model.user.NotificationSettings();
+        settings.setNewMatches((Boolean) settingsMap.get("newMatches"));
+        settings.setMessages((Boolean) settingsMap.get("messages"));
+        settings.setLikes((Boolean) settingsMap.get("likes"));
+        settings.setSuperLikes((Boolean) settingsMap.get("superLikes"));
+        settings.setPromotions((Boolean) settingsMap.get("promotions"));
+        settings.setEmailUpdates((Boolean) settingsMap.get("emailUpdates"));
+        
+        return settings;
+    }
+
+    // Conversion methods for old UserProfile nested classes
+    private UserProfile.Profile convertToOldProfile(Map<String, Object> profileMap) {
+        if (profileMap == null) return null;
+        
+        return UserProfile.Profile.builder()
+                .pronouns((String) profileMap.get("pronouns"))
+                .gender((String) profileMap.get("gender"))
+                .sexuality((String) profileMap.get("sexuality"))
+                .interestedIn((String) profileMap.get("interestedIn"))
+                .jobTitle((String) profileMap.get("jobTitle"))
+                .company((String) profileMap.get("company"))
+                .university((String) profileMap.get("university"))
+                .educationLevel((String) profileMap.get("educationLevel"))
+                .religiousBeliefs((String) profileMap.get("religiousBeliefs"))
+                .hometown((String) profileMap.get("hometown"))
+                .politics((String) profileMap.get("politics"))
+                .languages((List<String>) profileMap.get("languages"))
+                .datingIntentions((String) profileMap.get("datingIntentions"))
+                .relationshipType((String) profileMap.get("relationshipType"))
+                .height((String) profileMap.get("height"))
+                .ethnicity((String) profileMap.get("ethnicity"))
+                .children((String) profileMap.get("children"))
+                .familyPlans((String) profileMap.get("familyPlans"))
+                .pets((String) profileMap.get("pets"))
+                .zodiacSign((String) profileMap.get("zodiacSign"))
+                .build();
+    }
+
+    private List<UserProfile.WrittenPrompt> convertToOldWrittenPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return null;
+        
+        return promptMaps.stream()
+                .map(this::convertToOldWrittenPrompt)
+                .collect(Collectors.toList());
+    }
+
+    private UserProfile.WrittenPrompt convertToOldWrittenPrompt(Map<String, Object> promptMap) {
+        return UserProfile.WrittenPrompt.builder()
+                .question((String) promptMap.get("question"))
+                .answer((String) promptMap.get("answer"))
+                .build();
+    }
+
+    private List<UserProfile.PollPrompt> convertToOldPollPromptList(List<Map<String, Object>> promptMaps) {
+        if (promptMaps == null) return null;
+        
+        return promptMaps.stream()
+                .map(this::convertToOldPollPrompt)
+                .collect(Collectors.toList());
+    }
+
+    private UserProfile.PollPrompt convertToOldPollPrompt(Map<String, Object> promptMap) {
+        return UserProfile.PollPrompt.builder()
+                .question((String) promptMap.get("question"))
+                .description((String) promptMap.get("description"))
+                .options((List<String>) promptMap.get("options"))
+                .selectedOption((String) promptMap.get("selectedOption"))
+                .build();
+    }
+
+    private UserProfile.FieldVisibility convertToOldFieldVisibility(Map<String, Object> visibilityMap) {
+        if (visibilityMap == null) return null;
+        
+        return UserProfile.FieldVisibility.builder()
+                .jobTitle((Boolean) visibilityMap.get("jobTitle"))
+                .university((Boolean) visibilityMap.get("university"))
+                .religiousBeliefs((Boolean) visibilityMap.get("religiousBeliefs"))
+                .politics((Boolean) visibilityMap.get("politics"))
+                .height((Boolean) visibilityMap.get("height"))
+                .ethnicity((Boolean) visibilityMap.get("ethnicity"))
+                .build();
+    }
+
+    private UserProfile.Preferences convertToOldPreferences(Map<String, Object> preferencesMap) {
+        if (preferencesMap == null) return null;
+        
+        return UserProfile.Preferences.builder()
+                .preferredGender((String) preferencesMap.get("preferredGender"))
+                .minAge((Integer) preferencesMap.get("minAge"))
+                .maxAge((Integer) preferencesMap.get("maxAge"))
+                .maxDistance((Integer) preferencesMap.get("maxDistance"))
+                .minHeight((Integer) preferencesMap.get("minHeight"))
+                .maxHeight((Integer) preferencesMap.get("maxHeight"))
+                .datingIntention((String) preferencesMap.get("datingIntention"))
+                .drinkingPreference((String) preferencesMap.get("drinkingPreference"))
+                .smokingPreference((String) preferencesMap.get("smokingPreference"))
+                .religionImportance((String) preferencesMap.get("religionImportance"))
+                .wantsChildren((Boolean) preferencesMap.get("wantsChildren"))
+                .build();
+    }
+
+    private UserProfile.NotificationSettings convertToOldNotificationSettings(Map<String, Object> settingsMap) {
+        if (settingsMap == null) return null;
+        
+        return UserProfile.NotificationSettings.builder()
+                .pushEnabled((Boolean) settingsMap.get("pushEnabled"))
+                .newMatches((Boolean) settingsMap.get("newMatches"))
+                .messages((Boolean) settingsMap.get("messages"))
+                .profileViews((Boolean) settingsMap.get("profileViews"))
+                .matchReminders((Boolean) settingsMap.get("matchReminders"))
+                .marketing((Boolean) settingsMap.get("marketing"))
+                .safety((Boolean) settingsMap.get("safety"))
+                .systemUpdates((Boolean) settingsMap.get("systemUpdates"))
+                .build();
+    }
+
+    // Conversion methods from old UserProfile nested classes to Map (for saving to Firestore)
+    private Map<String, Object> convertOldProfileToMap(UserProfile.Profile profile) {
+        if (profile == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("pronouns", profile.getPronouns());
+        map.put("gender", profile.getGender());
+        map.put("sexuality", profile.getSexuality());
+        map.put("interestedIn", profile.getInterestedIn());
+        map.put("jobTitle", profile.getJobTitle());
+        map.put("company", profile.getCompany());
+        map.put("university", profile.getUniversity());
+        map.put("educationLevel", profile.getEducationLevel());
+        map.put("religiousBeliefs", profile.getReligiousBeliefs());
+        map.put("hometown", profile.getHometown());
+        map.put("politics", profile.getPolitics());
+        map.put("languages", profile.getLanguages());
+        map.put("datingIntentions", profile.getDatingIntentions());
+        map.put("relationshipType", profile.getRelationshipType());
+        map.put("height", profile.getHeight());
+        map.put("ethnicity", profile.getEthnicity());
+        map.put("children", profile.getChildren());
+        map.put("familyPlans", profile.getFamilyPlans());
+        map.put("pets", profile.getPets());
+        map.put("zodiacSign", profile.getZodiacSign());
+        
+        return map;
+    }
+
+    private Map<String, Object> convertOldWrittenPromptToMap(UserProfile.WrittenPrompt prompt) {
+        if (prompt == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("question", prompt.getQuestion());
+        map.put("answer", prompt.getAnswer());
+        
+        return map;
+    }
+
+    private Map<String, Object> convertOldPollPromptToMap(UserProfile.PollPrompt prompt) {
+        if (prompt == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("question", prompt.getQuestion());
+        map.put("description", prompt.getDescription());
+        map.put("options", prompt.getOptions());
+        map.put("selectedOption", prompt.getSelectedOption());
+        
+        return map;
+    }
+
+    private Map<String, Object> convertOldFieldVisibilityToMap(UserProfile.FieldVisibility visibility) {
+        if (visibility == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("jobTitle", visibility.getJobTitle());
+        map.put("university", visibility.getUniversity());
+        map.put("religiousBeliefs", visibility.getReligiousBeliefs());
+        map.put("politics", visibility.getPolitics());
+        map.put("height", visibility.getHeight());
+        map.put("ethnicity", visibility.getEthnicity());
+        
+        return map;
+    }
+
+    private Map<String, Object> convertOldPreferencesToMap(UserProfile.Preferences preferences) {
+        if (preferences == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("preferredGender", preferences.getPreferredGender());
+        map.put("minAge", preferences.getMinAge());
+        map.put("maxAge", preferences.getMaxAge());
+        map.put("maxDistance", preferences.getMaxDistance());
+        map.put("minHeight", preferences.getMinHeight());
+        map.put("maxHeight", preferences.getMaxHeight());
+        map.put("datingIntention", preferences.getDatingIntention());
+        map.put("drinkingPreference", preferences.getDrinkingPreference());
+        map.put("smokingPreference", preferences.getSmokingPreference());
+        map.put("religionImportance", preferences.getReligionImportance());
+        map.put("wantsChildren", preferences.getWantsChildren());
+        
+        return map;
+    }
+
+    private Map<String, Object> convertOldNotificationSettingsToMap(UserProfile.NotificationSettings settings) {
+        if (settings == null) return null;
+        
+        Map<String, Object> map = new HashMap<>();
+        map.put("pushEnabled", settings.getPushEnabled());
+        map.put("newMatches", settings.getNewMatches());
+        map.put("messages", settings.getMessages());
+        map.put("profileViews", settings.getProfileViews());
+        map.put("matchReminders", settings.getMatchReminders());
+        map.put("marketing", settings.getMarketing());
+        map.put("safety", settings.getSafety());
+        map.put("systemUpdates", settings.getSystemUpdates());
+        
+        return map;
+    }
+}

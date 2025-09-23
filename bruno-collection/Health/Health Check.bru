@@ -1,0 +1,21 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/health
+  body: none
+  auth: none
+}
+
+docs {
+  # Health Check
+  
+  Basic health check endpoint to verify the application is running.
+  
+  Returns:
+  - status: "UP" if application is healthy
+  - message: Descriptive message
+}

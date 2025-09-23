@@ -1,0 +1,49 @@
+meta {
+  name: Update Basic Info
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/profile/basic-info
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "John Alexander Doe",
+    "bio": "Software engineer by day, adventurer by weekend. Love exploring new places and trying local cuisines!",
+    "location": "Seattle, WA",
+    "interests": ["hiking", "photography", "cooking", "traveling", "rock climbing"],
+    "languages": ["English", "Spanish", "Italian"],
+    "jobTitle": "Senior Software Engineer",
+    "company": "Microsoft"
+  }
+}
+
+docs {
+  # Update Basic Info
+  
+  Update basic profile information only.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body fields (all optional):
+  - name: User's display name
+  - bio: User's biography
+  - location: User's location
+  - interests: Array of user interests
+  - languages: Array of languages spoken
+  - jobTitle: User's job title
+  - company: User's company
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Get Premium Status
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/premium/subscription/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Premium Status
+  
+  Get the user's current premium status and benefits.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing premium status, features, and subscription details
+}

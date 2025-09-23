@@ -1,0 +1,60 @@
+meta {
+  name: Update Preferences
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{baseUrl}}/api/profile/preferences
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "discoverySettings": {
+      "ageRangeMin": 25,
+      "ageRangeMax": 35,
+      "maxDistance": 50,
+      "genderPreference": "ALL",
+      "showMeOnConnect": true,
+      "pauseDiscovery": false
+    },
+    "notificationSettings": {
+      "pushNotifications": true,
+      "emailNotifications": false,
+      "matchNotifications": true,
+      "messageNotifications": true,
+      "promotionalEmails": false
+    },
+    "privacySettings": {
+      "showOnlineStatus": true,
+      "showReadReceipts": true,
+      "allowLocationTracking": true,
+      "dataProcessingConsent": true
+    }
+  }
+}
+
+docs {
+  # Update Preferences
+  
+  Update the user's app preferences and settings.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - Object containing various preference categories:
+    - discoverySettings: Matching and discovery preferences
+    - notificationSettings: Notification preferences
+    - privacySettings: Privacy and data preferences
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Get Discovery Settings
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/discovery/settings
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Discovery Settings
+  
+  Get the user's current discovery and matching settings.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing current discovery settings
+}

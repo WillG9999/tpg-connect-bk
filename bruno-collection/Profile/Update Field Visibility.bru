@@ -1,0 +1,54 @@
+meta {
+  name: Update Field Visibility
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/api/profile/field-visibility
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "showAge": true,
+    "showLocation": true,
+    "showJobTitle": true,
+    "showCompany": false,
+    "showEducation": true,
+    "showInterests": true,
+    "showLanguages": true,
+    "showInstagram": false,
+    "showSpotify": true
+  }
+}
+
+docs {
+  # Update Field Visibility
+  
+  Update which profile fields are visible to other users.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - Object with boolean values for each field's visibility:
+    - showAge: Show age to other users
+    - showLocation: Show location to other users
+    - showJobTitle: Show job title to other users
+    - showCompany: Show company to other users
+    - showEducation: Show education to other users
+    - showInterests: Show interests to other users
+    - showLanguages: Show languages to other users
+    - showInstagram: Show Instagram link to other users
+    - showSpotify: Show Spotify connection to other users
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

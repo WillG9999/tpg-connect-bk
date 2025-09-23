@@ -1,0 +1,35 @@
+meta {
+  name: Restore Subscription
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/premium/subscription/restore?receiptData=receipt_12345
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  receiptData: receipt_12345
+}
+
+docs {
+  # Restore Subscription
+  
+  Restore a subscription using receipt data (typically for mobile apps).
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - receiptData: Receipt data from app store purchase
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object with restored subscription details
+}

@@ -1,0 +1,51 @@
+meta {
+  name: Update Safety Block
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/safety/blocks/block_123
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "blockType": "MESSAGING_RESTRICTION",
+    "reason": "Updated reason: Continued inappropriate behavior",
+    "duration": "14_DAYS",
+    "restrictions": {
+      "canSendMessages": false,
+      "canLikeProfiles": false,
+      "canCreateMatches": false
+    }
+  }
+}
+
+docs {
+  # Update Safety Block
+  
+  Update an existing safety block/restriction (typically admin only).
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Path parameters:
+  - safetyBlockId: The ID of the safety block to update
+  
+  Request body:
+  - blockType: Type of safety block
+  - reason: Updated reason for the block
+  - duration: Updated duration of the block
+  - restrictions: Updated restrictions object
+  
+  Returns:
+  - SafetyBlock object with the updated safety block details
+  
+  Note: This endpoint is typically restricted to admin users.
+}

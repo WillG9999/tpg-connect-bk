@@ -1,0 +1,47 @@
+meta {
+  name: B1 - Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "brunouser@example.com",
+    "password": "SecurePassword123!"
+  }
+}
+
+tests {
+  test("Login successful", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    
+    // Store the access token for future requests
+    if (res.getBody().accessToken) {
+      bru.setEnvVar("authToken", res.getBody().accessToken);
+    }
+  });
+}
+
+docs {
+  # User Login
+  
+  Authenticate a user and receive a JWT token.
+  
+  Required fields:
+  - email: User's email address
+  - password: User's password
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - token: JWT authentication token
+  - refreshToken: Refresh token for token renewal
+  - user: Basic user information
+}

@@ -1,0 +1,58 @@
+meta {
+  name: A1 - Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "brunouser@example.com",
+    "password": "SecurePassword123!",
+    "confirmPassword": "SecurePassword123!",
+    "firstName": "John",
+    "lastName": "Doe",
+    "dateOfBirth": "1995-06-15",
+    "gender": "MALE",
+    "location": "San Francisco, CA"
+  }
+}
+
+tests {
+  test("Registration successful", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    
+    // Store verification token for email verification
+    if (res.getBody().verificationToken) {
+      bru.setEnvVar("verificationToken", res.getBody().verificationToken);
+    }
+  });
+}
+
+docs {
+  # User Registration
+  
+  Register a new user account.
+  
+  Required fields:
+  - email: Valid email address
+  - password: Strong password (min 8 chars, uppercase, lowercase, number, special char [@$!%*?&])
+  - confirmPassword: Must match password exactly
+  - firstName: User's first name (2-50 chars)
+  - lastName: User's last name (2-50 chars)
+  - dateOfBirth: Date in YYYY-MM-DD format (must be 18+ years old)
+  - gender: Gender string (e.g., "MALE", "FEMALE")
+  - location: User's location (optional, max 100 chars)
+  
+  Returns:
+  - success: Boolean indicating success
+  - message: Success or error message
+  - userId: Generated user ID
+  - token: JWT authentication token
+}

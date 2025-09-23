@@ -1,7 +1,6 @@
 package com.tpg.connect.repository;
 
 import com.tpg.connect.model.notifications.Notification;
-import org.springframework.data.domain.PageRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +16,7 @@ public interface NotificationRepository {
     List<Notification> findByUserId(String userId);
     List<Notification> findByUserIdAndRead(String userId, boolean read);
     List<Notification> findByUserIdOrderByCreatedAtDesc(String userId);
-    List<Notification> findTopByUserIdOrderByCreatedAtDesc(String userId, PageRequest pageRequest);
+    List<Notification> findTopByUserIdOrderByCreatedAtDesc(String userId, int page, int size);
     List<Notification> findUnreadByUserId(String userId);
     List<Notification> findOlderThan(LocalDateTime cutoffDate);
     List<Notification> findPendingOlderThan(LocalDateTime cutoffDate);

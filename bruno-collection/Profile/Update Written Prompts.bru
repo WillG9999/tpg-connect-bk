@@ -1,0 +1,54 @@
+meta {
+  name: Update Written Prompts
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/profile/written-prompts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  [
+    {
+      "promptId": "about_me",
+      "question": "Tell us about yourself",
+      "answer": "I'm a passionate software engineer who loves building things that matter. When I'm not coding, you'll find me hiking mountain trails or experimenting with new recipes in the kitchen."
+    },
+    {
+      "promptId": "perfect_weekend",
+      "question": "What's your perfect weekend?",
+      "answer": "Saturday morning hike, followed by brunch at a local cafe, then maybe catching a movie or exploring a new neighborhood. Sunday is for meal prep and reading."
+    },
+    {
+      "promptId": "life_goal",
+      "question": "What's one goal you're working towards?",
+      "answer": "I'm working on launching my own tech startup focused on sustainability. It's challenging but incredibly rewarding!"
+    }
+  ]
+}
+
+docs {
+  # Update Written Prompts
+  
+  Update the user's written prompt responses.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Request body:
+  - Array of prompt objects with:
+    - promptId: Unique identifier for the prompt
+    - question: The prompt question
+    - answer: User's response to the prompt
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: Object containing updated profile and success message
+}

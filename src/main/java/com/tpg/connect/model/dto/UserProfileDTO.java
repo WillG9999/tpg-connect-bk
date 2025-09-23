@@ -4,6 +4,8 @@ import com.tpg.connect.model.user.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,12 +15,25 @@ import java.util.stream.Collectors;
 @Data
 @NoArgsConstructor
 public class UserProfileDTO {
+    @JsonProperty("id")
     private String id;
+    
+    @JsonProperty("name")
     private String name;
+    
+    @JsonProperty("age")
     private int age;
+    
+    @JsonProperty("bio")
     private String bio;
+    
+    @JsonProperty("photos")
     private List<String> photos; // Frontend expects string array
+    
+    @JsonProperty("location")
     private String location;
+    
+    @JsonProperty("interests")
     private List<String> interests;
     
     // Identity fields
@@ -64,56 +79,63 @@ public class UserProfileDTO {
         UserProfileDTO dto = new UserProfileDTO();
         
         // Basic info with null safety
-        dto.setId(profile.getId());
-        dto.setName(profile.getName() != null ? profile.getName() : "");
-        dto.setAge(profile.getAge());
-        dto.setBio(profile.getBio() != null ? profile.getBio() : "");
-        dto.setLocation(profile.getLocation() != null ? profile.getLocation() : "");
-        dto.setInterests(profile.getInterests() != null ? profile.getInterests() : List.of());
-        dto.setCreatedAt(profile.getCreatedAt());
-        dto.setUpdatedAt(profile.getUpdatedAt());
+        dto.setId(profile.getConnectId());
+        dto.setName(profile.getFirstName() != null ? profile.getFirstName() : "");
         
-        // Convert Photo objects to string array
+        // Calculate age from date of birth
+        if (profile.getDateOfBirth() != null) {
+            int calculatedAge = java.time.Period.between(profile.getDateOfBirth(), java.time.LocalDate.now()).getYears();
+            dto.setAge(calculatedAge);
+        }
+        
+        dto.setLocation(profile.getLocation() != null ? profile.getLocation() : "");
+        dto.setGender(profile.getGender() != null ? profile.getGender() : "");
+        
+        // Convert EnhancedPhoto objects to string array
         if (profile.getPhotos() != null) {
-            dto.setPhotos(profile.getPhotos().stream()
-                .sorted((p1, p2) -> Integer.compare(p1.getOrder(), p2.getOrder()))
-                .map(photo -> photo.getUrl() != null ? photo.getUrl() : "")
-                .filter(url -> !url.isEmpty()) // Remove empty URLs
-                .collect(Collectors.toList()));
+            try {
+                dto.setPhotos(profile.getPhotos().stream()
+                    .sorted((p1, p2) -> Integer.compare(p1.getOrder(), p2.getOrder()))
+                    .map(photo -> photo.getUrl() != null ? photo.getUrl() : "")
+                    .filter(url -> !url.isEmpty()) // Remove empty URLs
+                    .collect(Collectors.toList()));
+            } catch (Exception e) {
+                // Fallback to empty list if photo processing fails
+                dto.setPhotos(List.of());
+            }
         } else {
             dto.setPhotos(List.of()); // Frontend expects empty list, not null
         }
         
-        // User profile fields
+        // User profile fields from DetailedProfile
         if (profile.getProfile() != null) {
-            UserProfile userProfile = profile.getProfile();
-            dto.setPronouns(userProfile.getPronouns());
-            dto.setGender(userProfile.getGender());
-            dto.setSexuality(userProfile.getSexuality());
-            dto.setInterestedIn(userProfile.getInterestedIn());
-            dto.setJobTitle(userProfile.getJobTitle());
-            dto.setCompany(userProfile.getCompany());
-            dto.setUniversity(userProfile.getUniversity());
-            dto.setEducationLevel(userProfile.getEducationLevel());
-            dto.setReligiousBeliefs(userProfile.getReligiousBeliefs());
-            dto.setHometown(userProfile.getHometown());
-            dto.setPolitics(userProfile.getPolitics());
-            dto.setLanguages(userProfile.getLanguages());
-            dto.setDatingIntentions(userProfile.getDatingIntentions());
-            dto.setRelationshipType(userProfile.getRelationshipType());
-            dto.setHeight(userProfile.getHeight());
-            dto.setEthnicity(userProfile.getEthnicity());
-            dto.setChildren(userProfile.getChildren());
-            dto.setFamilyPlans(userProfile.getFamilyPlans());
-            dto.setPets(userProfile.getPets());
-            dto.setZodiacSign(userProfile.getZodiacSign());
+            DetailedProfile detailedProfile = profile.getProfile();
+            dto.setPronouns(detailedProfile.getPronouns());
+            dto.setSexuality(detailedProfile.getSexuality());
+            dto.setInterestedIn(detailedProfile.getInterestedIn());
+            dto.setJobTitle(detailedProfile.getJobTitle());
+            dto.setCompany(detailedProfile.getCompany());
+            dto.setUniversity(detailedProfile.getUniversity());
+            dto.setEducationLevel(detailedProfile.getEducationLevel());
+            dto.setReligiousBeliefs(detailedProfile.getReligiousBeliefs());
+            dto.setHometown(detailedProfile.getHometown());
+            dto.setPolitics(detailedProfile.getPolitics());
+            dto.setLanguages(detailedProfile.getLanguages());
+            dto.setDatingIntentions(detailedProfile.getDatingIntentions());
+            dto.setRelationshipType(detailedProfile.getRelationshipType());
+            dto.setHeight(detailedProfile.getHeight());
+            dto.setEthnicity(detailedProfile.getEthnicity());
+            dto.setChildren(detailedProfile.getChildren());
+            dto.setFamilyPlans(detailedProfile.getFamilyPlans());
+            dto.setPets(detailedProfile.getPets());
+            dto.setZodiacSign(detailedProfile.getZodiacSign());
         }
         
         // Convert written prompts to simple map format
         if (profile.getWrittenPrompts() != null) {
             dto.setWrittenPrompts(profile.getWrittenPrompts().stream()
                 .map(wp -> Map.of(
-                    "prompt", wp.getPrompt() != null ? wp.getPrompt() : "",
+                    "question", wp.getQuestion() != null ? wp.getQuestion() : "",
                     "answer", wp.getAnswer() != null ? wp.getAnswer() : ""
                 ))
                 .collect(Collectors.toList()));
@@ -125,9 +147,10 @@ public class UserProfileDTO {
         if (profile.getPollPrompts() != null) {
             dto.setPollPrompts(profile.getPollPrompts().stream()
                 .map(pp -> Map.<String, Object>of(
-                    "prompt", pp.getPrompt() != null ? pp.getPrompt() : "",
                     "question", pp.getQuestion() != null ? pp.getQuestion() : "",
-                    "options", pp.getOptions() != null ? pp.getOptions() : List.of()
+                    "description", pp.getDescription() != null ? pp.getDescription() : "",
+                    "options", pp.getOptions() != null ? pp.getOptions() : List.of(),
+                    "selectedOption", pp.getSelectedOption() != null ? pp.getSelectedOption() : ""
                 ))
                 .collect(Collectors.toList()));
         } else {
@@ -135,20 +158,34 @@ public class UserProfileDTO {
         }
         
         // Convert field visibility to Map format
-        if (profile.getFieldVisibility() != null) {
-            FieldVisibility fv = profile.getFieldVisibility();
-            dto.setFieldVisibility(Map.of(
-                "jobTitle", fv.isJobTitle(),
-                "company", fv.isCompany(),
-                "university", fv.isUniversity(),
-                "religiousBeliefs", fv.isReligiousBeliefs(),
-                "politics", fv.isPolitics(),
-                "hometown", fv.isHometown(),
-                "height", fv.isHeight(),
-                "ethnicity", fv.isEthnicity()
-            ));
-        } else {
-            // Default field visibility - all fields visible
+        try {
+            if (profile.getFieldVisibility() != null) {
+                FieldVisibility fv = profile.getFieldVisibility();
+                dto.setFieldVisibility(Map.of(
+                    "jobTitle", fv.isJobTitle(),
+                    "company", fv.isCompany(),
+                    "university", fv.isUniversity(),
+                    "religiousBeliefs", fv.isReligiousBeliefs(),
+                    "politics", fv.isPolitics(),
+                    "hometown", fv.isHometown(),
+                    "height", fv.isHeight(),
+                    "ethnicity", fv.isEthnicity()
+                ));
+            } else {
+                // Default field visibility - all fields visible
+                dto.setFieldVisibility(Map.of(
+                    "jobTitle", true,
+                    "company", true,
+                    "university", true,
+                    "religiousBeliefs", true,
+                    "politics", true,
+                    "hometown", true,
+                    "height", true,
+                    "ethnicity", true
+                ));
+            }
+        } catch (Exception e) {
+            // Fallback to default visibility settings
             dto.setFieldVisibility(Map.of(
                 "jobTitle", true,
                 "company", true,

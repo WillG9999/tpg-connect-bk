@@ -1,0 +1,37 @@
+meta {
+  name: Get Current User
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/users/me?includePreferences=true&includeMatches=false
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+params:query {
+  includePreferences: true
+  includeMatches: false
+}
+
+docs {
+  # Get Current User
+  
+  Get the current authenticated user's profile information.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Query parameters:
+  - includePreferences: Boolean to include user preferences (default: false)
+  - includeMatches: Boolean to include match data (default: false)
+  
+  Returns:
+  - success: Boolean indicating success
+  - data: User profile data (UserProfileDTO)
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Get Safety Blocks
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/safety/blocks
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Safety Blocks
+  
+  Get safety blocks applied to the current user's account.
+  
+  Headers:
+  - Authorization: Bearer {token}
+  
+  Returns:
+  - Array of SafetyBlock objects containing information about safety restrictions
+}

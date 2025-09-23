@@ -27,6 +27,6 @@ public class LoginResponse {
         this.refreshToken = refreshToken;
         this.user = user;
         this.tokenType = "Bearer";
-        this.expiresAt = LocalDateTime.now().plusHours(24); // Default 24 hour expiry
+        this.expiresAt = null; // Let Jackson handle this or set as string
     }
 }
