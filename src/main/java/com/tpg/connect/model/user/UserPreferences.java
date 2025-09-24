@@ -17,6 +17,14 @@ public class UserPreferences {
     private List<String> dealBreakers;
     private List<String> mustHaves;
     
+    // Dating Preferences aligned with frontend and database schema
+    private String datingIntention; // "serious", "casual", "openToAnything", "figuringItOut"
+    private String drinkingPreference; // "never", "sometimes", "regularly", "noPreference"
+    private String smokingPreference; // "never", "sometimes", "regularly", "noPreference"
+    private String drugPreference; // "never", "sometimes", "regularly", "noPreference"
+    private String religionImportance; // "low", "medium", "high"
+    private boolean wantsChildren;
+    
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

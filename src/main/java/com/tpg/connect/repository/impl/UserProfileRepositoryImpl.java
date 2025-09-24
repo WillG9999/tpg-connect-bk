@@ -818,9 +818,16 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         Map<String, Object> map = new HashMap<>();
         map.put("preferredGender", preferences.getPreferredGender());
         map.put("maxDistance", preferences.getMaxDistance());
-        map.put("datingIntentions", preferences.getDatingIntention());
+        map.put("datingIntention", preferences.getDatingIntention());
         map.put("dealBreakers", preferences.getDealBreakers());
         map.put("mustHaves", preferences.getMustHaves());
+        
+        // Enhanced dating preferences
+        map.put("drinkingPreference", preferences.getDrinkingPreference());
+        map.put("smokingPreference", preferences.getSmokingPreference());
+        map.put("drugPreference", preferences.getDrugPreference());
+        map.put("religionImportance", preferences.getReligionImportance());
+        map.put("wantsChildren", preferences.isWantsChildren());
         
         if (preferences.getAgeRange() != null) {
             Map<String, Object> ageRange = new HashMap<>();
@@ -845,9 +852,27 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         UserPreferences preferences = new UserPreferences();
         preferences.setPreferredGender((String) preferencesMap.get("preferredGender"));
         preferences.setMaxDistance(safeToInteger(preferencesMap.get("maxDistance")));
-        preferences.setDatingIntention((String) preferencesMap.get("datingIntentions"));
+        
+        // Handle both old and new field names for dating intention
+        String datingIntention = (String) preferencesMap.get("datingIntention");
+        if (datingIntention == null) {
+            datingIntention = (String) preferencesMap.get("datingIntentions"); // Backward compatibility
+        }
+        preferences.setDatingIntention(datingIntention);
+        
         preferences.setDealBreakers((List<String>) preferencesMap.get("dealBreakers"));
         preferences.setMustHaves((List<String>) preferencesMap.get("mustHaves"));
+        
+        // Enhanced dating preferences
+        preferences.setDrinkingPreference((String) preferencesMap.get("drinkingPreference"));
+        preferences.setSmokingPreference((String) preferencesMap.get("smokingPreference"));
+        preferences.setDrugPreference((String) preferencesMap.get("drugPreference"));
+        preferences.setReligionImportance((String) preferencesMap.get("religionImportance"));
+        
+        Object wantsChildren = preferencesMap.get("wantsChildren");
+        if (wantsChildren instanceof Boolean) {
+            preferences.setWantsChildren((Boolean) wantsChildren);
+        }
         
         Map<String, Object> ageRangeMap = (Map<String, Object>) preferencesMap.get("ageRange");
         if (ageRangeMap != null) {

@@ -291,6 +291,9 @@ public class UserProfileDTO {
         @JsonProperty("smokingPreference")
         private String smokingPreference = "";
         
+        @JsonProperty("drugPreference")
+        private String drugPreference = "";
+        
         @JsonProperty("religionImportance")
         private String religionImportance = "Low";
         
@@ -538,8 +541,9 @@ public class UserProfileDTO {
             prefsDTO.setDatingIntention(prefs.getDatingIntention() != null ? prefs.getDatingIntention() : "");
             prefsDTO.setDrinkingPreference(prefs.getDrinkingPreference() != null ? prefs.getDrinkingPreference() : "");
             prefsDTO.setSmokingPreference(prefs.getSmokingPreference() != null ? prefs.getSmokingPreference() : "");
-            prefsDTO.setReligionImportance("Low"); // Default value
-            prefsDTO.setWantsChildren(false); // Default value
+            prefsDTO.setDrugPreference(prefs.getDrugPreference() != null ? prefs.getDrugPreference() : "");
+            prefsDTO.setReligionImportance(prefs.getReligionImportance() != null ? prefs.getReligionImportance() : "Low");
+            prefsDTO.setWantsChildren(prefs.isWantsChildren());
             dto.setPreferences(prefsDTO);
         } else {
             dto.setPreferences(new PreferencesDTO()); // Default preferences

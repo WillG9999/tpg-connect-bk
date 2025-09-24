@@ -90,6 +90,56 @@ public class CloudStorageService {
         }
     }
 
+    /**
+     * Delete a single photo from cloud storage using its signed URL
+     */
+    public boolean deletePhotoFromStorage(String photoUrl) {
+        try {
+            String filePath = extractFilePathFromUrl(photoUrl);
+            if (filePath == null) {
+                logger.warn("⚠️ Could not extract storage path from URL: {}", photoUrl);
+                return false;
+            }
+
+            BlobId blobId = BlobId.of(storageProperties.getBucketName(), filePath);
+            boolean deleted = storage.delete(blobId);
+
+            if (deleted) {
+                logger.info("🗑️ Successfully deleted photo from storage: {}", filePath);
+            } else {
+                logger.warn("⚠️ Photo not found in storage (may already be deleted): {}", filePath);
+            }
+
+            return deleted;
+
+        } catch (Exception e) {
+            logger.error("❌ Failed to delete photo from storage: {} - Error: {}", photoUrl, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Delete multiple photos from cloud storage using their signed URLs
+     */
+    public void deleteMultiplePhotos(java.util.List<String> photoUrls) {
+        if (photoUrls == null || photoUrls.isEmpty()) {
+            logger.debug("No photos to delete");
+            return;
+        }
+
+        logger.info("🧹 Starting cleanup of {} photos", photoUrls.size());
+        int deletedCount = 0;
+
+        for (String photoUrl : photoUrls) {
+            if (deletePhotoFromStorage(photoUrl)) {
+                deletedCount++;
+            }
+        }
+
+        logger.info("✅ Photo cleanup completed: {}/{} photos deleted successfully", 
+                   deletedCount, photoUrls.size());
+    }
+
     public void deleteUserPhotos(String userId) {
         try {
             String prefix = "profile_photos/" + userId + "/";

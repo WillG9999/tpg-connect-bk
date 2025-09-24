@@ -4,6 +4,8 @@ import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.model.api.ProfileUpdateRequest;
 import com.tpg.connect.model.dto.UpdateProfileRequest;
 import com.tpg.connect.model.user.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,11 +20,16 @@ import java.util.stream.Collectors;
 @Service
 public class ProfileManagementService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProfileManagementService.class);
+
     @Autowired
     private UserProfileRepository userProfileRepository;
 
     @Autowired
     private Validator validator;
+
+    @Autowired
+    private PhotoCleanupService photoCleanupService;
 
     @Cacheable(value = "userProfiles", key = "'user_profile_' + #userId", unless = "#result == null")
     public CompleteUserProfile getCurrentProfile(String userId, boolean includePreferences) {
@@ -61,6 +68,15 @@ public class ProfileManagementService {
         }
 
         updateDetailedProfileFields(profile, request);
+
+        // Store old photos for cleanup after successful update
+        List<String> oldPhotoUrls = null;
+        if (request.getPhotos() != null && existingProfile.getPhotos() != null) {
+            oldPhotoUrls = existingProfile.getPhotos().stream()
+                .map(EnhancedPhoto::getUrl)
+                .filter(url -> url != null && !url.trim().isEmpty())
+                .toList();
+        }
 
         // Update photos
         if (request.getPhotos() != null) {
@@ -103,7 +119,18 @@ public class ProfileManagementService {
         existingProfile.setUpdatedAt(LocalDateTime.now());
         existingProfile.setVersion(existingProfile.getVersion() + 1);
 
-        return userProfileRepository.save(existingProfile);
+        // Save the updated profile
+        CompleteUserProfile updatedProfile = userProfileRepository.save(existingProfile);
+
+        // Trigger async cleanup of old photos (after successful update)
+        if (request.getPhotos() != null && oldPhotoUrls != null && !oldPhotoUrls.isEmpty()) {
+            List<String> newPhotoUrls = request.getPhotos();
+            photoCleanupService.cleanupOldPhotos(userId, oldPhotoUrls, newPhotoUrls);
+            logger.info("🚀 Async photo cleanup triggered for user: {} - {} old photos to process", 
+                       userId, oldPhotoUrls.size());
+        }
+
+        return updatedProfile;
     }
 
     @CacheEvict(value = "userProfiles", key = "'user_profile_' + #userId")
@@ -261,7 +288,21 @@ public class ProfileManagementService {
         profile.setUpdatedAt(LocalDateTime.now());
         profile.setVersion(profile.getVersion() + 1);
 
-        return userProfileRepository.save(profile);
+        CompleteUserProfile updatedProfile = userProfileRepository.save(profile);
+
+        // If we exceed 6 photos, cleanup excess photos asynchronously
+        if (photos.size() > 6) {
+            List<String> allPhotoUrls = photos.stream()
+                .map(EnhancedPhoto::getUrl)
+                .filter(url -> url != null && !url.trim().isEmpty())
+                .toList();
+            
+            photoCleanupService.cleanupExcessPhotos(userId, allPhotoUrls, 6);
+            logger.info("🚀 Excess photo cleanup triggered for user: {} - {} photos total", 
+                       userId, photos.size());
+        }
+
+        return updatedProfile;
     }
 
     @CacheEvict(value = "userProfiles", key = "'user_profile_' + #userId")
@@ -281,6 +322,13 @@ public class ProfileManagementService {
             throw new IllegalArgumentException("Cannot remove the last photo. Profile must have at least one photo.");
         }
 
+        // Find the photo URL before removal for cleanup
+        String photoUrlToDelete = photos.stream()
+            .filter(photo -> photo.getId().equals(photoId))
+            .map(EnhancedPhoto::getUrl)
+            .findFirst()
+            .orElse(null);
+
         boolean removed = photos.removeIf(photo -> photo.getId().equals(photoId));
         
         if (!removed) {
@@ -293,7 +341,15 @@ public class ProfileManagementService {
         profile.setUpdatedAt(LocalDateTime.now());
         profile.setVersion(profile.getVersion() + 1);
 
-        return userProfileRepository.save(profile);
+        CompleteUserProfile updatedProfile = userProfileRepository.save(profile);
+
+        // Trigger async cleanup of the removed photo
+        if (photoUrlToDelete != null) {
+            photoCleanupService.cleanupSinglePhoto(userId, photoUrlToDelete);
+            logger.info("🚀 Single photo cleanup triggered for user: {} - Photo: {}", userId, photoUrlToDelete);
+        }
+
+        return updatedProfile;
     }
 
     @CacheEvict(value = "userProfiles", key = "'user_profile_' + #userId")
@@ -312,6 +368,13 @@ public class ProfileManagementService {
             throw new IllegalArgumentException("Maximum of 6 photos allowed");
         }
 
+        // Store old photos for cleanup
+        List<String> oldPhotoUrls = profile.getPhotos() != null ? 
+            profile.getPhotos().stream()
+                .map(EnhancedPhoto::getUrl)
+                .filter(url -> url != null && !url.trim().isEmpty())
+                .toList() : new ArrayList<>();
+
         List<EnhancedPhoto> photos = new ArrayList<>();
         for (int i = 0; i < photoUrls.size(); i++) {
             EnhancedPhoto photo = new EnhancedPhoto();
@@ -329,7 +392,16 @@ public class ProfileManagementService {
         profile.setUpdatedAt(LocalDateTime.now());
         profile.setVersion(profile.getVersion() + 1);
 
-        return userProfileRepository.save(profile);
+        CompleteUserProfile updatedProfile = userProfileRepository.save(profile);
+
+        // Trigger async cleanup of old photos
+        if (!oldPhotoUrls.isEmpty()) {
+            photoCleanupService.cleanupOldPhotos(userId, oldPhotoUrls, photoUrls);
+            logger.info("🚀 Async photo cleanup triggered for user: {} - {} old photos to process", 
+                       userId, oldPhotoUrls.size());
+        }
+
+        return updatedProfile;
     }
 
     @CacheEvict(value = "userProfiles", key = "'user_profile_' + #userId")
@@ -497,11 +569,15 @@ public class ProfileManagementService {
         if (data.containsKey("preferredGender")) preferences.setPreferredGender((String) data.get("preferredGender"));
         if (data.containsKey("minAge")) preferences.setMinAge(safeToInteger(data.get("minAge")));
         if (data.containsKey("maxAge")) preferences.setMaxAge(safeToInteger(data.get("maxAge")));
+        if (data.containsKey("maxDistance")) preferences.setMaxDistance(safeToInteger(data.get("maxDistance")));
         if (data.containsKey("minHeight")) preferences.setMinHeight(safeToInteger(data.get("minHeight")));
         if (data.containsKey("maxHeight")) preferences.setMaxHeight(safeToInteger(data.get("maxHeight")));
         if (data.containsKey("datingIntention")) preferences.setDatingIntention((String) data.get("datingIntention"));
         if (data.containsKey("drinkingPreference")) preferences.setDrinkingPreference((String) data.get("drinkingPreference"));
         if (data.containsKey("smokingPreference")) preferences.setSmokingPreference((String) data.get("smokingPreference"));
+        if (data.containsKey("drugPreference")) preferences.setDrugPreference((String) data.get("drugPreference"));
+        if (data.containsKey("religionImportance")) preferences.setReligionImportance((String) data.get("religionImportance"));
+        if (data.containsKey("wantsChildren")) preferences.setWantsChildren(safeToBoolean(data.get("wantsChildren")));
     }
     
     // Helper method to safely convert Long/Integer/String to Integer
@@ -517,6 +593,16 @@ public class ProfileManagementService {
             }
         }
         return null;
+    }
+    
+    // Helper method to safely convert Object to Boolean
+    private boolean safeToBoolean(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean) return (Boolean) value;
+        if (value instanceof String) {
+            return Boolean.parseBoolean((String) value);
+        }
+        return false;
     }
 
     private void reorderPhotos(List<EnhancedPhoto> photos) {
@@ -630,4 +716,5 @@ public class ProfileManagementService {
             }
         }
     }
+
 }
