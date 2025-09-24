@@ -57,6 +57,10 @@ public class UserProfileDTO {
     @JsonProperty("photos")
     private List<PhotoDTO> photos = new ArrayList<>();
     
+    // Photo Prompts (Flattened for frontend compatibility)
+    @JsonProperty("photoPrompts")
+    private Map<String, Map<String, String>> photoPrompts = new HashMap<>();
+    
     // Interests & Lifestyle
     @JsonProperty("interests")
     private List<String> interests = new ArrayList<>();
@@ -410,8 +414,25 @@ public class UserProfileDTO {
                     .filter(photoDTO -> !photoDTO.getUrl().isEmpty())
                     .collect(Collectors.toList());
                 dto.setPhotos(photoDTOs);
+                
+                // Create flattened photo prompts map for frontend compatibility
+                Map<String, Map<String, String>> flattenedPrompts = new HashMap<>();
+                for (int i = 0; i < photoDTOs.size(); i++) {
+                    PhotoDTO photoDTO = photoDTOs.get(i);
+                    if (photoDTO.getPrompts() != null && !photoDTO.getPrompts().isEmpty()) {
+                        // Take the first prompt for each photo (simple implementation)
+                        PhotoPromptDTO firstPrompt = photoDTO.getPrompts().get(0);
+                        Map<String, String> promptData = new HashMap<>();
+                        promptData.put("prompt", firstPrompt.getText() != null ? firstPrompt.getText() : "");
+                        promptData.put("caption", firstPrompt.getText() != null ? firstPrompt.getText() : "");
+                        flattenedPrompts.put(String.valueOf(i), promptData);
+                    }
+                }
+                dto.setPhotoPrompts(flattenedPrompts);
+                
             } catch (Exception e) {
                 dto.setPhotos(new ArrayList<>());
+                dto.setPhotoPrompts(new HashMap<>());
             }
         }
         

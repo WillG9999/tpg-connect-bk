@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.*;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -52,4 +53,9 @@ public class UpdateProfileRequest {
     private String familyPlans;
     private String pets;
     private String zodiacSign;
+    
+    // Prompt fields
+    private Map<String, Map<String, String>> photoPrompts;
+    private List<Map<String, String>> writtenPrompts;
+    private List<Map<String, Object>> pollPrompts;
 }

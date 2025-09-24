@@ -205,6 +205,17 @@ public class ProfileManagementService {
             DetailedProfile profile = getOrCreateDetailedProfile(existingProfile);
             profile.setZodiacSign(request.getZodiacSign());
         }
+        
+        // Prompt fields
+        if (request.getPhotoPrompts() != null) {
+            updatePhotoPrompts(existingProfile, request.getPhotoPrompts());
+        }
+        if (request.getWrittenPrompts() != null) {
+            existingProfile.setWrittenPrompts(convertToWrittenPrompts(request.getWrittenPrompts()));
+        }
+        if (request.getPollPrompts() != null) {
+            existingProfile.setPollPrompts(convertToPollPrompts(request.getPollPrompts()));
+        }
 
         validateProfile(existingProfile);
 
@@ -570,6 +581,53 @@ public class ProfileManagementService {
                 .collect(Collectors.toList());
         } catch (Exception e) {
             throw new RuntimeException("Failed to search users: " + e.getMessage());
+        }
+    }
+    
+    private void updatePhotoPrompts(CompleteUserProfile profile, Map<String, Map<String, String>> photoPromptsData) {
+        if (photoPromptsData == null || photoPromptsData.isEmpty() || profile.getPhotos() == null) {
+            return;
+        }
+        
+        System.out.println("🔍 ProfileManagementService: Updating photo prompts for " + photoPromptsData.size() + " photos");
+        
+        List<EnhancedPhoto> photos = profile.getPhotos();
+        
+        // Update prompts for each photo
+        for (Map.Entry<String, Map<String, String>> entry : photoPromptsData.entrySet()) {
+            try {
+                int photoIndex = Integer.parseInt(entry.getKey());
+                Map<String, String> promptData = entry.getValue();
+                
+                if (photoIndex >= 0 && photoIndex < photos.size()) {
+                    EnhancedPhoto photo = photos.get(photoIndex);
+                    String promptText = promptData.get("prompt");
+                    
+                    if (promptText != null && !promptText.isEmpty()) {
+                        // Create a simple photo prompt
+                        PhotoPrompt photoPrompt = new PhotoPrompt();
+                        photoPrompt.setId(java.util.UUID.randomUUID().toString());
+                        photoPrompt.setText(promptText);
+                        
+                        // Set default position and style
+                        PhotoPrompt.PhotoPosition position = new PhotoPrompt.PhotoPosition(0.5, 0.8); // Bottom center
+                        PhotoPrompt.PhotoStyle style = new PhotoPrompt.PhotoStyle("#000000", "#FFFFFF", 14);
+                        photoPrompt.setPosition(position);
+                        photoPrompt.setStyle(style);
+                        
+                        // Replace existing prompts with new one
+                        photo.setPrompts(List.of(photoPrompt));
+                        
+                        System.out.println("✅ Added photo prompt '" + promptText + "' to photo " + photoIndex);
+                    } else {
+                        // Clear prompts if text is empty
+                        photo.setPrompts(List.of());
+                        System.out.println("🗑️ Cleared photo prompts for photo " + photoIndex);
+                    }
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Invalid photo index: " + entry.getKey());
+            }
         }
     }
 }

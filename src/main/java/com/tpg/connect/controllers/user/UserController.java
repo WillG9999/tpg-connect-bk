@@ -114,6 +114,17 @@ public class UserController extends BaseController {
             if (updateData.containsKey("pets")) request.setPets((String) updateData.get("pets"));
             if (updateData.containsKey("zodiacSign")) request.setZodiacSign((String) updateData.get("zodiacSign"));
             
+            // Prompt fields
+            if (updateData.containsKey("photoPrompts")) {
+                request.setPhotoPrompts((Map<String, Map<String, String>>) updateData.get("photoPrompts"));
+            }
+            if (updateData.containsKey("writtenPrompts")) {
+                request.setWrittenPrompts((List<Map<String, String>>) updateData.get("writtenPrompts"));
+            }
+            if (updateData.containsKey("pollPrompts")) {
+                request.setPollPrompts((List<Map<String, Object>>) updateData.get("pollPrompts"));
+            }
+            
             CompleteUserProfile updatedProfile = profileService.updateBasicInfo(userId, request);
             UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(updatedProfile);
             return successResponse(dto);
