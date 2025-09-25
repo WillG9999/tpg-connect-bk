@@ -52,6 +52,7 @@ public class ApplicationSubmissionRepositoryImpl implements ApplicationSubmissio
     @Override
     public Optional<ApplicationSubmission> findById(String connectId) {
         try {
+            logger.info("🔍 Looking for application with document ID: {}", connectId);
             DocumentSnapshot document = firestore.collection(COLLECTION_NAME)
                     .document(connectId)
                     .get()
@@ -59,7 +60,22 @@ public class ApplicationSubmissionRepositoryImpl implements ApplicationSubmissio
             
             if (document.exists()) {
                 ApplicationSubmission application = document.toObject(ApplicationSubmission.class);
+                logger.info("✅ Found application with status: {} for connectId: {}", application.getStatus(), connectId);
                 return Optional.ofNullable(application);
+            } else {
+                logger.warn("❌ No document found with ID: {}, trying query by connectId field", connectId);
+                // Fallback: try to find by connectId field instead of document ID
+                QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                        .whereEqualTo("connectId", connectId)
+                        .limit(1)
+                        .get()
+                        .get();
+                
+                if (!querySnapshot.isEmpty()) {
+                    ApplicationSubmission application = querySnapshot.getDocuments().get(0).toObject(ApplicationSubmission.class);
+                    logger.info("✅ Found application via query with status: {} for connectId: {}", application.getStatus(), connectId);
+                    return Optional.ofNullable(application);
+                }
             }
             
             return Optional.empty();

@@ -19,6 +19,7 @@ public class LoginResponse {
     private Object user; // Can be CompleteUserProfile or UserProfileDTO
     private LocalDateTime expiresAt;
     private String tokenType;
+    private String applicationStatus; // For directing users to appropriate pages
     
     public LoginResponse(boolean success, String message, String accessToken, String refreshToken, Object user) {
         this.success = success;
@@ -28,5 +29,17 @@ public class LoginResponse {
         this.user = user;
         this.tokenType = "Bearer";
         this.expiresAt = null; // Let Jackson handle this or set as string
+        this.applicationStatus = null;
+    }
+    
+    public LoginResponse(boolean success, String message, String accessToken, String refreshToken, Object user, String applicationStatus) {
+        this.success = success;
+        this.message = message;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.user = user;
+        this.tokenType = "Bearer";
+        this.expiresAt = null;
+        this.applicationStatus = applicationStatus;
     }
 }

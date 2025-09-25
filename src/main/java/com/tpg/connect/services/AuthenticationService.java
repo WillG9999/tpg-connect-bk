@@ -101,7 +101,7 @@ public class AuthenticationService {
                 .emailVerified(false)
                 .active(true)
                 .role("USER")
-                .applicationStatus(ApplicationStatus.PENDING_APPROVAL)
+                // Application status will be set when user submits application
                 .build();
 
         user = userRepository.createUser(user);
@@ -158,35 +158,38 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Check application status - only ACTIVE users can login to main app
-        try {
-            com.tpg.connect.model.application.ApplicationSubmission application = 
-                applicationService.getApplicationByConnectId(user.getConnectId());
-            
-            if (application != null) {
-                ApplicationStatus status = application.getStatus();
+        // Check application status - determine where to direct users after login
+        String applicationStatus = "NO_APPLICATION"; // Default for users without applications
+        
+        // Admin users bypass application status checks
+        if ("183600102436".equals(user.getConnectId())) {
+            applicationStatus = "ADMIN";
+        } else {
+            try {
+                com.tpg.connect.model.application.ApplicationSubmission application = 
+                    applicationService.getApplicationByConnectId(user.getConnectId());
                 
-                if (status == ApplicationStatus.PENDING_APPROVAL) {
-                    throw new IllegalArgumentException("APPLICATION_PENDING");
-                } else if (status == ApplicationStatus.REJECTED) {
-                    throw new IllegalArgumentException("APPLICATION_REJECTED");
-                } else if (status == ApplicationStatus.APPROVED) {
-                    throw new IllegalArgumentException("APPLICATION_APPROVED_PAYMENT_REQUIRED");
-                } else if (status == ApplicationStatus.SUSPENDED) {
-                    throw new IllegalArgumentException("ACCOUNT_SUSPENDED");
+                if (application != null) {
+                    ApplicationStatus status = application.getStatus();
+                    
+                    if (status == ApplicationStatus.PENDING_APPROVAL) {
+                        applicationStatus = "APPLICATION_PENDING";
+                    } else if (status == ApplicationStatus.REJECTED) {
+                        applicationStatus = "APPLICATION_REJECTED";
+                    } else if (status == ApplicationStatus.SUSPENDED) {
+                        throw new IllegalArgumentException("ACCOUNT_SUSPENDED"); // Still block suspended users
+                    } else if (status == ApplicationStatus.APPROVED) {
+                        applicationStatus = "APPROVED";
+                    }
+                    // All other statuses will show application under review
                 }
-                // Only ACTIVE status allows full access
-            } else {
-                // No application found - this shouldn't happen for new users
-                // For existing users without applications, allow login for backward compatibility
-                System.out.println("⚠️ User " + user.getConnectId() + " has no application record - allowing login for backward compatibility");
+            } catch (IllegalArgumentException e) {
+                // Re-throw application status errors
+                throw e;
+            } catch (Exception e) {
+                // Log application check errors but don't block login
+                System.err.println("⚠️ Error checking application status for user " + user.getConnectId() + ": " + e.getMessage());
             }
-        } catch (IllegalArgumentException e) {
-            // Re-throw application status errors
-            throw e;
-        } catch (Exception e) {
-            // Log application check errors but don't block login for backward compatibility
-            System.err.println("⚠️ Error checking application status for user " + user.getConnectId() + ": " + e.getMessage());
         }
 
         try {
@@ -233,7 +236,7 @@ public class AuthenticationService {
                 System.err.println("Profile conversion failed, using minimal profile: " + e.getMessage());
                 e.printStackTrace();
             }
-            return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO);
+            return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO, applicationStatus);
         } catch (Exception e) {
             System.err.println("Error in login process: " + e.getMessage());
             e.printStackTrace();
