@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.google.cloud.Timestamp;
+import com.tpg.connect.model.user.ApplicationStatus;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class User {
     private String role;
     private Boolean active;
     private Boolean emailVerified;
+    private ApplicationStatus applicationStatus;
     
     // Convenience methods for backwards compatibility
     public boolean isActive() {
@@ -28,6 +30,18 @@ public class User {
     
     public boolean isEmailVerified() {
         return emailVerified != null && emailVerified;
+    }
+    
+    public boolean canAccessApp() {
+        return applicationStatus != null && applicationStatus.canLogin();
+    }
+    
+    public boolean needsPayment() {
+        return applicationStatus != null && applicationStatus.needsPayment();
+    }
+    
+    public boolean isPendingApproval() {
+        return applicationStatus != null && applicationStatus.isPending();
     }
     
     // Backwards compatibility method

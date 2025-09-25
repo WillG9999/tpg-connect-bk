@@ -42,8 +42,14 @@ public class DevConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOrigins(origins);
-        logger.info("CORS allowed origins: {}", origins);
+        // Use allowedOriginPatterns instead of allowedOrigins when allowCredentials is true
+        if (allowCredentials) {
+            configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+            logger.info("CORS allowed origin patterns: *");
+        } else {
+            configuration.setAllowedOrigins(origins);
+            logger.info("CORS allowed origins: {}", origins);
+        }
         
         List<String> methods = Arrays.asList(allowedMethods.split(","));
         configuration.setAllowedMethods(methods);

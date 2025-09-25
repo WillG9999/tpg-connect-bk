@@ -53,6 +53,34 @@ public class CloudStorageService {
         }
     }
 
+    public String uploadApplicationPhoto(String connectId, MultipartFile file, int photoIndex) throws IOException {
+        validatePhotoFile(file);
+        
+        String fileName = generatePhotoFileName(connectId, file.getOriginalFilename());
+        String folderPath = "applications/" + connectId + "/";
+        String fullPath = folderPath + fileName;
+        
+        BlobId blobId = BlobId.of(storageProperties.getBucketName(), fullPath);
+        BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                .setContentType(file.getContentType())
+                .setMetadata(java.util.Map.of(
+                    "connectId", connectId,
+                    "photoIndex", String.valueOf(photoIndex),
+                    "uploadedAt", String.valueOf(System.currentTimeMillis()),
+                    "originalName", file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown"
+                ))
+                .build();
+
+        try {
+            Blob blob = storage.create(blobInfo, file.getBytes());
+            logger.info("Application photo uploaded successfully: {} for connectId: {}", fullPath, connectId);
+            return getPublicUrl(fullPath);
+        } catch (Exception e) {
+            logger.error("Failed to upload application photo for connectId: {}", connectId, e);
+            throw new IOException("Failed to upload application photo", e);
+        }
+    }
+
     public String uploadFile(String path, MultipartFile file) throws IOException {
         String fileName = generateUniqueFileName(file.getOriginalFilename());
         String fullPath = path + "/" + fileName;
