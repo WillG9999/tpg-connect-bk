@@ -22,6 +22,9 @@ public class UserActionsService {
     
     @Autowired
     private Firestore firestore;
+    
+    @Autowired
+    private MatchService matchService;
 
     /**
      * Add a like action: user likes targetUser
@@ -37,7 +40,7 @@ public class UserActionsService {
             DocumentReference userDoc = firestore.collection(COLLECTION_NAME).document(userId);
             DocumentReference targetDoc = firestore.collection(COLLECTION_NAME).document(targetUserId);
             
-            return firestore.runTransaction(transaction -> {
+            boolean isMutualMatch = firestore.runTransaction(transaction -> {
                 // Get both documents
                 DocumentSnapshot userSnapshot = transaction.get(userDoc).get();
                 DocumentSnapshot targetSnapshot = transaction.get(targetDoc).get();
@@ -85,9 +88,9 @@ public class UserActionsService {
                 }
                 
                 // Check for mutual match: has targetUser already liked this user?
-                boolean isMutualMatch = targetLikes.contains(userId);
+                boolean mutualMatch = targetLikes.contains(userId);
                 
-                if (isMutualMatch) {
+                if (mutualMatch) {
                     logger.info("🎉 Mutual match detected: {} ↔ {}", userId, targetUserId);
                     
                     // Add to both users' matches arrays
@@ -104,6 +107,7 @@ public class UserActionsService {
                         targetMatches.add(userId);
                         targetData.put("matches", targetMatches);
                     }
+                    
                 }
                 
                 // Update timestamps
@@ -117,9 +121,23 @@ public class UserActionsService {
                 logger.info("📝 Writing userActions document for target {}", targetUserId);
                 transaction.set(targetDoc, targetData);
                 
-                logger.info("✅ Transaction completed. Mutual match: {}", isMutualMatch);
-                return isMutualMatch;
+                logger.info("✅ Transaction completed. Mutual match: {}", mutualMatch);
+                return mutualMatch;
             }).get();
+            
+            // If mutual match detected, create Match entity and Conversation outside transaction
+            if (isMutualMatch) {
+                try {
+                    logger.info("🏗️ Creating Match entity and Conversation for {} ↔ {}", userId, targetUserId);
+                    matchService.createMatch(userId, targetUserId);
+                    logger.info("✅ Match entity and Conversation created successfully");
+                } catch (Exception e) {
+                    logger.error("❌ Failed to create Match entity for {} ↔ {}: {}", userId, targetUserId, e.getMessage(), e);
+                    // Don't fail the like action if Match creation fails - the arrays are already updated
+                }
+            }
+            
+            return isMutualMatch;
             
         } catch (InterruptedException | ExecutionException e) {
             logger.error("❌ Error adding like action {} -> {}: {}", userId, targetUserId, e.getMessage(), e);

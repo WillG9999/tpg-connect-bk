@@ -224,6 +224,57 @@ public class ConversationController extends BaseController {
         }
     }
 
+    // Create conversation between two users
+    @PostMapping("/create")
+    public ResponseEntity<?> createConversation(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> requestBody) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return errorResponse("Invalid or missing authorization", HttpStatus.UNAUTHORIZED);
+        }
+
+        String connectId1 = requestBody.get("connectId1");
+        String connectId2 = requestBody.get("connectId2");
+        String matchId = requestBody.get("matchId");
+
+        if (connectId1 == null || connectId2 == null) {
+            return errorResponse("Both connectId1 and connectId2 are required", HttpStatus.BAD_REQUEST);
+        }
+
+        // Verify user is one of the participants
+        if (!connectId1.equals(userId) && !connectId2.equals(userId)) {
+            return errorResponse("User must be one of the conversation participants", HttpStatus.FORBIDDEN);
+        }
+
+        try {
+            // Generate deterministic conversation ID
+            String conversationId = generateConversationId(connectId1, connectId2);
+            
+            // Check if conversation already exists
+            Optional<Conversation> existingConversation = conversationService.findConversationBetweenUsers(connectId1, connectId2);
+            if (existingConversation.isPresent()) {
+                return successResponse(existingConversation.get(), "Conversation already exists");
+            }
+
+            // Create new conversation
+            Conversation conversation = new Conversation();
+            conversation.setId(conversationId);
+            conversation.setMatchId(matchId);
+            conversation.setParticipantIds(List.of(connectId1, connectId2));
+            conversation.setStatus(Conversation.ConversationStatus.ACTIVE);
+            conversation.setUnreadCount(0);
+            conversation.setUpdatedAt(java.time.LocalDateTime.now());
+
+            // Save conversation using the service
+            Conversation savedConversation = conversationService.saveConversation(conversation);
+            return successResponse(savedConversation, "Conversation created successfully");
+        } catch (Exception e) {
+            return errorResponse("Failed to create conversation: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
     // Delete conversation
     @DeleteMapping("/{conversationId}")
     public ResponseEntity<?> deleteConversation(
@@ -278,6 +329,19 @@ public class ConversationController extends BaseController {
         }
 
         return authService.extractUserIdFromToken(token);
+    }
+
+    /**
+     * Generate deterministic conversation ID from two connect IDs
+     * Format: connectid1_connectid2 (sorted to ensure consistency)
+     */
+    private String generateConversationId(String connectId1, String connectId2) {
+        // Sort IDs to ensure consistency regardless of order
+        if (connectId1.compareTo(connectId2) <= 0) {
+            return connectId1 + "_" + connectId2;
+        } else {
+            return connectId2 + "_" + connectId1;
+        }
     }
 
 }

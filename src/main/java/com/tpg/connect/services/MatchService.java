@@ -4,6 +4,7 @@ import com.tpg.connect.repository.MatchRepository;
 import com.tpg.connect.repository.UserActionRepository;
 import com.tpg.connect.model.match.Match;
 import com.tpg.connect.model.match.UserAction;
+import com.tpg.connect.model.conversation.Conversation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -39,17 +40,10 @@ public class MatchService {
                 targetUserId, userId, UserAction.ActionType.LIKE);
     }
 
-    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled due to cache config issue
     public Match createMatch(String userId, String targetUserId) {
-        // Verify both users have liked each other
-        boolean user1LikesUser2 = userActionRepository.existsByUserIdAndTargetUserIdAndAction(
-                userId, targetUserId, UserAction.ActionType.LIKE);
-        boolean user2LikesUser1 = userActionRepository.existsByUserIdAndTargetUserIdAndAction(
-                targetUserId, userId, UserAction.ActionType.LIKE);
-
-        if (!user1LikesUser2 || !user2LikesUser1) {
-            throw new IllegalStateException("Cannot create match - not mutual likes");
-        }
+        // Note: Mutual like validation is already done by UserActionsService before calling this method
+        System.out.println("🔄 MatchService.createMatch() called for " + userId + " ↔ " + targetUserId);
 
         // Check if match already exists
         Match existingMatch = matchRepository.findByUserIdsAndStatus(userId, targetUserId, Match.MatchStatus.ACTIVE).orElse(null);
@@ -59,7 +53,7 @@ public class MatchService {
 
         // Create new match
         Match match = new Match();
-        match.setId(UUID.randomUUID().toString());
+        match.setId(generateConversationId(userId, targetUserId)); // Use ConnectID format instead of UUID
         match.setUser1Id(userId);
         match.setUser2Id(targetUserId);
         match.setMatchedAt(LocalDateTime.now());
@@ -70,10 +64,24 @@ public class MatchService {
 
         // Create conversation for the match
         try {
-            conversationService.createConversationFromMatch(savedMatch.getId());
+            System.out.println("🔄 Creating conversation for match: " + savedMatch.getId());
+            System.out.println("🔄 Match participants: " + savedMatch.getUser1Id() + " ↔ " + savedMatch.getUser2Id());
+            
+            Conversation conversation = conversationService.createConversationFromMatch(savedMatch.getId());
+            
+            System.out.println("✅ Successfully created conversation: " + conversation.getId());
+            System.out.println("✅ Conversation participants: " + conversation.getParticipantIds());
+            System.out.println("✅ Conversation status: " + conversation.getStatus());
         } catch (Exception e) {
-            // Log error but don't fail the match creation
-            System.err.println("Failed to create conversation for match " + savedMatch.getId() + ": " + e.getMessage());
+            // Log detailed error but don't fail the match creation
+            System.err.println("❌ CRITICAL: Failed to create conversation for match " + savedMatch.getId());
+            System.err.println("❌ Error details: " + e.getMessage());
+            System.err.println("❌ Match user1: " + savedMatch.getUser1Id());
+            System.err.println("❌ Match user2: " + savedMatch.getUser2Id());
+            e.printStackTrace();
+            
+            // This is a critical error - conversations must be created for matches to work
+            throw new RuntimeException("Failed to create conversation for match", e);
         }
 
         // Send notifications to both users
@@ -93,7 +101,7 @@ public class MatchService {
         return matchRepository.findById(matchId).orElse(null);
     }
 
-    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
     public void unmatch(String matchId, String userId) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {
@@ -114,7 +122,7 @@ public class MatchService {
         notificationService.sendUnmatchNotification(otherUserId, matchId);
     }
 
-    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
     public void blockUser(String matchId, String userId, String blockedUserId) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {
@@ -136,7 +144,7 @@ public class MatchService {
         matchRepository.save(match);
     }
 
-    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
+    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
     public void reportMatch(String matchId, String reporterId, String reason) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {

@@ -8,10 +8,13 @@ import com.tpg.connect.repository.MatchRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.tpg.connect.controllers.websocket.SimpleWebSocketHandler;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,7 +36,13 @@ public class ConversationService {
     @Autowired
     private NotificationService notificationService;
 
-    @Cacheable(value = "conversations", key = "'user_conversations_' + #userId")
+    @Autowired(required = false)
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired(required = false)
+    private SimpleWebSocketHandler simpleWebSocketHandler;
+
+    // @Cacheable(value = "conversations", key = "'user_conversations_' + #userId") // Temporarily disabled due to cache config issue
     public List<Conversation> getUserConversations(String userId, boolean includeArchived) {
         if (includeArchived) {
             return conversationRepository.findByParticipantId(userId);
@@ -42,7 +51,7 @@ public class ConversationService {
         }
     }
 
-    @Cacheable(value = "conversations", key = "'conversation_' + #conversationId")
+    // @Cacheable(value = "conversations", key = "'conversation_' + #conversationId") // Temporarily disabled due to cache config issue
     public Optional<Conversation> getConversationById(String conversationId) {
         return conversationRepository.findById(conversationId);
     }
@@ -57,26 +66,34 @@ public class ConversationService {
         return Optional.empty();
     }
 
-    @CacheEvict(value = "conversations", allEntries = true)
+    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
     public Conversation createConversationFromMatch(String matchId) {
+        System.out.println("📞 ConversationService: Creating conversation from match: " + matchId);
+        
         // Get the match details
         Optional<Match> matchOpt = matchRepository.findById(matchId);
         if (!matchOpt.isPresent()) {
+            System.err.println("❌ ConversationService: Match not found: " + matchId);
             throw new IllegalArgumentException("Match not found: " + matchId);
         }
 
         Match match = matchOpt.get();
+        System.out.println("📞 ConversationService: Found match - User1: " + match.getUser1Id() + ", User2: " + match.getUser2Id());
         
         // Check if conversation already exists
         if (match.getConversationId() != null) {
+            System.out.println("📞 ConversationService: Match already has conversation ID: " + match.getConversationId());
             Optional<Conversation> existingConv = conversationRepository.findById(match.getConversationId());
             if (existingConv.isPresent()) {
+                System.out.println("✅ ConversationService: Returning existing conversation: " + existingConv.get().getId());
                 return existingConv.get();
             }
         }
 
         // Create new conversation with deterministic ID
         String conversationId = generateConversationId(match.getUser1Id(), match.getUser2Id());
+        System.out.println("📞 ConversationService: Generated conversation ID: " + conversationId);
+        
         Conversation conversation = new Conversation();
         conversation.setId(conversationId);
         conversation.setMatchId(matchId);
@@ -86,18 +103,22 @@ public class ConversationService {
         conversation.setMatchedAt(match.getMatchedAt());
         conversation.setUpdatedAt(LocalDateTime.now());
 
+        System.out.println("📞 ConversationService: Saving conversation to Firestore...");
         Conversation savedConversation = conversationRepository.save(conversation);
+        System.out.println("✅ ConversationService: Successfully saved conversation: " + savedConversation.getId());
 
         // Update match with conversation ID if not already set
         if (match.getConversationId() == null) {
+            System.out.println("📞 ConversationService: Updating match with conversation ID...");
             match.setConversationId(savedConversation.getId());
             matchRepository.save(match);
+            System.out.println("✅ ConversationService: Updated match with conversation ID");
         }
 
         return savedConversation;
     }
 
-    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
+    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public Message sendMessage(String conversationId, String senderId, String content) {
         // Verify conversation exists and user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -139,10 +160,13 @@ public class ConversationService {
             notificationService.sendMessageNotification(participantId, senderId, conversationId, content);
         }
 
+        // Broadcast message via WebSocket if template is available
+        broadcastMessageToWebSocket(conversationId, savedMessage);
+
         return savedMessage;
     }
 
-    @Cacheable(value = "messages", key = "'conversation_messages_' + #conversationId + '_' + #page + '_' + #limit")
+    // @Cacheable(value = "messages", key = "'conversation_messages_' + #conversationId + '_' + #page + '_' + #limit") // Temporarily disabled due to cache config issue
     public List<Message> getConversationMessages(String conversationId, String userId, int page, int limit) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -164,7 +188,7 @@ public class ConversationService {
         }
     }
 
-    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
+    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public void markMessagesAsRead(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -184,7 +208,7 @@ public class ConversationService {
         conversationRepository.updateUnreadCount(conversationId, userId, 0);
     }
 
-    @CacheEvict(value = "conversations", allEntries = true)
+    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
     public void archiveConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -200,7 +224,7 @@ public class ConversationService {
         conversationRepository.markAsArchived(conversationId, true);
     }
 
-    @CacheEvict(value = "conversations", allEntries = true)
+    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
     public void unarchiveConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -216,7 +240,7 @@ public class ConversationService {
         conversationRepository.markAsArchived(conversationId, false);
     }
 
-    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
+    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public void endConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -258,7 +282,7 @@ public class ConversationService {
         return conversationRepository.findRecentConversations(userId, days);
     }
 
-    @CacheEvict(value = "conversations", allEntries = true)
+    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
     public void autoArchiveInactiveConversations() {
         // Archive conversations that haven't been active for 30 days
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
@@ -269,7 +293,7 @@ public class ConversationService {
         return conversationRepository.findConversationBetweenUsers(userId1, userId2);
     }
 
-    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
+    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public void deleteConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -286,9 +310,14 @@ public class ConversationService {
         conversationRepository.deleteById(conversationId);
     }
 
-    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
+    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public void deleteUserConversations(String userId) {
         conversationRepository.deleteByParticipantId(userId);
+    }
+
+    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    public Conversation saveConversation(Conversation conversation) {
+        return conversationRepository.save(conversation);
     }
 
     /**
@@ -301,6 +330,74 @@ public class ConversationService {
             return connectId1 + "_" + connectId2;
         } else {
             return connectId2 + "_" + connectId1;
+        }
+    }
+
+    /**
+     * Broadcast message to WebSocket subscribers
+     */
+    private void broadcastMessageToWebSocket(String conversationId, Message message) {
+        // Try simple WebSocket handler first
+        if (simpleWebSocketHandler != null) {
+            try {
+                System.out.println("📡 ConversationService: Broadcasting message via SimpleWebSocketHandler for conversation: " + conversationId);
+                
+                // Convert message to map for JSON serialization
+                Map<String, Object> messageData = Map.of(
+                    "id", message.getId(),
+                    "conversationId", message.getConversationId(),
+                    "senderId", message.getSenderId(),
+                    "content", message.getContent(),
+                    "sentAt", message.getSentAt().toString(),
+                    "status", message.getStatus().toString()
+                );
+
+                // Wrap in structured format expected by Flutter client
+                Map<String, Object> broadcastMessage = Map.of(
+                    "type", "message",
+                    "data", messageData
+                );
+
+                // Broadcast via simple WebSocket handler
+                simpleWebSocketHandler.broadcastToConversation(conversationId, broadcastMessage);
+                System.out.println("✅ ConversationService: Message broadcasted via SimpleWebSocketHandler successfully");
+                return;
+                
+            } catch (Exception e) {
+                System.err.println("💥 ConversationService: Error broadcasting via SimpleWebSocketHandler: " + e.getMessage());
+            }
+        }
+        
+        // Fallback to STOMP messaging template
+        if (messagingTemplate != null) {
+            try {
+                System.out.println("📡 ConversationService: Broadcasting message via STOMP template for conversation: " + conversationId);
+                
+                // Convert message to map for JSON serialization
+                Map<String, Object> messageData = Map.of(
+                    "id", message.getId(),
+                    "conversationId", message.getConversationId(),
+                    "senderId", message.getSenderId(),
+                    "content", message.getContent(),
+                    "sentAt", message.getSentAt().toString(),
+                    "status", message.getStatus().toString()
+                );
+
+                // Wrap in structured format expected by Flutter client
+                Map<String, Object> broadcastMessage = Map.of(
+                    "type", "message",
+                    "data", messageData
+                );
+
+                // Send to topic subscribers
+                messagingTemplate.convertAndSend("/topic/conversation/" + conversationId, broadcastMessage);
+                System.out.println("✅ ConversationService: Message broadcasted via STOMP template successfully");
+                
+            } catch (Exception e) {
+                System.err.println("💥 ConversationService: Error broadcasting via STOMP template: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ ConversationService: No WebSocket handlers available, skipping broadcast");
         }
     }
 }

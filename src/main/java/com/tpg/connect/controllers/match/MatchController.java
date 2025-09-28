@@ -45,8 +45,10 @@ public class MatchController extends BaseController {
         
         System.out.println("🚀 MatchController: getMatches() called!");
         System.out.println("🔑 MatchController: authHeader present: " + (authHeader != null));
+        System.out.println("🔑 MatchController: About to validate and extract user ID...");
         
         String userId = validateAndExtractUserId(authHeader);
+        System.out.println("🔑 MatchController: validateAndExtractUserId returned: " + userId);
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -235,18 +237,25 @@ public class MatchController extends BaseController {
     }
 
     private String validateAndExtractUserId(String authHeader) {
+        System.out.println("🔍 validateAndExtractUserId: Starting validation...");
         if (authHeader == null || !authHeader.startsWith(EndpointConstants.Headers.BEARER_PREFIX)) {
+            System.out.println("🔍 validateAndExtractUserId: Invalid header format");
             return null;
         }
 
         String token = authHeader.substring(EndpointConstants.Headers.BEARER_PREFIX.length());
+        System.out.println("🔍 validateAndExtractUserId: Extracted token, checking validity...");
         
         if (!authService.isTokenValid(token)) {
+            System.out.println("🔍 validateAndExtractUserId: Token is invalid");
             return null;
         }
 
+        System.out.println("🔍 validateAndExtractUserId: Token valid, extracting user ID...");
         // Extract user ID directly from JWT token subject claim
-        return authService.extractUserIdFromToken(token);
+        String userId = authService.extractUserIdFromToken(token);
+        System.out.println("🔍 validateAndExtractUserId: Extracted user ID: " + userId);
+        return userId;
     }
     
     /**

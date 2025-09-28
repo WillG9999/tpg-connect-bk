@@ -1,0 +1,633 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/opt/homebrew/Cellar/maven/3.9.11/libexec/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.tpg:Connect:jar:0.0.1-SNAPSHOT
+[WARNING] 'dependencies.dependency.version' for org.jetbrains:annotations:jar is either LATEST or RELEASE (both of them are being deprecated) @ line 131, column 22
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] --------------------------< com.tpg:Connect >---------------------------
+[INFO] Building freedom 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.5.5:run (default-cli) > test-compile @ Connect >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ Connect ---
+[INFO] Copying 2 resources from src/main/resources to target/classes
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ Connect ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 183 source files with javac [debug parameters release 21] to target/classes
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/main/java/com/tpg/connect/config/JacksonConfig.java: /Users/willgraham/Desktop/Connect/ConnectBackend/src/main/java/com/tpg/connect/config/JacksonConfig.java uses or overrides a deprecated API.
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/main/java/com/tpg/connect/config/JacksonConfig.java: Recompile with -Xlint:deprecation for details.
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/main/java/com/tpg/connect/controllers/user/UserController.java: Some input files use unchecked or unsafe operations.
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/main/java/com/tpg/connect/controllers/user/UserController.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ Connect ---
+[INFO] Copying 10 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ Connect ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 14 source files with javac [debug parameters release 21] to target/test-classes
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/test/java/com/tpg/connect/cucumber/steps/AuthenticationSteps.java: /Users/willgraham/Desktop/Connect/ConnectBackend/src/test/java/com/tpg/connect/cucumber/steps/AuthenticationSteps.java uses unchecked or unsafe operations.
+[INFO] /Users/willgraham/Desktop/Connect/ConnectBackend/src/test/java/com/tpg/connect/cucumber/steps/AuthenticationSteps.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] <<< spring-boot:3.5.5:run (default-cli) < test-compile @ Connect <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.5.5:run (default-cli) @ Connect ---
+[INFO] Attaching agents: []
+16:02:26.481 [main] INFO com.tpg.connect.ConnectApplication -- No active profile set, defaulting to 'dev' profile
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.5)
+
+2025-09-28T16:02:26.818+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Starting ConnectApplication using Java 24.0.2 with PID 49238 (/Users/willgraham/Desktop/Connect/ConnectBackend/target/classes started by willgraham in /Users/willgraham/Desktop/Connect/ConnectBackend)
+2025-09-28T16:02:26.819+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : The following 1 profile is active: "dev"
+2025-09-28T16:02:26.835+01:00  INFO 49238 --- [freedom] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-09-28T16:02:26.835+01:00  INFO 49238 --- [freedom] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-09-28T16:02:27.259+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=fd34fa07-d049-3dde-90ac-e8bfcab02c03
+2025-09-28T16:02:27.419+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-09-28T16:02:27.425+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-28T16:02:27.425+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-09-28T16:02:27.440+01:00  INFO 49238 --- [freedom] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-28T16:02:27.441+01:00  INFO 49238 --- [freedom] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 605 ms
+2025-09-28T16:02:27.519+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firestore client
+2025-09-28T16:02:27.522+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Initializing Firebase with config path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:02:27.551+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firebase database URL configured: https://connect-ea4c2-default-rtdb.firebaseio.com
+2025-09-28T16:02:27.551+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firebase project ID configured: connect-ea4c2
+2025-09-28T16:02:27.555+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firebase initialized successfully with storage bucket: connect-ea4c2.firebasestorage.app
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by io.grpc.netty.shaded.io.netty.util.internal.PlatformDependent0$4 (file:/Users/willgraham/.m2/repository/io/grpc/grpc-netty-shaded/1.71.0/grpc-netty-shaded-1.71.0.jar)
+WARNING: Please consider reporting this to the maintainers of class io.grpc.netty.shaded.io.netty.util.internal.PlatformDependent0$4
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by io.grpc.netty.shaded.io.netty.util.internal.NativeLibraryUtil in an unnamed module (file:/Users/willgraham/.m2/repository/io/grpc/grpc-netty-shaded/1.71.0/grpc-netty-shaded-1.71.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2025-09-28T16:02:28.039+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firestore client created successfully
+2025-09-28T16:02:28.063+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with project ID: connect-ea4c2
+2025-09-28T16:02:28.064+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with service account from: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:02:28.092+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage service initialized successfully
+2025-09-28T16:02:28.100+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:02:28.100+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Photo upload settings - Max size: 5MB, Max count: 6, Allowed types: image/jpeg,image/png,image/webp
+2025-09-28T16:02:28.169+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : Configuring CORS for development environment
+2025-09-28T16:02:28.170+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed origin patterns: *
+2025-09-28T16:02:28.170+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed methods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
+2025-09-28T16:02:28.170+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed headers: *
+2025-09-28T16:02:28.172+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS configuration completed for development
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : Development properties configured:
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Mock email service: false
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Create sample data: true
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Detailed error responses: true
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Auto create test users: true
+2025-09-28T16:02:28.173+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Auth client
+2025-09-28T16:02:28.179+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Messaging client
+2025-09-28T16:02:28.180+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Storage client
+2025-09-28T16:02:28.181+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Google Cloud Storage client
+2025-09-28T16:02:28.239+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Configuring CORS mappings
+2025-09-28T16:02:28.239+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : CORS configuration completed - allowing all origins for development
+2025-09-28T16:02:28.297+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Extending message converters with custom ObjectMapper
+2025-09-28T16:02:28.297+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Initial converter count: 11
+2025-09-28T16:02:28.298+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Added custom MappingJackson2HttpMessageConverter with our ObjectMapper
+2025-09-28T16:02:28.298+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Final converter count: 10
+2025-09-28T16:02:28.333+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Default credentials provider for user 764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com
+2025-09-28T16:02:28.333+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Scopes in use by default credentials: [https://www.googleapis.com/auth/pubsub, https://www.googleapis.com/auth/spanner.admin, https://www.googleapis.com/auth/spanner.data, https://www.googleapis.com/auth/datastore, https://www.googleapis.com/auth/sqlservice.admin, https://www.googleapis.com/auth/devstorage.read_only, https://www.googleapis.com/auth/devstorage.read_write, https://www.googleapis.com/auth/cloudruntimeconfig, https://www.googleapis.com/auth/trace.append, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/cloud-vision, https://www.googleapis.com/auth/bigquery, https://www.googleapis.com/auth/monitoring.write]
+2025-09-28T16:02:28.378+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.a.c.GcpContextAutoConfiguration  : The default project ID is connect-ea4c2
+2025-09-28T16:02:28.509+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-09-28T16:02:28.512+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-28T16:02:28.542+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-09-28T16:02:28.552+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Started ConnectApplication in 1.889 seconds (process running for 2.161)
+2025-09-28T16:02:28.554+01:00  INFO 49238 --- [freedom] [   scheduling-1] c.t.c.services.ScheduledTaskService      : 🏥 Scheduled task health check - All tasks running normally
+2025-09-28T16:02:28.587+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:02:28.587+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:02:28.587+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🚀 Connect Application Started Successfully!
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📋 Active Profiles: dev
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🌐 Server URL: http://localhost:8080
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📖 API Documentation: http://localhost:8080/swagger-ui.html
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔧 Actuator Health: http://localhost:8080/actuator/health
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔥 Firebase Configuration:
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Project ID: connect-ea4c2
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Storage Bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Config Path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🛠️  Development Mode Features:
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Enhanced logging enabled
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - CORS configured for local development
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Mock services available
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Test data creation enabled
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:02:28.588+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:10:03.352+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-09-28T16:10:03.352+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-09-28T16:10:03.354+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-09-28T16:10:03.386+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API called - getLatestPotentialMatches
+2025-09-28T16:10:03.425+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API - Valid user ID: 986949226439
+2025-09-28T16:10:03.425+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🔍 Getting next matches for user: 986949226439
+2025-09-28T16:10:03.981+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🚫 User 986949226439 has acted on 0 users, filtering them out
+2025-09-28T16:10:03.981+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🔍 Processing 3 matches for date: 2025-09-28
+2025-09-28T16:10:03.982+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 346492379800 (viewed: false)
+2025-09-28T16:10:03.982+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 300001000022 (viewed: false)
+2025-09-28T16:10:03.982+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 316575375633 (viewed: false)
+2025-09-28T16:10:03.982+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 📊 Extracted 3 unviewed matches from queue for user 986949226439
+2025-09-28T16:10:04.141+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : ✅ Returning 3 matches for user 986949226439 (queue has 3 total unviewed)
+2025-09-28T16:10:04.142+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🔍 Sample profile data - connectId: 346492379800, firstName: User1, lastName: , age: 24, photos: 6
+2025-09-28T16:10:04.142+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🔍 Sample profile photos: [EnhancedPhoto(id=bd70dad7-29a4-4722-8664-78288d27fb20, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015731036_a8810752.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620532&Signature=PaFsNFlx2KJT4NTlGv2vH8SBKbuFUSMkbktoP9qvwAuDTx2Hw3A5qDtVSw3T1sloVJPY1QmdCs1bMIn4TlLzWgVjyWw7xn03pY8eV5Zip%2FJtk0ywsT24DMusNg%2Fgb%2F7UWtrkzfuplGSpAfrH2zyKSq0YT15vOCtD92x83JOaV6CA9wHwzMBgGL%2Bg5x874FoDookXLJXGSTHvLXSc6ZC3j6qY4tJOwdkdyaAHCqZXg7mHssB3E68jY2LV%2B8PShKMmtq1mvZ3DOSEageb%2B6bOWg1HPAcHtZg96DQBw94dgRL8sJvAHme4Zl7wzWyf9h%2FrQC0gASLX%2FJzCkiok70VUuog%3D%3D, isPrimary=true, order=1, prompts=null), EnhancedPhoto(id=2170a7f3-7f5f-4be2-b22f-4275da990704, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015733055_26185901.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620534&Signature=jC2amU%2BionX0R5B9%2BTKkbym9zSOpBJ81NMwvRwBQPS27QTeoIVJRb410KP0p8ijc3%2Fz0xCE1ZIjYXRpu8IUHHJIGKix6VFYNo%2Fl2SbhwmqyRf3JJlQ9WcZWd8n1JlMjMdLm4QIXCEtMLaM7X6X1dptt0AIvqne0LsxXYeTLpEiDkJPS7l2Zx6f1pnTIJgJBpNt%2B8x3Liifc26RZLjaS0yh56b9NT6JyEXDF4IwOWrx8123kDc8FNrtkiCLjM5oARaqNCTDAtY53iOsOSn1oBL0ILeYn4nbOxelD1FlSRYTl8SmJgC0mezCJ8Q8cr%2F00m9itU9AO%2BB5HGTDZJNzsP6A%3D%3D, isPrimary=false, order=2, prompts=null), EnhancedPhoto(id=dd62f5c7-ef39-49f0-beef-f20ef7f4dbb6, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015734254_4cb0a032.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620535&Signature=aAi7zqEp5Qqy1kMPDZKf2r8uYx37b2nl0Krkusv6AH3PB5VvEj%2BVgC6V43rOs0mto9BGLCBK8iCaqf%2Bll7ZvKji%2FYEsqUYJnWmd1aQmLpmbmRXD5XIirXTudTcLSFHaMOLb0fcXlWn9rp3Bl4eQD2j3R8TfnqBXr2ftOmKb7z%2FdxbR9JTzjK9DtBZmWw0RdC4bJ8zJxE0RsbiTlOyv4D9z849t38AvTb%2BKSRGBk1m6uE%2FA1l5KnvJk7ZT4HanYUX0tawD21mNEKnoF97s0w%2BgUEVDGVKAC9%2BltwiKY1SfgNLTUs5GDQ7kRx6YndwM%2FL3L76trkJ77MSGTuLDrt6eQQ%3D%3D, isPrimary=false, order=3, prompts=null), EnhancedPhoto(id=6cc5cb14-de81-46a9-bbda-a2a597a03a02, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015735328_01938379.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620536&Signature=eer4vXENr6O41%2BlCYSJJl%2F%2FlUTiVgUhUdiUtyLq1bbSC4rBChmsL8NT6fiQGqpUNOSzdxZAwAqShrVGQRIpBoUAxvpSi2AhZcntIDMK0W2Z4bddTXFEa4%2FNKKD%2BydmB0qj46CGQjvLprnT6t71okxd7NIVyx36oKS7Dnmqt%2BVEhUSP9WpWscO8fbN3ynftOTt80se7TnvlPWCpJyvR4V2PDE%2B8r2%2BJUTGaQm3i%2Fifsb%2Fpff9v2qYqLBa1mO0HUtXtuEYMsJV6nY2EVbhX7ED6N8YaqLMYcFCAnVQlk1QceAX8WuhkegJQxAB5DgAFR5LXBR%2FCSjJEjYy43WH5Jh%2FYA%3D%3D, isPrimary=false, order=4, prompts=null), EnhancedPhoto(id=9a8cf26e-3d2a-4165-806a-c4d0a1a33237, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015736735_0fac6d9d.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620537&Signature=iFGhhxLBYJYXLYyMVKEVeMOKA9jgxlKjWYJCGEzW1POuPzNGD1gTQ46gbkQEwXs1Bx4LAKSHniSfjY7Q0QA7orSSkzfmP5pN7sF76aMTYeLBUVfHBQHJuiE1gke2zMaza3ga0E6kiu0CMCNEvmFPEZGRWNukkYSi4eJynNpmIjJWYlep0OICA9QUetapg38YYHtXzFhgAIEru2UjN7%2FMjR0FAzYi1QIIqagP2OoCx1IFpB5WX3wQEjI5w0UnhOETp%2BenWuI71S4MywERFSQh16FsXF%2FpNVpmoiOa%2FrpNi2R%2FQn0KX4AKYXwyuf%2Fx3JLEcMbd6dteRjF0FEz3vxYGzw%3D%3D, isPrimary=false, order=5, prompts=null), EnhancedPhoto(id=60ea2a4e-9ed6-4450-9d40-c4f7283d1f12, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015738037_481ea7c0.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620539&Signature=gjnBABU0To2vI47rJhpZCV58xSA696B4wjpxaIIBQnV0YvA10tZeDxjrFAKmvQMTlyRnCyDjawg%2Fk0E51mNjrqIruR4BuX2GeHk977Y6Jg%2B68v5yOEYP81gFGa%2Bnc5rp7rBUJFpdybC%2Fn%2BycZg2SocK3Z0ye9MhJsc36llcN0xvKrfvWVgCsdXLANNh58cWgFyE9iPPkoy8o8KgYOj365sOR8YGdC%2Fr%2BxvvPedGSv0jLsM%2F00Xg5dcIKzZltRgkSSAEfyYLgctXNJ1w7mzbqMIdzZM8v49TzaOGzwRb1c1a%2BD74nc53qepZnTP57gvet8BERDr0Qt0maZSAYVt1LVQ%3D%3D, isPrimary=false, order=6, prompts=null)]
+2025-09-28T16:10:04.144+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API - Response created for user 986949226439: success=true, userCount=3
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 346492379800
+🔑 MatchController: validateAndExtractUserId returned: 346492379800
+🔍 MatchController: Getting matches for user: 346492379800
+🔍 MatchController: Found 0 matched user IDs: []
+🎉 MatchController: Returning 0 matches
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 986949226439
+🔑 MatchController: validateAndExtractUserId returned: 986949226439
+🔍 MatchController: Getting matches for user: 986949226439
+🔍 MatchController: Found 0 matched user IDs: []
+🎉 MatchController: Returning 0 matches
+2025-09-28T16:10:14.164+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API called - getLatestPotentialMatches
+2025-09-28T16:10:14.165+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API - Valid user ID: 346492379800
+2025-09-28T16:10:14.165+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 🔍 Getting next matches for user: 346492379800
+2025-09-28T16:10:14.274+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 🚫 User 346492379800 has acted on 0 users, filtering them out
+2025-09-28T16:10:14.275+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 🔍 Processing 3 matches for date: 2025-09-28
+2025-09-28T16:10:14.275+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 986949226439 (viewed: false)
+2025-09-28T16:10:14.275+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 333547061585 (viewed: false)
+2025-09-28T16:10:14.275+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : ✅ Added unviewed match: 379939517151 (viewed: false)
+2025-09-28T16:10:14.275+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 📊 Extracted 3 unviewed matches from queue for user 346492379800
+2025-09-28T16:10:14.436+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : ✅ Returning 3 matches for user 346492379800 (queue has 3 total unviewed)
+2025-09-28T16:10:14.437+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 🔍 Sample profile data - connectId: 986949226439, firstName: Will, lastName: , age: 24, photos: 6
+2025-09-28T16:10:14.437+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.services.UserMatchPoolService      : 🔍 Sample profile photos: [EnhancedPhoto(id=c26ac5f2-eac9-4a24-9bd4-bd551a41fd0a, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015679806_551661e8.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620480&Signature=czGYI%2BvmrCLhGX2tihLQQeTTa508PUn7uob7cs3TMsQ3SVfth7%2Fvh3C%2FOYpY3wCVcV7ejWK6%2F3%2FkzOvTGVsk%2BS0uCEKbfEFyXpCQhW5jX%2BTUawyjic9A%2FSe%2BvtJhYCyxBJ%2FfFOFXtvV0OQi%2Bo3dr3fT9JaFUJgaTEfDj2I8g8F6MfGha6BoWluEZqDHjil8%2FtUGQqjJigwKuUvkNH2%2BswjFx3z7WM%2BB65l2cW0cstVDwnMCc0moncSunSkFSRpqV7nFv14J4jrKDUqbK0h%2Bd%2BK%2F%2BsoUh8Av0f3%2FcpM23%2FsiKdL8RZX5C6z20w9saqk2uxZu4%2F6neSyWqG%2FsVCxBx4g%3D%3D, isPrimary=true, order=1, prompts=null), EnhancedPhoto(id=4d6b27f6-67c7-4b8d-a24e-dcab6ca92988, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015681048_b9c28b5f.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620482&Signature=yac74qcmFjVCoRf93ck8coey57T8IWe7QpyA9eENYIbj4OVsFMgBbhrKrNgEiZ%2BWlCRPZ41kVeWNfbuYuaebDsdtcpspYLkkawErQ2AgQh2AgPuQXt5V%2Bm1LBsk3D9b9tKrG%2BZriTqSTyG9eTb0f%2F2Cy%2Fh6ZTGQkT9pw14E72%2FlUXdFFxQAUnxuJBE3%2Fd%2Bm5ZF5BprBjFII0gcRaN%2FU%2BpxdTKDdpHQPxLwg89SRJoOzBy5Qu9QfFxLWfRK%2FnyCUjCxs7lqCH5tlltbEZUmi8Xv6psdqSkL9Sd57OhnKxDz9m3%2F3XPsEqh5Wieh%2FKjY1G9LPzNAMlYN0GEjy%2Fb1YT3g%3D%3D, isPrimary=false, order=2, prompts=null), EnhancedPhoto(id=07770135-1e47-4369-b92c-b4795edfcdbe, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015682678_19f1cc9b.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620483&Signature=n6V3Inbl77BtDfrHNETStu%2BdBKVg%2FYodYSlYFv0NAd0MGmGkEnJytUfAm%2BoSkK0ngghv5Bh%2Br3lkxCsdt9jqV%2BUGhutxzpJnQCaOJSYI8vrszr6so4JENVV%2BBdcxofx9u4ZuiP3JFxbdE3PTGd5x%2Bic1sgwU%2Ftm2i%2FL80I5FgTixiaXijhvgGqlDdDvFb5q6T9tIFSsnqCWf%2Bmk7o6THOtZyMpZKMd01pmyBjtzNodOykZLoERVGqh1sAJSlkGpuIxmnMS2KmvF4O%2BpREJdY3mEmrv1n%2F7OMy0J7g%2Bot9Nt6hhkSU3nafs5BNo06qYpYmSt59CIYgQGYh1uTkZDzHQ%3D%3D, isPrimary=false, order=3, prompts=null), EnhancedPhoto(id=c7b37ff1-6a66-4c3e-b847-f47d2ad6dae6, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015683808_0364c165.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620484&Signature=fdhkqyrcj9nsB2sLK2y0uney%2Bu1EN4qdt3AbJ8I1rbRuzEv35kq%2Bco1FMuTTJ4St4lXCJ0CZHCbN1qnOwbnOcEC%2BJqCvANOD1SGa%2FtJf%2B%2BHo9dBmUjngRe%2FkROYj3Ws7jiLrzNkvW19JiTtlMOM5ykVUqJ9MI2K8NHhWZPXqp5FZ0hDCaowK3syOgleBjeR1byoQrPWfWWhMMvWPVovsUkArQ%2BVTRE6bI0QqFEdItDRfVNURGhb492Kn7ZG4%2BEaU44sD7bviqGhhwWGOVtJdwOIh00WtIAM8%2Bory4Bemg4ZfkfEAYPbpxN7m%2FVHjPmVSy%2FLQNfdcxbWYvNAAmZBg2g%3D%3D, isPrimary=false, order=4, prompts=null), EnhancedPhoto(id=6a48e278-7fde-456d-af9f-7707b9454df7, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015685167_89505d9a.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620486&Signature=ios8OXZvWKvnhKlSQFbQVnVmn%2FoUe0r4X5POOpShmWZxLke4XrzjutZC%2FG6gOxU%2B3s3mJaxX7UwtpHS5vn%2FVdxBWNVUPYYeKm5SuVR8ZHuPOJGAbKL5aAAE1ucTTgYe%2F3esuReAjD3cLhVttacVWfF5rtMUVd%2Bv06eyL1WUqHjwngj7FfNaW6637mDAWkkc9Fu%2FwqJFRe40skDqdArsWw%2B2N%2BidTwggIN0cXHOlBXMoVYlkhvm4fUWprjYpXC1S7UIT2q2HTmLSTk5qiBGzTd3sx6P2J4z%2F6yP8SxaZeDi7WymZJ3G2UNLd0suEORHMh54zCwvxqRc2%2Fj7CtdRYA3A%3D%3D, isPrimary=false, order=5, prompts=null), EnhancedPhoto(id=887ea24a-dfb0-4e96-90c2-5b31951af076, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015686280_2e37eec4.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620487&Signature=Ih90XPoQJLX0T0mXZdJT%2FChyf93oGP%2B7SXvmQfBhnhcfp4HqsBMlHD6xH9WnoGOYihlesg7OIctXjHcnFghkxfuHyMbnGBvzptYxBkt379bM0bElJV5r3N6uurEKTWqwYrCqxa3chezGcWyhiAQhqI%2FnEfs7ey5yUcljThnbxrKU%2F2FX8vzoFtgxr%2B%2B7G7zFrtCN3fa5VVm7x0%2BWuwGH%2FWXH%2FChrAdy6HcUEupqeTmZFKn%2FSHSDArr2IeAJae%2BgijJuCP%2BxoFO6VL9W1faivwndfkljFI6xLqpfNVnoH0z9wX%2B5GcKXKeR840ci9i1gJelKOGAKnLLqwG3BiucI1Pw%3D%3D, isPrimary=false, order=6, prompts=null)]
+2025-09-28T16:10:14.438+01:00  INFO 49238 --- [freedom] [nio-8080-exec-7] c.t.c.c.d.PotentialMatchesController     : 🎯 Discovery API - Response created for user 346492379800: success=true, userCount=3
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 986949226439
+🔑 MatchController: validateAndExtractUserId returned: 986949226439
+🔍 MatchController: Getting matches for user: 986949226439
+🔍 MatchController: Found 0 matched user IDs: []
+🎉 MatchController: Returning 0 matches
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 986949226439
+🔑 MatchController: validateAndExtractUserId returned: 986949226439
+🔍 MatchController: Getting matches for user: 986949226439
+🔍 MatchController: Found 0 matched user IDs: []
+🎉 MatchController: Returning 0 matches
+2025-09-28T16:10:27.753+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : 🔄 Updating viewed status for user 986949226439 with 1 actions
+2025-09-28T16:10:27.848+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.c.services.UserMatchPoolService      : 🔄 [Transaction] Marked match 346492379800 as viewed (was: false)
+2025-09-28T16:10:27.848+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 👍 Adding like action: 986949226439 likes 346492379800
+2025-09-28T16:10:27.848+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 🔍 Starting transaction for like action 986949226439 -> 346492379800
+2025-09-28T16:10:27.982+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 🆕 Initializing new userActions document for user: 986949226439
+2025-09-28T16:10:27.983+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 🆕 User 986949226439 document doesn't exist, initializing
+2025-09-28T16:10:27.983+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 🆕 Initializing new userActions document for user: 346492379800
+2025-09-28T16:10:27.983+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 🆕 Target 346492379800 document doesn't exist, initializing
+2025-09-28T16:10:27.983+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 📝 Writing userActions document for user 986949226439
+2025-09-28T16:10:28.002+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : 📝 Writing userActions document for target 346492379800
+2025-09-28T16:10:28.002+01:00  INFO 49238 --- [freedom] [rpc-transport-1] c.t.connect.services.UserActionsService  : ✅ Transaction completed. Mutual match: false
+2025-09-28T16:10:28.130+01:00  INFO 49238 --- [freedom] [nio-8080-exec-1] c.t.c.services.UserMatchPoolService      : ✅ Updated viewed status: 1 actions processed, 0 new matches for user 986949226439
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 346492379800
+🔑 MatchController: validateAndExtractUserId returned: 346492379800
+🔍 MatchController: Getting matches for user: 346492379800
+🔍 MatchController: Found 0 matched user IDs: []
+🎉 MatchController: Returning 0 matches
+2025-09-28T16:10:30.913+01:00  INFO 49238 --- [freedom] [nio-8080-exec-3] c.t.c.services.UserMatchPoolService      : 🔄 Updating viewed status for user 346492379800 with 1 actions
+2025-09-28T16:10:31.016+01:00  INFO 49238 --- [freedom] [rpc-transport-4] c.t.c.services.UserMatchPoolService      : 🔄 [Transaction] Marked match 986949226439 as viewed (was: false)
+2025-09-28T16:10:31.016+01:00  INFO 49238 --- [freedom] [rpc-transport-4] c.t.connect.services.UserActionsService  : 👍 Adding like action: 346492379800 likes 986949226439
+2025-09-28T16:10:31.016+01:00  INFO 49238 --- [freedom] [rpc-transport-4] c.t.connect.services.UserActionsService  : 🔍 Starting transaction for like action 346492379800 -> 986949226439
+2025-09-28T16:10:31.139+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 🔍 User 346492379800 document exists, loading data
+2025-09-28T16:10:31.139+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 🔍 Target 986949226439 document exists, loading data
+2025-09-28T16:10:31.140+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 🎉 Mutual match detected: 346492379800 ↔ 986949226439
+2025-09-28T16:10:31.140+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 📝 Writing userActions document for user 346492379800
+2025-09-28T16:10:31.140+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : 📝 Writing userActions document for target 986949226439
+2025-09-28T16:10:31.141+01:00  INFO 49238 --- [freedom] [rpc-transport-0] c.t.connect.services.UserActionsService  : ✅ Transaction completed. Mutual match: true
+2025-09-28T16:10:31.194+01:00  INFO 49238 --- [freedom] [rpc-transport-4] c.t.connect.services.UserActionsService  : 🏗️ Creating Match entity and Conversation for 346492379800 ↔ 986949226439
+2025-09-28T16:10:31.199+01:00 ERROR 49238 --- [freedom] [rpc-transport-4] c.t.connect.services.UserActionsService  : ❌ Failed to create Match entity for 346492379800 ↔ 986949226439: Cannot find cache named 'matches' for Builder[public com.tpg.connect.model.match.Match com.tpg.connect.services.MatchService.createMatch(java.lang.String,java.lang.String)] caches=[matches, userMatches] | key='' | keyGenerator='' | cacheManager='' | cacheResolver='' | condition='',true,false
+
+java.lang.IllegalArgumentException: Cannot find cache named 'matches' for Builder[public com.tpg.connect.model.match.Match com.tpg.connect.services.MatchService.createMatch(java.lang.String,java.lang.String)] caches=[matches, userMatches] | key='' | keyGenerator='' | cacheManager='' | cacheResolver='' | condition='',true,false
+	at org.springframework.cache.interceptor.AbstractCacheResolver.resolveCaches(AbstractCacheResolver.java:92) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheAspectSupport.getCaches(CacheAspectSupport.java:317) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheAspectSupport$CacheOperationContext.<init>(CacheAspectSupport.java:898) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheAspectSupport.getOperationContext(CacheAspectSupport.java:330) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheAspectSupport$CacheOperationContexts.<init>(CacheAspectSupport.java:786) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheAspectSupport.execute(CacheAspectSupport.java:410) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.cache.interceptor.CacheInterceptor.invoke(CacheInterceptor.java:65) ~[spring-context-6.2.10.jar:6.2.10]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.10.jar:6.2.10]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728) ~[spring-aop-6.2.10.jar:6.2.10]
+	at com.tpg.connect.services.MatchService$$SpringCGLIB$$0.createMatch(<generated>) ~[classes/:na]
+	at com.tpg.connect.services.UserActionsService.addLikeAction(UserActionsService.java:132) ~[classes/:na]
+	at com.tpg.connect.services.UserMatchPoolService.lambda$updateViewedStatus$0(UserMatchPoolService.java:190) ~[classes/:na]
+	at com.google.cloud.firestore.FirestoreImpl$TransactionAsyncAdapter.updateCallback(FirestoreImpl.java:587) ~[google-cloud-firestore-3.32.2.jar:3.32.2]
+	at com.google.cloud.firestore.ServerSideTransactionRunner.lambda$invokeUserCallback$2(ServerSideTransactionRunner.java:193) ~[google-cloud-firestore-3.32.2.jar:3.32.2]
+	at io.grpc.Context$1.run(Context.java:566) ~[grpc-api-1.71.0.jar:1.71.0]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:309) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1095) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:619) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1447) ~[na:na]
+
+2025-09-28T16:10:31.208+01:00  INFO 49238 --- [freedom] [rpc-transport-4] c.t.c.services.UserMatchPoolService      : 🎉 Mutual match detected in transaction: 346492379800 ↔ 986949226439
+2025-09-28T16:10:31.271+01:00  INFO 49238 --- [freedom] [nio-8080-exec-3] c.t.c.services.UserMatchPoolService      : ✅ Updated viewed status: 1 actions processed, 1 new matches for user 346492379800
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 346492379800
+🔑 MatchController: validateAndExtractUserId returned: 346492379800
+🔍 MatchController: Getting matches for user: 346492379800
+🔍 MatchController: Found 1 matched user IDs: [986949226439]
+🎉 MatchController: Returning 1 matches
+🔍 MatchController: First match sample: {unreadCount=0, lastActivity=1759072271665, user={age=24, connectId=986949226439, firstName=Will, photos=[EnhancedPhoto(id=c26ac5f2-eac9-4a24-9bd4-bd551a41fd0a, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015679806_551661e8.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620480&Signature=czGYI%2BvmrCLhGX2tihLQQeTTa508PUn7uob7cs3TMsQ3SVfth7%2Fvh3C%2FOYpY3wCVcV7ejWK6%2F3%2FkzOvTGVsk%2BS0uCEKbfEFyXpCQhW5jX%2BTUawyjic9A%2FSe%2BvtJhYCyxBJ%2FfFOFXtvV0OQi%2Bo3dr3fT9JaFUJgaTEfDj2I8g8F6MfGha6BoWluEZqDHjil8%2FtUGQqjJigwKuUvkNH2%2BswjFx3z7WM%2BB65l2cW0cstVDwnMCc0moncSunSkFSRpqV7nFv14J4jrKDUqbK0h%2Bd%2BK%2F%2BsoUh8Av0f3%2FcpM23%2FsiKdL8RZX5C6z20w9saqk2uxZu4%2F6neSyWqG%2FsVCxBx4g%3D%3D, isPrimary=true, order=1, prompts=null), EnhancedPhoto(id=4d6b27f6-67c7-4b8d-a24e-dcab6ca92988, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015681048_b9c28b5f.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620482&Signature=yac74qcmFjVCoRf93ck8coey57T8IWe7QpyA9eENYIbj4OVsFMgBbhrKrNgEiZ%2BWlCRPZ41kVeWNfbuYuaebDsdtcpspYLkkawErQ2AgQh2AgPuQXt5V%2Bm1LBsk3D9b9tKrG%2BZriTqSTyG9eTb0f%2F2Cy%2Fh6ZTGQkT9pw14E72%2FlUXdFFxQAUnxuJBE3%2Fd%2Bm5ZF5BprBjFII0gcRaN%2FU%2BpxdTKDdpHQPxLwg89SRJoOzBy5Qu9QfFxLWfRK%2FnyCUjCxs7lqCH5tlltbEZUmi8Xv6psdqSkL9Sd57OhnKxDz9m3%2F3XPsEqh5Wieh%2FKjY1G9LPzNAMlYN0GEjy%2Fb1YT3g%3D%3D, isPrimary=false, order=2, prompts=null), EnhancedPhoto(id=07770135-1e47-4369-b92c-b4795edfcdbe, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015682678_19f1cc9b.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620483&Signature=n6V3Inbl77BtDfrHNETStu%2BdBKVg%2FYodYSlYFv0NAd0MGmGkEnJytUfAm%2BoSkK0ngghv5Bh%2Br3lkxCsdt9jqV%2BUGhutxzpJnQCaOJSYI8vrszr6so4JENVV%2BBdcxofx9u4ZuiP3JFxbdE3PTGd5x%2Bic1sgwU%2Ftm2i%2FL80I5FgTixiaXijhvgGqlDdDvFb5q6T9tIFSsnqCWf%2Bmk7o6THOtZyMpZKMd01pmyBjtzNodOykZLoERVGqh1sAJSlkGpuIxmnMS2KmvF4O%2BpREJdY3mEmrv1n%2F7OMy0J7g%2Bot9Nt6hhkSU3nafs5BNo06qYpYmSt59CIYgQGYh1uTkZDzHQ%3D%3D, isPrimary=false, order=3, prompts=null), EnhancedPhoto(id=c7b37ff1-6a66-4c3e-b847-f47d2ad6dae6, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015683808_0364c165.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620484&Signature=fdhkqyrcj9nsB2sLK2y0uney%2Bu1EN4qdt3AbJ8I1rbRuzEv35kq%2Bco1FMuTTJ4St4lXCJ0CZHCbN1qnOwbnOcEC%2BJqCvANOD1SGa%2FtJf%2B%2BHo9dBmUjngRe%2FkROYj3Ws7jiLrzNkvW19JiTtlMOM5ykVUqJ9MI2K8NHhWZPXqp5FZ0hDCaowK3syOgleBjeR1byoQrPWfWWhMMvWPVovsUkArQ%2BVTRE6bI0QqFEdItDRfVNURGhb492Kn7ZG4%2BEaU44sD7bviqGhhwWGOVtJdwOIh00WtIAM8%2Bory4Bemg4ZfkfEAYPbpxN7m%2FVHjPmVSy%2FLQNfdcxbWYvNAAmZBg2g%3D%3D, isPrimary=false, order=4, prompts=null), EnhancedPhoto(id=6a48e278-7fde-456d-af9f-7707b9454df7, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015685167_89505d9a.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620486&Signature=ios8OXZvWKvnhKlSQFbQVnVmn%2FoUe0r4X5POOpShmWZxLke4XrzjutZC%2FG6gOxU%2B3s3mJaxX7UwtpHS5vn%2FVdxBWNVUPYYeKm5SuVR8ZHuPOJGAbKL5aAAE1ucTTgYe%2F3esuReAjD3cLhVttacVWfF5rtMUVd%2Bv06eyL1WUqHjwngj7FfNaW6637mDAWkkc9Fu%2FwqJFRe40skDqdArsWw%2B2N%2BidTwggIN0cXHOlBXMoVYlkhvm4fUWprjYpXC1S7UIT2q2HTmLSTk5qiBGzTd3sx6P2J4z%2F6yP8SxaZeDi7WymZJ3G2UNLd0suEORHMh54zCwvxqRc2%2Fj7CtdRYA3A%3D%3D, isPrimary=false, order=5, prompts=null), EnhancedPhoto(id=887ea24a-dfb0-4e96-90c2-5b31951af076, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/986949226439/photo_1759015686280_2e37eec4.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620487&Signature=Ih90XPoQJLX0T0mXZdJT%2FChyf93oGP%2B7SXvmQfBhnhcfp4HqsBMlHD6xH9WnoGOYihlesg7OIctXjHcnFghkxfuHyMbnGBvzptYxBkt379bM0bElJV5r3N6uurEKTWqwYrCqxa3chezGcWyhiAQhqI%2FnEfs7ey5yUcljThnbxrKU%2F2FX8vzoFtgxr%2B%2B7G7zFrtCN3fa5VVm7x0%2BWuwGH%2FWXH%2FChrAdy6HcUEupqeTmZFKn%2FSHSDArr2IeAJae%2BgijJuCP%2BxoFO6VL9W1faivwndfkljFI6xLqpfNVnoH0z9wX%2B5GcKXKeR840ci9i1gJelKOGAKnLLqwG3BiucI1Pw%3D%3D, isPrimary=false, order=6, prompts=null)]}, conversationId=346492379800_986949226439, id=346492379800_986949226439}
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 986949226439
+🔑 MatchController: validateAndExtractUserId returned: 986949226439
+🔍 MatchController: Getting matches for user: 986949226439
+🔍 MatchController: Found 1 matched user IDs: [346492379800]
+🎉 MatchController: Returning 1 matches
+🔍 MatchController: First match sample: {unreadCount=0, lastActivity=1759072275893, user={age=24, connectId=346492379800, firstName=User1, photos=[EnhancedPhoto(id=bd70dad7-29a4-4722-8664-78288d27fb20, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015731036_a8810752.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620532&Signature=PaFsNFlx2KJT4NTlGv2vH8SBKbuFUSMkbktoP9qvwAuDTx2Hw3A5qDtVSw3T1sloVJPY1QmdCs1bMIn4TlLzWgVjyWw7xn03pY8eV5Zip%2FJtk0ywsT24DMusNg%2Fgb%2F7UWtrkzfuplGSpAfrH2zyKSq0YT15vOCtD92x83JOaV6CA9wHwzMBgGL%2Bg5x874FoDookXLJXGSTHvLXSc6ZC3j6qY4tJOwdkdyaAHCqZXg7mHssB3E68jY2LV%2B8PShKMmtq1mvZ3DOSEageb%2B6bOWg1HPAcHtZg96DQBw94dgRL8sJvAHme4Zl7wzWyf9h%2FrQC0gASLX%2FJzCkiok70VUuog%3D%3D, isPrimary=true, order=1, prompts=null), EnhancedPhoto(id=2170a7f3-7f5f-4be2-b22f-4275da990704, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015733055_26185901.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620534&Signature=jC2amU%2BionX0R5B9%2BTKkbym9zSOpBJ81NMwvRwBQPS27QTeoIVJRb410KP0p8ijc3%2Fz0xCE1ZIjYXRpu8IUHHJIGKix6VFYNo%2Fl2SbhwmqyRf3JJlQ9WcZWd8n1JlMjMdLm4QIXCEtMLaM7X6X1dptt0AIvqne0LsxXYeTLpEiDkJPS7l2Zx6f1pnTIJgJBpNt%2B8x3Liifc26RZLjaS0yh56b9NT6JyEXDF4IwOWrx8123kDc8FNrtkiCLjM5oARaqNCTDAtY53iOsOSn1oBL0ILeYn4nbOxelD1FlSRYTl8SmJgC0mezCJ8Q8cr%2F00m9itU9AO%2BB5HGTDZJNzsP6A%3D%3D, isPrimary=false, order=2, prompts=null), EnhancedPhoto(id=dd62f5c7-ef39-49f0-beef-f20ef7f4dbb6, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015734254_4cb0a032.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620535&Signature=aAi7zqEp5Qqy1kMPDZKf2r8uYx37b2nl0Krkusv6AH3PB5VvEj%2BVgC6V43rOs0mto9BGLCBK8iCaqf%2Bll7ZvKji%2FYEsqUYJnWmd1aQmLpmbmRXD5XIirXTudTcLSFHaMOLb0fcXlWn9rp3Bl4eQD2j3R8TfnqBXr2ftOmKb7z%2FdxbR9JTzjK9DtBZmWw0RdC4bJ8zJxE0RsbiTlOyv4D9z849t38AvTb%2BKSRGBk1m6uE%2FA1l5KnvJk7ZT4HanYUX0tawD21mNEKnoF97s0w%2BgUEVDGVKAC9%2BltwiKY1SfgNLTUs5GDQ7kRx6YndwM%2FL3L76trkJ77MSGTuLDrt6eQQ%3D%3D, isPrimary=false, order=3, prompts=null), EnhancedPhoto(id=6cc5cb14-de81-46a9-bbda-a2a597a03a02, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015735328_01938379.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620536&Signature=eer4vXENr6O41%2BlCYSJJl%2F%2FlUTiVgUhUdiUtyLq1bbSC4rBChmsL8NT6fiQGqpUNOSzdxZAwAqShrVGQRIpBoUAxvpSi2AhZcntIDMK0W2Z4bddTXFEa4%2FNKKD%2BydmB0qj46CGQjvLprnT6t71okxd7NIVyx36oKS7Dnmqt%2BVEhUSP9WpWscO8fbN3ynftOTt80se7TnvlPWCpJyvR4V2PDE%2B8r2%2BJUTGaQm3i%2Fifsb%2Fpff9v2qYqLBa1mO0HUtXtuEYMsJV6nY2EVbhX7ED6N8YaqLMYcFCAnVQlk1QceAX8WuhkegJQxAB5DgAFR5LXBR%2FCSjJEjYy43WH5Jh%2FYA%3D%3D, isPrimary=false, order=4, prompts=null), EnhancedPhoto(id=9a8cf26e-3d2a-4165-806a-c4d0a1a33237, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015736735_0fac6d9d.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620537&Signature=iFGhhxLBYJYXLYyMVKEVeMOKA9jgxlKjWYJCGEzW1POuPzNGD1gTQ46gbkQEwXs1Bx4LAKSHniSfjY7Q0QA7orSSkzfmP5pN7sF76aMTYeLBUVfHBQHJuiE1gke2zMaza3ga0E6kiu0CMCNEvmFPEZGRWNukkYSi4eJynNpmIjJWYlep0OICA9QUetapg38YYHtXzFhgAIEru2UjN7%2FMjR0FAzYi1QIIqagP2OoCx1IFpB5WX3wQEjI5w0UnhOETp%2BenWuI71S4MywERFSQh16FsXF%2FpNVpmoiOa%2FrpNi2R%2FQn0KX4AKYXwyuf%2Fx3JLEcMbd6dteRjF0FEz3vxYGzw%3D%3D, isPrimary=false, order=5, prompts=null), EnhancedPhoto(id=60ea2a4e-9ed6-4450-9d40-c4f7283d1f12, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015738037_481ea7c0.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620539&Signature=gjnBABU0To2vI47rJhpZCV58xSA696B4wjpxaIIBQnV0YvA10tZeDxjrFAKmvQMTlyRnCyDjawg%2Fk0E51mNjrqIruR4BuX2GeHk977Y6Jg%2B68v5yOEYP81gFGa%2Bnc5rp7rBUJFpdybC%2Fn%2BycZg2SocK3Z0ye9MhJsc36llcN0xvKrfvWVgCsdXLANNh58cWgFyE9iPPkoy8o8KgYOj365sOR8YGdC%2Fr%2BxvvPedGSv0jLsM%2F00Xg5dcIKzZltRgkSSAEfyYLgctXNJ1w7mzbqMIdzZM8v49TzaOGzwRb1c1a%2BD74nc53qepZnTP57gvet8BERDr0Qt0maZSAYVt1LVQ%3D%3D, isPrimary=false, order=6, prompts=null)]}, conversationId=346492379800_986949226439, id=346492379800_986949226439}
+🚀 MatchController: getMatches() called!
+🔑 MatchController: authHeader present: true
+🔑 MatchController: About to validate and extract user ID...
+🔍 validateAndExtractUserId: Starting validation...
+🔍 validateAndExtractUserId: Extracted token, checking validity...
+🔍 validateAndExtractUserId: Token valid, extracting user ID...
+🔍 validateAndExtractUserId: Extracted user ID: 986949226439
+🔑 MatchController: validateAndExtractUserId returned: 986949226439
+🔍 MatchController: Getting matches for user: 986949226439
+🔍 MatchController: Found 1 matched user IDs: [346492379800]
+🎉 MatchController: Returning 1 matches
+🔍 MatchController: First match sample: {unreadCount=0, lastActivity=1759072745296, user={age=24, connectId=346492379800, firstName=User1, photos=[EnhancedPhoto(id=bd70dad7-29a4-4722-8664-78288d27fb20, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015731036_a8810752.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620532&Signature=PaFsNFlx2KJT4NTlGv2vH8SBKbuFUSMkbktoP9qvwAuDTx2Hw3A5qDtVSw3T1sloVJPY1QmdCs1bMIn4TlLzWgVjyWw7xn03pY8eV5Zip%2FJtk0ywsT24DMusNg%2Fgb%2F7UWtrkzfuplGSpAfrH2zyKSq0YT15vOCtD92x83JOaV6CA9wHwzMBgGL%2Bg5x874FoDookXLJXGSTHvLXSc6ZC3j6qY4tJOwdkdyaAHCqZXg7mHssB3E68jY2LV%2B8PShKMmtq1mvZ3DOSEageb%2B6bOWg1HPAcHtZg96DQBw94dgRL8sJvAHme4Zl7wzWyf9h%2FrQC0gASLX%2FJzCkiok70VUuog%3D%3D, isPrimary=true, order=1, prompts=null), EnhancedPhoto(id=2170a7f3-7f5f-4be2-b22f-4275da990704, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015733055_26185901.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620534&Signature=jC2amU%2BionX0R5B9%2BTKkbym9zSOpBJ81NMwvRwBQPS27QTeoIVJRb410KP0p8ijc3%2Fz0xCE1ZIjYXRpu8IUHHJIGKix6VFYNo%2Fl2SbhwmqyRf3JJlQ9WcZWd8n1JlMjMdLm4QIXCEtMLaM7X6X1dptt0AIvqne0LsxXYeTLpEiDkJPS7l2Zx6f1pnTIJgJBpNt%2B8x3Liifc26RZLjaS0yh56b9NT6JyEXDF4IwOWrx8123kDc8FNrtkiCLjM5oARaqNCTDAtY53iOsOSn1oBL0ILeYn4nbOxelD1FlSRYTl8SmJgC0mezCJ8Q8cr%2F00m9itU9AO%2BB5HGTDZJNzsP6A%3D%3D, isPrimary=false, order=2, prompts=null), EnhancedPhoto(id=dd62f5c7-ef39-49f0-beef-f20ef7f4dbb6, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015734254_4cb0a032.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620535&Signature=aAi7zqEp5Qqy1kMPDZKf2r8uYx37b2nl0Krkusv6AH3PB5VvEj%2BVgC6V43rOs0mto9BGLCBK8iCaqf%2Bll7ZvKji%2FYEsqUYJnWmd1aQmLpmbmRXD5XIirXTudTcLSFHaMOLb0fcXlWn9rp3Bl4eQD2j3R8TfnqBXr2ftOmKb7z%2FdxbR9JTzjK9DtBZmWw0RdC4bJ8zJxE0RsbiTlOyv4D9z849t38AvTb%2BKSRGBk1m6uE%2FA1l5KnvJk7ZT4HanYUX0tawD21mNEKnoF97s0w%2BgUEVDGVKAC9%2BltwiKY1SfgNLTUs5GDQ7kRx6YndwM%2FL3L76trkJ77MSGTuLDrt6eQQ%3D%3D, isPrimary=false, order=3, prompts=null), EnhancedPhoto(id=6cc5cb14-de81-46a9-bbda-a2a597a03a02, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015735328_01938379.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620536&Signature=eer4vXENr6O41%2BlCYSJJl%2F%2FlUTiVgUhUdiUtyLq1bbSC4rBChmsL8NT6fiQGqpUNOSzdxZAwAqShrVGQRIpBoUAxvpSi2AhZcntIDMK0W2Z4bddTXFEa4%2FNKKD%2BydmB0qj46CGQjvLprnT6t71okxd7NIVyx36oKS7Dnmqt%2BVEhUSP9WpWscO8fbN3ynftOTt80se7TnvlPWCpJyvR4V2PDE%2B8r2%2BJUTGaQm3i%2Fifsb%2Fpff9v2qYqLBa1mO0HUtXtuEYMsJV6nY2EVbhX7ED6N8YaqLMYcFCAnVQlk1QceAX8WuhkegJQxAB5DgAFR5LXBR%2FCSjJEjYy43WH5Jh%2FYA%3D%3D, isPrimary=false, order=4, prompts=null), EnhancedPhoto(id=9a8cf26e-3d2a-4165-806a-c4d0a1a33237, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015736735_0fac6d9d.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620537&Signature=iFGhhxLBYJYXLYyMVKEVeMOKA9jgxlKjWYJCGEzW1POuPzNGD1gTQ46gbkQEwXs1Bx4LAKSHniSfjY7Q0QA7orSSkzfmP5pN7sF76aMTYeLBUVfHBQHJuiE1gke2zMaza3ga0E6kiu0CMCNEvmFPEZGRWNukkYSi4eJynNpmIjJWYlep0OICA9QUetapg38YYHtXzFhgAIEru2UjN7%2FMjR0FAzYi1QIIqagP2OoCx1IFpB5WX3wQEjI5w0UnhOETp%2BenWuI71S4MywERFSQh16FsXF%2FpNVpmoiOa%2FrpNi2R%2FQn0KX4AKYXwyuf%2Fx3JLEcMbd6dteRjF0FEz3vxYGzw%3D%3D, isPrimary=false, order=5, prompts=null), EnhancedPhoto(id=60ea2a4e-9ed6-4450-9d40-c4f7283d1f12, url=https://storage.googleapis.com/connect-ea4c2.firebasestorage.app/profile_photos/346492379800/photo_1759015738037_481ea7c0.jpg?GoogleAccessId=firebase-adminsdk-fbsvc@connect-ea4c2.iam.gserviceaccount.com&Expires=1759620539&Signature=gjnBABU0To2vI47rJhpZCV58xSA696B4wjpxaIIBQnV0YvA10tZeDxjrFAKmvQMTlyRnCyDjawg%2Fk0E51mNjrqIruR4BuX2GeHk977Y6Jg%2B68v5yOEYP81gFGa%2Bnc5rp7rBUJFpdybC%2Fn%2BycZg2SocK3Z0ye9MhJsc36llcN0xvKrfvWVgCsdXLANNh58cWgFyE9iPPkoy8o8KgYOj365sOR8YGdC%2Fr%2BxvvPedGSv0jLsM%2F00Xg5dcIKzZltRgkSSAEfyYLgctXNJ1w7mzbqMIdzZM8v49TzaOGzwRb1c1a%2BD74nc53qepZnTP57gvet8BERDr0Qt0maZSAYVt1LVQ%3D%3D, isPrimary=false, order=6, prompts=null)]}, conversationId=346492379800_986949226439, id=346492379800_986949226439}
+2025-09-28T16:19:05.858+01:00  INFO 49238 --- [freedom] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 303 class path changes (0 additions, 303 deletions, 0 modifications)
+2025-09-28T16:19:05.861+01:00  INFO 49238 --- [freedom] [       Thread-6] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-28T16:19:05.863+01:00  INFO 49238 --- [freedom] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.5)
+
+2025-09-28T16:19:05.929+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Starting ConnectApplication using Java 24.0.2 with PID 49238 (/Users/willgraham/Desktop/Connect/ConnectBackend/target/classes started by willgraham in /Users/willgraham/Desktop/Connect/ConnectBackend)
+2025-09-28T16:19:05.929+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : The following 1 profile is active: "dev"
+2025-09-28T16:19:06.034+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=810151b7-3eb9-3bb7-b047-6dea23fb4c8a
+2025-09-28T16:19:06.063+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-09-28T16:19:06.064+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-28T16:19:06.064+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-09-28T16:19:06.073+01:00  INFO 49238 --- [freedom] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-28T16:19:06.073+01:00  INFO 49238 --- [freedom] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 143 ms
+2025-09-28T16:19:06.140+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Default credentials provider for user 764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com
+2025-09-28T16:19:06.140+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Scopes in use by default credentials: [https://www.googleapis.com/auth/pubsub, https://www.googleapis.com/auth/spanner.admin, https://www.googleapis.com/auth/spanner.data, https://www.googleapis.com/auth/datastore, https://www.googleapis.com/auth/sqlservice.admin, https://www.googleapis.com/auth/devstorage.read_only, https://www.googleapis.com/auth/devstorage.read_write, https://www.googleapis.com/auth/cloudruntimeconfig, https://www.googleapis.com/auth/trace.append, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/cloud-vision, https://www.googleapis.com/auth/bigquery, https://www.googleapis.com/auth/monitoring.write]
+2025-09-28T16:19:06.164+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.a.c.GcpContextAutoConfiguration  : The default project ID is connect-ea4c2
+2025-09-28T16:19:06.199+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-09-28T16:19:06.201+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-28T16:19:06.208+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-09-28T16:19:06.213+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Started ConnectApplication in 0.298 seconds (process running for 999.821)
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation delta:
+
+
+==========================
+CONDITION EVALUATION DELTA
+==========================
+
+
+Positive matches:
+-----------------
+
+   JacksonAutoConfiguration.JacksonObjectMapperConfiguration#jacksonObjectMapper matched:
+      - @ConditionalOnMissingBean (types: com.fasterxml.jackson.databind.ObjectMapper; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TaskExecutorConfigurations.AsyncConfigurerConfiguration matched:
+      - @ConditionalOnMissingBean (types: org.springframework.scheduling.annotation.AsyncConfigurer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TaskExecutorConfigurations.AsyncConfigurerConfiguration#applicationTaskExecutorAsyncConfigurer matched:
+      - @ConditionalOnMissingBean (types: org.springframework.scheduling.annotation.AsyncConfigurer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TaskExecutorConfigurations.TaskExecutorConfiguration matched:
+      - AnyNestedCondition 1 matched 1 did not; NestedCondition on TaskExecutorConfigurations.OnExecutorCondition.ModelCondition @ConditionalOnProperty (spring.task.execution.mode=force) did not find property 'spring.task.execution.mode'; NestedCondition on TaskExecutorConfigurations.OnExecutorCondition.ExecutorBeanCondition @ConditionalOnMissingBean (types: java.util.concurrent.Executor; SearchStrategy: all) did not find any beans (TaskExecutorConfigurations.OnExecutorCondition)
+
+   TaskExecutorConfigurations.TaskExecutorConfiguration#applicationTaskExecutor matched:
+      - @ConditionalOnThreading found PLATFORM (OnThreadingCondition)
+
+   ValidationAutoConfiguration#defaultValidator matched:
+      - @ConditionalOnMissingBean (types: jakarta.validation.Validator; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+
+Negative matches:
+-----------------
+
+   CacheMetricsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.cache.CacheManager; SearchStrategy: all) did not find any beans of type org.springframework.cache.CacheManager (OnBeanCondition)
+
+   TaskExecutorConfigurations.TaskExecutorConfiguration#applicationTaskExecutorVirtualThreads:
+      Did not match:
+         - @ConditionalOnThreading did not find VIRTUAL (OnThreadingCondition)
+
+
+Exclusions:
+-----------
+
+    None
+
+
+Unconditional classes:
+----------------------
+
+    None
+
+
+
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🚀 Connect Application Started Successfully!
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📋 Active Profiles: dev
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🌐 Server URL: http://localhost:8080
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📖 API Documentation: http://localhost:8080/swagger-ui.html
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔧 Actuator Health: http://localhost:8080/actuator/health
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔥 Firebase Configuration:
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Project ID: connect-ea4c2
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Storage Bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:19:06.215+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Config Path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🛠️  Development Mode Features:
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Enhanced logging enabled
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - CORS configured for local development
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Mock services available
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Test data creation enabled
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:19:06.216+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:19:07.618+01:00  INFO 49238 --- [freedom] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 139 class path changes (139 additions, 0 deletions, 0 modifications)
+2025-09-28T16:19:07.619+01:00  INFO 49238 --- [freedom] [      Thread-15] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-28T16:19:07.622+01:00  INFO 49238 --- [freedom] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.5)
+
+2025-09-28T16:19:07.675+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Starting ConnectApplication using Java 24.0.2 with PID 49238 (/Users/willgraham/Desktop/Connect/ConnectBackend/target/classes started by willgraham in /Users/willgraham/Desktop/Connect/ConnectBackend)
+2025-09-28T16:19:07.675+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : The following 1 profile is active: "dev"
+2025-09-28T16:19:07.783+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=755f1766-0b40-3f11-b97d-1a59c5395816
+2025-09-28T16:19:07.811+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-09-28T16:19:07.811+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-28T16:19:07.811+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-09-28T16:19:07.818+01:00  INFO 49238 --- [freedom] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-09-28T16:19:07.818+01:00  INFO 49238 --- [freedom] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 142 ms
+2025-09-28T16:19:07.849+01:00  WARN 49238 --- [freedom] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'notificationController': Unsatisfied dependency expressed through field 'notificationService': Error creating bean with name 'notificationService': Unsatisfied dependency expressed through field 'notificationRepository': No qualifying bean of type 'com.tpg.connect.repository.NotificationRepository' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}
+2025-09-28T16:19:07.849+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2025-09-28T16:19:07.854+01:00  INFO 49238 --- [freedom] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-09-28T16:19:07.861+01:00 ERROR 49238 --- [freedom] [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Field notificationRepository in com.tpg.connect.services.NotificationService required a bean of type 'com.tpg.connect.repository.NotificationRepository' that could not be found.
+
+The injection point has the following annotations:
+	- @org.springframework.beans.factory.annotation.Autowired(required=true)
+
+
+Action:
+
+Consider defining a bean of type 'com.tpg.connect.repository.NotificationRepository' in your configuration.
+
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.5)
+
+2025-09-28T16:19:59.989+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Starting ConnectApplication using Java 24.0.2 with PID 49238 (/Users/willgraham/Desktop/Connect/ConnectBackend/target/classes started by willgraham in /Users/willgraham/Desktop/Connect/ConnectBackend)
+2025-09-28T16:19:59.989+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : The following 1 profile is active: "dev"
+2025-09-28T16:20:00.112+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=810151b7-3eb9-3bb7-b047-6dea23fb4c8a
+2025-09-28T16:20:00.133+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-09-28T16:20:00.134+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-28T16:20:00.134+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-09-28T16:20:00.141+01:00  INFO 49238 --- [freedom] [  restartedMain] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring embedded WebApplicationContext
+2025-09-28T16:20:00.141+01:00  INFO 49238 --- [freedom] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 151 ms
+2025-09-28T16:20:00.188+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Default credentials provider for user 764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com
+2025-09-28T16:20:00.188+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Scopes in use by default credentials: [https://www.googleapis.com/auth/pubsub, https://www.googleapis.com/auth/spanner.admin, https://www.googleapis.com/auth/spanner.data, https://www.googleapis.com/auth/datastore, https://www.googleapis.com/auth/sqlservice.admin, https://www.googleapis.com/auth/devstorage.read_only, https://www.googleapis.com/auth/devstorage.read_write, https://www.googleapis.com/auth/cloudruntimeconfig, https://www.googleapis.com/auth/trace.append, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/cloud-vision, https://www.googleapis.com/auth/bigquery, https://www.googleapis.com/auth/monitoring.write]
+2025-09-28T16:20:00.190+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.a.c.GcpContextAutoConfiguration  : The default project ID is connect-ea4c2
+2025-09-28T16:20:00.213+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-09-28T16:20:00.214+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-28T16:20:00.220+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-09-28T16:20:00.225+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Started ConnectApplication in 0.254 seconds (process running for 1053.833)
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🚀 Connect Application Started Successfully!
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📋 Active Profiles: dev
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🌐 Server URL: http://localhost:8080
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📖 API Documentation: http://localhost:8080/swagger-ui.html
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔧 Actuator Health: http://localhost:8080/actuator/health
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔥 Firebase Configuration:
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Project ID: connect-ea4c2
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Storage Bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Config Path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🛠️  Development Mode Features:
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Enhanced logging enabled
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - CORS configured for local development
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Mock services available
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Test data creation enabled
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:00.226+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:20:02.854+01:00  INFO 49238 --- [freedom] [   File Watcher] rtingClassPathChangeChangedEventListener : Restarting due to 303 class path changes (303 additions, 0 deletions, 0 modifications)
+2025-09-28T16:20:02.855+01:00  INFO 49238 --- [freedom] [      Thread-19] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-09-28T16:20:02.858+01:00  INFO 49238 --- [freedom] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.5)
+
+2025-09-28T16:20:02.899+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Starting ConnectApplication using Java 24.0.2 with PID 49238 (/Users/willgraham/Desktop/Connect/ConnectBackend/target/classes started by willgraham in /Users/willgraham/Desktop/Connect/ConnectBackend)
+2025-09-28T16:20:02.899+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : The following 1 profile is active: "dev"
+2025-09-28T16:20:03.035+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=fd34fa07-d049-3dde-90ac-e8bfcab02c03
+2025-09-28T16:20:03.061+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-09-28T16:20:03.061+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-09-28T16:20:03.061+01:00  INFO 49238 --- [freedom] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.44]
+2025-09-28T16:20:03.067+01:00  INFO 49238 --- [freedom] [  restartedMain] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring embedded WebApplicationContext
+2025-09-28T16:20:03.068+01:00  INFO 49238 --- [freedom] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 168 ms
+2025-09-28T16:20:03.097+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firestore client
+2025-09-28T16:20:03.097+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firebase app already initialized, returning existing instance
+2025-09-28T16:20:03.097+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Firestore client created successfully
+2025-09-28T16:20:03.105+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with project ID: connect-ea4c2
+2025-09-28T16:20:03.106+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with service account from: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:20:03.106+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage service initialized successfully
+2025-09-28T16:20:03.111+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Cloud Storage configured with bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:20:03.111+01:00  INFO 49238 --- [freedom] [  restartedMain] c.tpg.connect.config.CloudStorageConfig  : Photo upload settings - Max size: 5MB, Max count: 6, Allowed types: image/jpeg,image/png,image/webp
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : Configuring CORS for development environment
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed origin patterns: *
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed methods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS allowed headers: *
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : CORS configuration completed for development
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         : Development properties configured:
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Mock email service: false
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Create sample data: true
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Detailed error responses: true
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.DevConfig         :   Auto create test users: true
+2025-09-28T16:20:03.167+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Auth client
+2025-09-28T16:20:03.169+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Messaging client
+2025-09-28T16:20:03.169+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Firebase Storage client
+2025-09-28T16:20:03.169+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.FirebaseConfig    : Creating Google Cloud Storage client
+2025-09-28T16:20:03.192+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Configuring CORS mappings
+2025-09-28T16:20:03.192+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : CORS configuration completed - allowing all origins for development
+2025-09-28T16:20:03.227+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Extending message converters with custom ObjectMapper
+2025-09-28T16:20:03.227+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Initial converter count: 11
+2025-09-28T16:20:03.227+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Added custom MappingJackson2HttpMessageConverter with our ObjectMapper
+2025-09-28T16:20:03.227+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.config.WebMvcConfig      : Final converter count: 10
+2025-09-28T16:20:03.238+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Default credentials provider for user 764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com
+2025-09-28T16:20:03.238+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.core.DefaultCredentialsProvider  : Scopes in use by default credentials: [https://www.googleapis.com/auth/pubsub, https://www.googleapis.com/auth/spanner.admin, https://www.googleapis.com/auth/spanner.data, https://www.googleapis.com/auth/datastore, https://www.googleapis.com/auth/sqlservice.admin, https://www.googleapis.com/auth/devstorage.read_only, https://www.googleapis.com/auth/devstorage.read_write, https://www.googleapis.com/auth/cloudruntimeconfig, https://www.googleapis.com/auth/trace.append, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/cloud-vision, https://www.googleapis.com/auth/bigquery, https://www.googleapis.com/auth/monitoring.write]
+2025-09-28T16:20:03.239+01:00  INFO 49238 --- [freedom] [  restartedMain] c.g.c.s.a.c.GcpContextAutoConfiguration  : The default project ID is connect-ea4c2
+2025-09-28T16:20:03.301+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-09-28T16:20:03.303+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-09-28T16:20:03.317+01:00  INFO 49238 --- [freedom] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-09-28T16:20:03.321+01:00  INFO 49238 --- [freedom] [   scheduling-1] c.t.c.services.ScheduledTaskService      : 🏥 Scheduled task health check - All tasks running normally
+2025-09-28T16:20:03.321+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : Started ConnectApplication in 0.431 seconds (process running for 1056.929)
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation delta:
+
+
+==========================
+CONDITION EVALUATION DELTA
+==========================
+
+
+Positive matches:
+-----------------
+
+   CacheMetricsAutoConfiguration matched:
+      - @ConditionalOnBean (types: org.springframework.cache.CacheManager; SearchStrategy: all) found bean 'cacheManager' (OnBeanCondition)
+
+
+Negative matches:
+-----------------
+
+   CacheMetricsRegistrarConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.boot.actuate.metrics.cache.CacheMeterBinderProvider,io.micrometer.core.instrument.MeterRegistry; SearchStrategy: all) did not find any beans of type org.springframework.boot.actuate.metrics.cache.CacheMeterBinderProvider (OnBeanCondition)
+
+   JacksonAutoConfiguration.JacksonObjectMapperConfiguration#jacksonObjectMapper:
+      Did not match:
+         - @ConditionalOnMissingBean (types: com.fasterxml.jackson.databind.ObjectMapper; SearchStrategy: all) found beans of type 'com.fasterxml.jackson.databind.ObjectMapper' objectMapper (OnBeanCondition)
+
+   TaskExecutorConfigurations.TaskExecutorConfiguration:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on TaskExecutorConfigurations.OnExecutorCondition.ModelCondition @ConditionalOnProperty (spring.task.execution.mode=force) did not find property 'spring.task.execution.mode'; NestedCondition on TaskExecutorConfigurations.OnExecutorCondition.ExecutorBeanCondition @ConditionalOnMissingBean (types: java.util.concurrent.Executor; SearchStrategy: all) found beans of type 'java.util.concurrent.Executor' photoCleanupExecutor, taskExecutor (TaskExecutorConfigurations.OnExecutorCondition)
+
+   ValidationAutoConfiguration#defaultValidator:
+      Did not match:
+         - @ConditionalOnMissingBean (types: jakarta.validation.Validator; SearchStrategy: all) found beans of type 'jakarta.validation.Validator' validator (OnBeanCondition)
+
+
+Exclusions:
+-----------
+
+    None
+
+
+Unconditional classes:
+----------------------
+
+    None
+
+
+
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🚀 Connect Application Started Successfully!
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📋 Active Profiles: dev
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🌐 Server URL: http://localhost:8080
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 📖 API Documentation: http://localhost:8080/swagger-ui.html
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔧 Actuator Health: http://localhost:8080/actuator/health
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🔥 Firebase Configuration:
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Project ID: connect-ea4c2
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Storage Bucket: connect-ea4c2.firebasestorage.app
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    Config Path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 🛠️  Development Mode Features:
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Enhanced logging enabled
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - CORS configured for local development
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Mock services available
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       :    - Test data creation enabled
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : ============================================================
+2025-09-28T16:20:03.322+01:00  INFO 49238 --- [freedom] [  restartedMain] com.tpg.connect.ConnectApplication       : 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18:01 min
+[INFO] Finished at: 2025-09-28T16:20:22+01:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.5.5:run (default-cli) on project Connect: Process terminated with exit code: 137 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

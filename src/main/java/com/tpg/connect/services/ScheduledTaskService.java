@@ -52,8 +52,8 @@ public class ScheduledTaskService {
         }
     }
 
-    // Process pending notifications every 5 minutes
-    @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
+    // Process pending notifications every 5 minutes - DISABLED due to missing Firestore index
+    // @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
     public void processPendingNotifications() {
         try {
             logger.debug("📤 Processing pending notifications");
