@@ -6,6 +6,7 @@ import com.tpg.connect.model.api.PotentialMatchesResponse;
 import com.tpg.connect.model.dto.MatchActionsRequest;
 import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.PotentialMatchesService;
+import com.tpg.connect.services.UserMatchPoolService;
 import com.tpg.connect.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -22,11 +25,16 @@ import java.util.Map;
 @RequestMapping("/api/discovery/matches")
 public class PotentialMatchesController extends BaseController implements PotentialMatchesControllerApi {
 
+    private static final Logger logger = LoggerFactory.getLogger(PotentialMatchesController.class);
+
     @Autowired
     private AuthenticationService authService;
 
     @Autowired
     private PotentialMatchesService potentialMatchesService;
+
+    @Autowired
+    private UserMatchPoolService userMatchPoolService;
 
     @Autowired
     private UserService userService;
@@ -49,31 +57,29 @@ public class PotentialMatchesController extends BaseController implements Potent
     }
 
     @Override
-    public ResponseEntity<PotentialMatchesResponse> getTodaysMatches(
+    public ResponseEntity<PotentialMatchesResponse> getLatestPotentialMatches(
             @RequestHeader("Authorization") String authHeader) {
+        
+        logger.info("🎯 Discovery API called - getLatestPotentialMatches");
         
         String userId = validateAndExtractUserId(authHeader);
         if (userId == null) {
+            logger.warn("❌ Discovery API - Invalid authorization header");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new PotentialMatchesResponse(false, "Invalid or missing authorization", null, null, 0, false));
         }
 
-        try {
-            // Check if it's after 7pm
-            LocalTime now = LocalTime.now();
-            LocalTime releaseTime = LocalTime.of(19, 0); // 7:00 PM
-            
-            if (now.isBefore(releaseTime)) {
-                Duration timeUntilRelease = Duration.between(now, releaseTime);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new PotentialMatchesResponse(false, 
-                        "New matches available at 7:00 PM. Time remaining: " + formatDuration(timeUntilRelease), 
-                        null, null, 0, false));
-            }
+        logger.info("🎯 Discovery API - Valid user ID: {}", userId);
 
-            PotentialMatchesResponse response = potentialMatchesService.getTodaysMatches(userId);
+        try {
+            // Use UserMatchPoolService to get next matches from queue
+            // Note: Removed 7pm restriction as queue-based system works anytime
+            PotentialMatchesResponse response = userMatchPoolService.getNextMatches(userId);
+            logger.info("🎯 Discovery API - Response created for user {}: success={}, userCount={}", 
+                       userId, response.isSuccess(), response.getUsers() != null ? response.getUsers().size() : 0);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            logger.error("❌ Discovery API error for user {}: {}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new PotentialMatchesResponse(false, "Failed to get today's matches: " + e.getMessage(), 
                     null, null, 0, false));
@@ -91,7 +97,7 @@ public class PotentialMatchesController extends BaseController implements Potent
         }
 
         try {
-            Map<String, Object> result = potentialMatchesService.submitMatchActions(userId, request);
+            Map<String, Object> result = userMatchPoolService.updateViewedStatus(userId, request);
             return successResponse(result);
         } catch (Exception e) {
             return errorResponse("Failed to submit match actions: " + e.getMessage());

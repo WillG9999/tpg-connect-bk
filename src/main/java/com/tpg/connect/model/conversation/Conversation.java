@@ -17,6 +17,7 @@ public class Conversation {
     private List<Message> messages;
     private Message lastMessage;
     private int unreadCount;
+    private boolean archived;
     private LocalDateTime matchedAt;
     private LocalDateTime updatedAt;
     private ConversationStatus status;

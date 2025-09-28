@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import java.security.SecureRandom;
 import java.util.Random;
 
+//TODO: adjusyt this to run like roll number generator to avoid collisions
 @Component
 public class ConnectIdGenerator {
 

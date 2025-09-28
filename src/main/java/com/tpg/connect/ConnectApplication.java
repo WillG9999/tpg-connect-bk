@@ -6,9 +6,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.env.Environment;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public class ConnectApplication {
+	
+	// TODO: Initialize payment gateway services (Stripe/PayPal/Apple Pay)
+	// TODO: Configure Firebase Cloud Messaging for push notifications
+	// TODO: Set up subscription management and webhook endpoints
 
 	private static final Logger logger = LoggerFactory.getLogger(ConnectApplication.class);
 

@@ -37,6 +37,9 @@ public class PotentialMatchesService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private UserActionsService userActionsService;
+
     private static final int MATCH_SET_SIZE = 10;
     private static final LocalTime MATCHES_RELEASE_TIME = LocalTime.of(19, 0); // 7:00 PM
 
@@ -225,11 +228,9 @@ public class PotentialMatchesService {
     }
 
     private Set<String> getRecentlyActedOnUsers(String userId, int days) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
-        return userActionRepository.findByUserIdAndTimestampAfter(userId, cutoff)
-                .stream()
-                .map(UserAction::getTargetUserId)
-                .collect(Collectors.toSet());
+        // Use new UserActionsService for efficient filtering (no need for time-based filtering anymore)
+        // Since the userActions collection contains ALL actions, we filter by all acted-on users
+        return userActionsService.getActedOnUsers(userId);
     }
 
     private Set<String> getBlockedUsers(String userId) {

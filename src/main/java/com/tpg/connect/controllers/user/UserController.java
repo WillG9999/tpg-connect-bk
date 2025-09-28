@@ -189,45 +189,7 @@ public class UserController extends BaseController {
         }
     }
 
-    // Like user (frontend expects /api/users/{id}/like)
-    @PostMapping("/{targetUserId}/like")
-    public ResponseEntity<Map<String, Object>> likeUser(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable String targetUserId) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return unauthorizedResponse("Invalid or missing authorization");
-        }
 
-        try {
-            // Delegate to discovery service for actual like logic
-            Map<String, Object> result = userService.likeUser(userId, targetUserId);
-            return successResponse(result);
-        } catch (Exception e) {
-            return errorResponse("Failed to like user: " + e.getMessage());
-        }
-    }
-
-    // Dislike user (frontend expects /api/users/{id}/dislike)
-    @PostMapping("/{targetUserId}/dislike")
-    public ResponseEntity<Map<String, Object>> dislikeUser(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable String targetUserId) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return unauthorizedResponse("Invalid or missing authorization");
-        }
-
-        try {
-            // Delegate to discovery service for actual dislike logic
-            Map<String, Object> result = userService.dislikeUser(userId, targetUserId);
-            return successResponse(result);
-        } catch (Exception e) {
-            return errorResponse("Failed to dislike user: " + e.getMessage());
-        }
-    }
 
     // Block user (frontend expects /api/users/{id}/block)
     @PostMapping("/{targetUserId}/block")

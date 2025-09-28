@@ -223,11 +223,53 @@ public class NotificationService {
     }
 
     public void sendUnmatchNotification(String userId, String matchId) {
-        System.out.println("Sending unmatch notification to user " + userId + " for match " + matchId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("matchId", matchId);
+
+        NotificationRequest request = new NotificationRequest();
+        request.setUserId(userId);
+        request.setType(Notification.NotificationType.UNMATCH);
+        request.setTitle("Match Ended");
+        request.setMessage("Someone ended your match");
+        request.setData(data);
+        request.setPriority(Notification.NotificationPriority.NORMAL);
+        request.setActionUrl("/matches");
+
+        createAndSendNotification(request);
     }
 
-    public void sendMessageNotification(String userId, String senderId, String messageId) {
-        System.out.println("Sending message notification to user " + userId + " from " + senderId + " (messageId: " + messageId + ")");
+    public void sendMessageNotification(String userId, String senderId, String conversationId, String messageContent) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("senderId", senderId);
+        data.put("conversationId", conversationId);
+        data.put("messageContent", messageContent);
+
+        NotificationRequest request = new NotificationRequest();
+        request.setUserId(userId);
+        request.setType(Notification.NotificationType.NEW_MESSAGE);
+        request.setTitle("New Message");
+        request.setMessage(messageContent.length() > 50 ? messageContent.substring(0, 50) + "..." : messageContent);
+        request.setData(data);
+        request.setPriority(Notification.NotificationPriority.NORMAL);
+        request.setActionUrl("/conversations/" + conversationId);
+
+        createAndSendNotification(request);
+    }
+
+    public void sendConversationEndedNotification(String userId, String conversationId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("conversationId", conversationId);
+
+        NotificationRequest request = new NotificationRequest();
+        request.setUserId(userId);
+        request.setType(Notification.NotificationType.CONVERSATION_ENDED);
+        request.setTitle("Conversation Ended");
+        request.setMessage("A conversation has been ended");
+        request.setData(data);
+        request.setPriority(Notification.NotificationPriority.NORMAL);
+        request.setActionUrl("/conversations");
+
+        createAndSendNotification(request);
     }
 
     public void sendBlockNotificationToAdmin(String userId, String targetUserId, String reason) {

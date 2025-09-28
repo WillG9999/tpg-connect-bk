@@ -59,7 +59,9 @@ public class Notification {
         ACCOUNT_VERIFICATION("Verification", "Please verify your account"),
         SAFETY_ALERT("Safety", "Important safety information"),
         SYSTEM_MAINTENANCE("System", "Scheduled maintenance notification"),
-        PROMOTIONAL("Promotion", "Special offer available");
+        PROMOTIONAL("Promotion", "Special offer available"),
+        UNMATCH("Match Ended", "Someone ended your match"),
+        CONVERSATION_ENDED("Conversation Ended", "A conversation has been ended");
         
         private final String displayTitle;
         private final String defaultMessage;

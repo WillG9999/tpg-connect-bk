@@ -1,8 +1,9 @@
 package com.tpg.connect.services;
 
 import com.tpg.connect.repository.UserRepository;
+import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.model.User;
-import com.tpg.connect.services.DiscoveryService;
+import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.services.SafetyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,15 +11,19 @@ import java.util.Map;
 
 @Service
 public class UserService {
+    
+    // TODO: Implement premium subscription validation
+    // TODO: Add payment gateway integration (Stripe/Apple Pay/Google Pay)
+    // TODO: Handle subscription status and expiry dates
 
     @Autowired
     private UserRepository userRepository;
     
     @Autowired
-    private DiscoveryService discoveryService;
+    private SafetyService safetyService;
     
     @Autowired
-    private SafetyService safetyService;
+    private UserProfileRepository userProfileRepository;
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);
@@ -81,31 +86,6 @@ public class UserService {
         return userRepository.existsByUsername(username);
     }
     
-    // Methods for UserController endpoints
-    public Map<String, Object> likeUser(String userId, String targetUserId) {
-        try {
-            // Delegate to discovery service
-            com.tpg.connect.model.api.LikeResponse response = discoveryService.likeUser(userId, targetUserId);
-            return Map.of(
-                "success", response.isSuccess(),
-                "message", response.getMessage(),
-                "isMatch", response.isMatch(),
-                "match", response.getMatch() != null ? response.getMatch() : Map.of()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to like user: " + e.getMessage());
-        }
-    }
-    
-    public Map<String, Object> dislikeUser(String userId, String targetUserId) {
-        try {
-            // Delegate to discovery service
-            discoveryService.dislikeUser(userId, targetUserId);
-            return Map.of("success", true, "message", "User disliked successfully");
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to dislike user: " + e.getMessage());
-        }
-    }
     
     public Map<String, Object> blockUser(String userId, String targetUserId) {
         try {
@@ -150,5 +130,9 @@ public class UserService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to deactivate user: " + e.getMessage());
         }
+    }
+    
+    public CompleteUserProfile getUserProfile(String userId) {
+        return userProfileRepository.findByUserId(userId);
     }
 }

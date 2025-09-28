@@ -5,8 +5,9 @@ import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.services.AuthenticationService;
-import com.tpg.connect.services.DiscoveryService;
 import com.tpg.connect.services.UserService;
+import com.tpg.connect.services.UserActionsService;
+import com.tpg.connect.services.ConversationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,53 +23,16 @@ public class MatchController extends BaseController {
 
     @Autowired
     private AuthenticationService authService;
-
-    @Autowired
-    private DiscoveryService discoveryService;
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserActionsService userActionsService;
+    
+    @Autowired
+    private ConversationService conversationService;
 
-    // Get potential matches for discovery (frontend expects /api/matches/discover)
-    @GetMapping("/discover")
-    public ResponseEntity<List<UserProfileDTO>> getPotentialMatches(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestParam(defaultValue = "10") int count,
-            @RequestParam(required = false) Double lat,
-            @RequestParam(required = false) Double lng,
-            @RequestParam(required = false) Integer maxDistance,
-            @RequestParam(required = false) String exclude) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            // Create discovery request from parameters
-            com.tpg.connect.model.dto.DiscoveryRequest request = new com.tpg.connect.model.dto.DiscoveryRequest();
-            request.setCount(count);
-            request.setLatitude(lat);
-            request.setLongitude(lng);
-            request.setMaxDistance(maxDistance);
-            
-            // Parse exclude parameter (comma-separated string to list)
-            List<String> excludeList = null;
-            if (exclude != null && !exclude.trim().isEmpty()) {
-                excludeList = List.of(exclude.split(","));
-            }
-            request.setExcludeUserIds(excludeList);
-            
-            List<CompleteUserProfile> potentialMatches = discoveryService.getPotentialMatches(userId, request);
-            List<UserProfileDTO> dtos = potentialMatches.stream()
-                .map(UserProfileDTO::fromCompleteUserProfile)
-                .collect(Collectors.toList());
-                
-            return ResponseEntity.ok(dtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
 
     // Get user matches (frontend expects /api/matches)
     @GetMapping
@@ -79,107 +43,64 @@ public class MatchController extends BaseController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String since) {
         
+        System.out.println("🚀 MatchController: getMatches() called!");
+        System.out.println("🔑 MatchController: authHeader present: " + (authHeader != null));
+        
         String userId = validateAndExtractUserId(authHeader);
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         try {
-            // For now, return empty matches - in a real implementation you'd query the match database
-            List<Map<String, Object>> matches = List.of();
+            System.out.println("🔍 MatchController: Getting matches for user: " + userId);
+            // Get user's matches from UserActions
+            List<String> matchedUserIds = userActionsService.getMatches(userId);
+            System.out.println("🔍 MatchController: Found " + matchedUserIds.size() + " matched user IDs: " + matchedUserIds);
+            
+            // Convert user IDs to match objects with user profiles
+            List<Map<String, Object>> matches = matchedUserIds.stream()
+                .map(matchedUserId -> {
+                    try {
+                        CompleteUserProfile matchedUser = userService.getUserProfile(matchedUserId);
+                        if (matchedUser != null) {
+                            // Generate deterministic conversation ID
+                            String conversationId = generateConversationId(userId, matchedUserId);
+                            
+                            return Map.of(
+                                "id", conversationId, // Use conversation ID as match ID
+                                "user", Map.of(
+                                    "connectId", matchedUser.getConnectId(),
+                                    "firstName", matchedUser.getFirstName(),
+                                    "photos", matchedUser.getPhotos() != null ? matchedUser.getPhotos() : List.of(),
+                                    "age", matchedUser.getAge()
+                                ),
+                                "conversationId", conversationId,
+                                "lastActivity", System.currentTimeMillis(),
+                                "unreadCount", 0
+                            );
+                        }
+                        return null;
+                    } catch (Exception e) {
+                        System.err.println("Error getting profile for matched user " + matchedUserId + ": " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(match -> match != null)
+                .collect(Collectors.toList());
+            
+            System.out.println("🎉 MatchController: Returning " + matches.size() + " matches");
+            if (!matches.isEmpty()) {
+                System.out.println("🔍 MatchController: First match sample: " + matches.get(0));
+            }
             return ResponseEntity.ok(matches);
         } catch (Exception e) {
+            System.err.println("Error getting matches for user " + userId + ": " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
-    // Create match action (like/pass) (frontend expects /api/matches POST)
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createMatch(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody Map<String, Object> matchData) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return unauthorizedResponse("Invalid or missing authorization");
-        }
 
-        try {
-            String targetUserId = (String) matchData.get("targetUserId");
-            String action = (String) matchData.get("action");
-            
-            if ("LIKE".equals(action)) {
-                Map<String, Object> result = userService.likeUser(userId, targetUserId);
-                return successResponse(result);
-            } else if ("PASS".equals(action)) {
-                Map<String, Object> result = userService.dislikeUser(userId, targetUserId);
-                return successResponse(result);
-            } else {
-                return errorResponse("Invalid action. Must be LIKE or PASS");
-            }
-        } catch (Exception e) {
-            return errorResponse("Failed to create match: " + e.getMessage());
-        }
-    }
 
-    // Daily batch status (frontend expects /api/matches/daily/status)
-    @GetMapping("/daily/status")
-    public ResponseEntity<Map<String, Object>> getDailyBatchStatus(
-            @RequestHeader("Authorization") String authHeader) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return unauthorizedResponse("Invalid or missing authorization");
-        }
-
-        try {
-            // Return basic status - in a real implementation you'd check actual batch status
-            Map<String, Object> status = Map.of(
-                "batchReady", true,
-                "nextBatchTime", "19:00:00",
-                "currentBatchDate", java.time.LocalDate.now().toString(),
-                "matchesAvailable", true
-            );
-            return successResponse(status);
-        } catch (Exception e) {
-            return errorResponse("Failed to get batch status: " + e.getMessage());
-        }
-    }
-
-    // Daily matches (frontend expects /api/matches/daily/{date})
-    @GetMapping("/daily/{date}")
-    public ResponseEntity<Map<String, Object>> getDailyMatches(
-            @RequestHeader("Authorization") String authHeader,
-            @PathVariable String date,
-            @RequestParam(defaultValue = "false") boolean includeResults) {
-        
-        String userId = validateAndExtractUserId(authHeader);
-        if (userId == null) {
-            return unauthorizedResponse("Invalid or missing authorization");
-        }
-
-        try {
-            // Get potential matches for the day
-            com.tpg.connect.model.dto.DiscoveryRequest request = new com.tpg.connect.model.dto.DiscoveryRequest();
-            request.setCount(10);
-            
-            List<CompleteUserProfile> potentialMatches = discoveryService.getPotentialMatches(userId, request);
-            List<UserProfileDTO> dtos = potentialMatches.stream()
-                .map(UserProfileDTO::fromCompleteUserProfile)
-                .collect(Collectors.toList());
-            
-            Map<String, Object> response = Map.of(
-                "date", date,
-                "matches", dtos,
-                "totalCount", dtos.size(),
-                "includeResults", includeResults
-            );
-            
-            return successResponse(response);
-        } catch (Exception e) {
-            return errorResponse("Failed to get daily matches: " + e.getMessage());
-        }
-    }
 
     // Get conversations (frontend expects /api/conversations)
     @GetMapping("/conversations")
@@ -195,10 +116,46 @@ public class MatchController extends BaseController {
         }
 
         try {
-            // For now, return empty conversations - in a real implementation you'd query the conversation database
-            List<Map<String, Object>> conversations = List.of();
+            // Get user's matches from UserActions and return as conversations
+            List<String> matchedUserIds = userActionsService.getMatches(userId);
+            
+            // Convert to conversation format (same as matches but conversation-focused)
+            List<Map<String, Object>> conversations = matchedUserIds.stream()
+                .map(matchedUserId -> {
+                    try {
+                        CompleteUserProfile matchedUser = userService.getUserProfile(matchedUserId);
+                        if (matchedUser != null) {
+                            String conversationId = generateConversationId(userId, matchedUserId);
+                            
+                            return Map.of(
+                                "id", conversationId,
+                                "participant", Map.of(
+                                    "connectId", matchedUser.getConnectId(),
+                                    "firstName", matchedUser.getFirstName(),
+                                    "photos", matchedUser.getPhotos() != null ? matchedUser.getPhotos() : List.of(),
+                                    "age", matchedUser.getAge()
+                                ),
+                                "lastMessage", Map.of(
+                                    "content", "Start a conversation!",
+                                    "timestamp", System.currentTimeMillis(),
+                                    "senderId", ""
+                                ),
+                                "unreadCount", 0,
+                                "lastActivity", System.currentTimeMillis()
+                            );
+                        }
+                        return null;
+                    } catch (Exception e) {
+                        System.err.println("Error getting profile for conversation " + matchedUserId + ": " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(conversation -> conversation != null)
+                .collect(Collectors.toList());
+            
             return ResponseEntity.ok(conversations);
         } catch (Exception e) {
+            System.err.println("Error getting conversations for user " + userId + ": " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -290,6 +247,19 @@ public class MatchController extends BaseController {
 
         // Extract user ID directly from JWT token subject claim
         return authService.extractUserIdFromToken(token);
+    }
+    
+    /**
+     * Generate deterministic conversation ID based on user IDs
+     * Format: {lowerUserId}_{higherUserId}
+     */
+    private String generateConversationId(String userId1, String userId2) {
+        // Ensure deterministic ordering (alphabetical by user ID)
+        if (userId1.compareTo(userId2) < 0) {
+            return userId1 + "_" + userId2;
+        } else {
+            return userId2 + "_" + userId1;
+        }
     }
 
 }

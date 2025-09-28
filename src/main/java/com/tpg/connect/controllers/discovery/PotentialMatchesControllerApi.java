@@ -27,14 +27,14 @@ public interface PotentialMatchesControllerApi {
         @RequestHeader("Authorization") String authHeader
     );
 
-    @Operation(summary = "Get today's matches", description = "Retrieve today's set of potential matches (available after 7pm)")
+    @Operation(summary = "Get latest potential matches", description = "Retrieve the latest set of potential matches from your queue")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Today's matches retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Matches not yet available - before 7pm"),
+        @ApiResponse(responseCode = "200", description = "Latest potential matches retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "No matches available in queue"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    @GetMapping("/today")
-    ResponseEntity<PotentialMatchesResponse> getTodaysMatches(
+    @GetMapping("/latest")
+    ResponseEntity<PotentialMatchesResponse> getLatestPotentialMatches(
         @Parameter(description = "Bearer token for authentication", required = true)
         @RequestHeader("Authorization") String authHeader
     );

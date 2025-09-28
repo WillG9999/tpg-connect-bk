@@ -16,6 +16,10 @@ import java.util.UUID;
 
 @Service
 public class MatchService {
+    
+    // TODO: Implement push notifications for new matches using FCM
+    // TODO: Add notification service integration for match events
+    // TODO: Handle notification scheduling and delivery status
 
     @Autowired
     private MatchRepository matchRepository;
@@ -25,6 +29,9 @@ public class MatchService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private ConversationService conversationService;
 
     public boolean checkForMutualLike(String userId, String targetUserId) {
         // Check if target user has already liked the current user
@@ -57,9 +64,17 @@ public class MatchService {
         match.setUser2Id(targetUserId);
         match.setMatchedAt(LocalDateTime.now());
         match.setStatus(Match.MatchStatus.ACTIVE);
-        match.setConversationId(UUID.randomUUID().toString()); // Create conversation
+        match.setConversationId(generateConversationId(userId, targetUserId)); // Create deterministic conversation ID
 
         Match savedMatch = matchRepository.save(match);
+
+        // Create conversation for the match
+        try {
+            conversationService.createConversationFromMatch(savedMatch.getId());
+        } catch (Exception e) {
+            // Log error but don't fail the match creation
+            System.err.println("Failed to create conversation for match " + savedMatch.getId() + ": " + e.getMessage());
+        }
 
         // Send notifications to both users
         notificationService.sendMatchNotification(userId, targetUserId, savedMatch.getId());
@@ -176,5 +191,18 @@ public class MatchService {
     public List<UserAction> getUserActionsForTarget(String userId, String targetUserId) {
         Optional<UserAction> action = userActionRepository.findByUserIdAndTargetUserId(userId, targetUserId);
         return action.isPresent() ? List.of(action.get()) : List.of();
+    }
+
+    /**
+     * Generate deterministic conversation ID from two connect IDs
+     * Format: connectid1_connectid2 (sorted to ensure consistency)
+     */
+    private String generateConversationId(String connectId1, String connectId2) {
+        // Sort IDs to ensure consistency regardless of order
+        if (connectId1.compareTo(connectId2) <= 0) {
+            return connectId1 + "_" + connectId2;
+        } else {
+            return connectId2 + "_" + connectId1;
+        }
     }
 }

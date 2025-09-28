@@ -119,4 +119,35 @@ public class CompleteUserProfile {
     public boolean getVerified() {
         return isVerified;
     }
+    
+    // Getter for interestedIn from nested profile
+    public String getInterestedIn() {
+        return profile != null ? profile.getInterestedIn() : null;
+    }
+    
+    // Setter for interestedIn in nested profile
+    public void setInterestedIn(String interestedIn) {
+        if (profile == null) {
+            profile = new DetailedProfile();
+        }
+        profile.setInterestedIn(interestedIn);
+    }
+    
+    // Override getter for gender to prefer profile version over root level
+    public String getGender() {
+        // Check nested profile first, then fall back to root level field
+        if (profile != null && profile.getGender() != null) {
+            return profile.getGender();
+        }
+        return this.gender;
+    }
+    
+    // Override setter for gender to set both locations for compatibility
+    public void setGender(String gender) {
+        this.gender = gender; // Set root level for backward compatibility
+        if (profile == null) {
+            profile = new DetailedProfile();
+        }
+        profile.setGender(gender); // Also set in profile
+    }
 }

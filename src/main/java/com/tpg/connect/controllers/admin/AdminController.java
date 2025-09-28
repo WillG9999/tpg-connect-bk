@@ -63,6 +63,38 @@ public class AdminController {
     }
     
     /**
+     * Get all applications regardless of status
+     */
+    @GetMapping("/applications/all")
+    public ResponseEntity<Map<String, Object>> getAllApplications(HttpServletRequest request) {
+        log.info("📋 Getting all applications for admin");
+        
+        try {
+            // Validate admin authentication
+            if (!isAdminAuthenticated(request)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Admin access required"));
+            }
+            
+            List<ApplicationSubmission> allApplications = applicationService.getAllApplications();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("applications", allApplications);
+            response.put("count", allApplications.size());
+            response.put("message", "Retrieved all applications successfully");
+            
+            log.info("✅ Retrieved {} total applications", allApplications.size());
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error getting all applications: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to get all applications: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get applications by status (APPROVED, REJECTED, etc.)
      */
     @GetMapping("/applications")
