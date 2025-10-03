@@ -1,12 +1,15 @@
 package com.tpg.connect.repository.impl;
 
 import com.tpg.connect.model.User;
+import com.tpg.connect.model.user.ApplicationStatus;
 import com.tpg.connect.repository.UserRepository;
 import com.tpg.connect.util.ConnectIdGenerator;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
 @Repository
 public class UserRepositoryImpl implements UserRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
     private static final String COLLECTION_NAME = "userAuth";
     
     @Autowired
@@ -439,5 +443,85 @@ public class UserRepositoryImpl implements UserRepository {
                 .lastUsed((Timestamp) tokenMap.get("lastUsed"))
                 .isActive((Boolean) tokenMap.get("isActive"))
                 .build();
+    }
+
+    @Override
+    public List<User> findAllForAdmin(int page, int size, String search, String status, String sortBy, String sortDirection) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection;
+            
+            // Apply search filter
+            if (search != null && !search.trim().isEmpty()) {
+                // Note: Firestore doesn't support full-text search, so this is a simple contains check
+                // In production, you might want to use a search service like Algolia
+                query = query.whereGreaterThanOrEqualTo("email", search)
+                           .whereLessThan("email", search + "\uf8ff");
+            }
+            
+            // Apply status filter - applicationStatus should match the provided status
+            if (status != null && !status.trim().isEmpty()) {
+                // Convert status to ApplicationStatus enum value for filtering
+                try {
+                    ApplicationStatus statusEnum = ApplicationStatus.valueOf(status);
+                    query = query.whereEqualTo("applicationStatus", statusEnum.toString());
+                } catch (IllegalArgumentException e) {
+                    // If invalid status provided, don't apply filter
+                    log.warn("Invalid status filter provided: {}", status);
+                }
+            }
+            
+            // Apply sorting (Firestore has limited sorting capabilities)
+            if (sortBy != null) {
+                if ("desc".equals(sortDirection)) {
+                    query = query.orderBy(sortBy, Query.Direction.DESCENDING);
+                } else {
+                    query = query.orderBy(sortBy, Query.Direction.ASCENDING);
+                }
+            }
+            
+            // Apply pagination
+            query = query.offset(page * size).limit(size);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            List<User> users = new ArrayList<>();
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                users.add(convertToUser(doc));
+            }
+            return users;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find users for admin", e);
+        }
+    }
+
+    @Override
+    public long countForAdmin(String search, String status) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection;
+            
+            // Apply search filter
+            if (search != null && !search.trim().isEmpty()) {
+                query = query.whereGreaterThanOrEqualTo("email", search)
+                           .whereLessThan("email", search + "\uf8ff");
+            }
+            
+            // Apply status filter - applicationStatus should match the provided status
+            if (status != null && !status.trim().isEmpty()) {
+                // Convert status to ApplicationStatus enum value for filtering
+                try {
+                    ApplicationStatus statusEnum = ApplicationStatus.valueOf(status);
+                    query = query.whereEqualTo("applicationStatus", statusEnum.toString());
+                } catch (IllegalArgumentException e) {
+                    // If invalid status provided, don't apply filter
+                    log.warn("Invalid status filter provided: {}", status);
+                }
+            }
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count users for admin", e);
+        }
     }
 }

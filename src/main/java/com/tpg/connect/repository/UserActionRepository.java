@@ -30,4 +30,9 @@ public interface UserActionRepository {
     void deleteById(String id);
     void deleteByUserId(String userId);
     void deleteByUserIdAndTargetUserId(String userId, String targetUserId);
+    
+    // Statistics Operations
+    long countByUserIdAndAction(String userId, String action);
+    List<UserAction> findRecentByUserId(String userId, int limit);
+    long countByUserId(String userId);
 }

@@ -91,12 +91,12 @@ public class MatchService {
         return savedMatch;
     }
 
-    @Cacheable(value = "userMatches", key = "'matches_' + #userId")
+    // @Cacheable(value = "userMatches", key = "'matches_' + #userId") // Temporarily disabled due to cache config issue
     public List<Match> getUserMatches(String userId) {
         return matchRepository.findByUserIdAndStatus(userId, Match.MatchStatus.ACTIVE);
     }
 
-    @Cacheable(value = "matches", key = "'match_' + #matchId")
+    // @Cacheable(value = "matches", key = "'match_' + #matchId") // Temporarily disabled due to cache config issue
     public Match getMatch(String matchId) {
         return matchRepository.findById(matchId).orElse(null);
     }
@@ -212,5 +212,21 @@ public class MatchService {
         } else {
             return connectId2 + "_" + connectId1;
         }
+    }
+    
+    // Admin-specific methods
+    
+    /**
+     * Get user's matches for admin review
+     */
+    public List<Match> getUserMatchesForAdmin(String connectId, int page, int size) {
+        return matchRepository.findRecentByUserId(connectId, null, size);
+    }
+    
+    /**
+     * Get total matches count for pagination
+     */
+    public long getTotalMatchesCount(String connectId) {
+        return matchRepository.countByUserId(connectId);
     }
 }

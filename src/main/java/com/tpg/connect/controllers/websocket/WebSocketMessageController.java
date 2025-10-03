@@ -79,7 +79,7 @@ public class WebSocketMessageController {
             "senderId", message.getSenderId(),
             "content", message.getContent(),
             "sentAt", message.getSentAt().toString(),
-            "status", message.getStatus().toString()
+            "status", message.getStatus() != null ? message.getStatus().toString() : "SENT"
         );
 
         // Send to topic subscribers

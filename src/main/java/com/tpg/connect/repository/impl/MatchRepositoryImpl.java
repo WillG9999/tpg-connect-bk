@@ -393,4 +393,17 @@ public class MatchRepositoryImpl implements MatchRepository {
         
         return match;
     }
+
+    @Override
+    public long countByUserId(String userId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereArrayContains("userIds", userId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count matches by userId", e);
+        }
+    }
 }

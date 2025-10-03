@@ -56,13 +56,13 @@ class AuthenticationServiceTest {
         jwtSecretField.set(authenticationService, "test-jwt-secret-key-for-unit-tests-minimum-512-bits-long-key");
         
         // Set JWT expiration using reflection for testing
-        Field jwtExpirationField = AuthenticationService.class.getDeclaredField("jwtExpirationInSeconds");
+        Field jwtExpirationField = AuthenticationService.class.getDeclaredField("jwtExpirationInMilliseconds");
         jwtExpirationField.setAccessible(true);
-        jwtExpirationField.set(authenticationService, 3600);
+        jwtExpirationField.set(authenticationService, 3600000L);
         
-        Field refreshExpirationField = AuthenticationService.class.getDeclaredField("refreshTokenExpirationInSeconds");
+        Field refreshExpirationField = AuthenticationService.class.getDeclaredField("refreshTokenExpirationInMilliseconds");
         refreshExpirationField.setAccessible(true);
-        refreshExpirationField.set(authenticationService, 86400);
+        refreshExpirationField.set(authenticationService, 86400000L);
     }
 
     @Test

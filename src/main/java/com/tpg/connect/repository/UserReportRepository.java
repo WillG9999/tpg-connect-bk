@@ -39,4 +39,11 @@ public interface UserReportRepository {
     List<UserReport> findReportsNeedingFollowUp();
     List<UserReport> findEscalatedReports();
     List<UserReport> findReportsByContext(String context);
+    
+    // Statistics and Count Operations
+    long countByUserId(String userId);
+    long countByReporterId(String reporterId);
+    long countByReportedUserId(String reportedUserId);
+    boolean hasActiveReports(String userId);
+    List<UserReport> findByUserId(String userId, int limit);
 }

@@ -56,6 +56,7 @@ public class User {
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private Timestamp lastLoginAt;
+    private Timestamp lastActiveAt;
     private Timestamp emailVerifiedAt;
     private Timestamp deletedAt;
     private String lastLoginDevice;

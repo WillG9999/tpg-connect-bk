@@ -559,4 +559,63 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         
         return message;
     }
+
+    @Override
+    public long countByUserId(String userId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereArrayContains("participantIds", userId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count conversations by userId", e);
+        }
+    }
+
+    @Override
+    public long countMessagesByUserId(String userId) {
+        try {
+            // This is a simplified implementation - in a real scenario,
+            // you might need to query all conversations and count messages
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereArrayContains("participantIds", userId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            long totalMessages = 0;
+            
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                List<Map<String, Object>> messages = (List<Map<String, Object>>) doc.get("messages");
+                if (messages != null) {
+                    totalMessages += messages.size();
+                }
+            }
+            
+            return totalMessages;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count messages by userId", e);
+        }
+    }
+
+    @Override
+    public List<Conversation> findRecentByUserId(String userId, int limit) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection
+                    .whereArrayContains("participantIds", userId)
+                    .orderBy("lastMessageAt", Query.Direction.DESCENDING)
+                    .limit(limit);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            List<Conversation> conversations = new ArrayList<>();
+            
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                conversations.add(convertToConversation(doc));
+            }
+            
+            return conversations;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find recent conversations by userId", e);
+        }
+    }
 }

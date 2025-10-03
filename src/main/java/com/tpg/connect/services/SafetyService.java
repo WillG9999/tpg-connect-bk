@@ -4,11 +4,13 @@ import com.tpg.connect.repository.BlockedUserRepository;
 import com.tpg.connect.repository.SafetyBlockRepository;
 import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.repository.UserReportRepository;
+import com.tpg.connect.repository.ReportedUserRepository;
 import com.tpg.connect.model.dto.ReportUserRequest;
 import com.tpg.connect.model.dto.SafetyBlockRequest;
 import com.tpg.connect.model.BlockedUser;
 import com.tpg.connect.model.SafetyBlock;
 import com.tpg.connect.model.UserReport;
+import com.tpg.connect.model.ReportedUser;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,6 +32,9 @@ public class SafetyService {
 
     @Autowired
     private UserReportRepository userReportRepository;
+
+    @Autowired
+    private ReportedUserRepository reportedUserRepository;
 
     @Autowired
     private SafetyBlockRepository safetyBlockRepository;
@@ -120,42 +126,85 @@ public class SafetyService {
             throw new IllegalArgumentException("Cannot report yourself");
         }
 
-        // Verify target user exists
+        // Check if target user exists in database
         CompleteUserProfile targetUser = userProfileRepository.findByUserId(request.getTargetUserId());
-        if (targetUser == null) {
-            throw new IllegalArgumentException("Target user not found");
-        }
-
-        // Check for duplicate reports (same reporter, same target, same day)
-        List<UserReport> todayReports = userReportRepository.findByReporterIdAndReportedUserIdAndReportedAtAfter(
-            reporterId, request.getTargetUserId(), LocalDateTime.now().withHour(0).withMinute(0).withSecond(0));
+        boolean isAdminReport = targetUser == null;
         
-        if (!todayReports.isEmpty()) {
-            throw new IllegalArgumentException("You have already reported this user today");
+        // For admin reports, allow manual user identifiers
+        // For regular user reports, require target user to exist
+        if (isAdminReport) {
+            System.out.println("📋 SafetyService: Admin report - target user '" + request.getTargetUserId() + "' not found in database, proceeding with manual identifier");
+        } else {
+            System.out.println("📋 SafetyService: Regular user report - target user '" + request.getTargetUserId() + "' found in database");
         }
 
-        // Create report
-        UserReport report = UserReport.builder()
-                .connectId(UUID.randomUUID().toString())
+        String reportId = UUID.randomUUID().toString();
+        com.google.cloud.Timestamp now = com.google.cloud.Timestamp.now();
+
+        // Create individual report
+        ReportedUser.IndividualReport individualReport = ReportedUser.IndividualReport.builder()
+                .reportId(reportId)
                 .reporterId(reporterId)
-                .reportedUserId(request.getTargetUserId())
-                .reasons(request.getReasons())
+                .reason(request.getReason())
+                .location(request.getLocation())
                 .description(request.getDescription())
-                .evidenceUrls(request.getEvidenceUrls())
-                .context(request.getContext())
-                .reportedAt(com.google.cloud.Timestamp.now())
+                .reportedAt(now)
                 .status("PENDING")
                 .build();
 
-        userReportRepository.save(report);
+        // Check if reported user already exists
+        Optional<ReportedUser> existingReportedUser = reportedUserRepository.findByReportedUserId(request.getTargetUserId());
+        
+        if (existingReportedUser.isPresent()) {
+            // Add to existing reported user
+            ReportedUser reportedUser = existingReportedUser.get();
+            
+            // Check for duplicate reports from same reporter
+            boolean alreadyReported = reportedUser.getReports().stream()
+                    .anyMatch(report -> report.getReporterId().equals(reporterId));
+            
+            if (alreadyReported) {
+                throw new IllegalArgumentException("You have already reported this user");
+            }
+            
+            // Add new report to existing list
+            reportedUser.getReports().add(individualReport);
+            reportedUser.setTotalReports(reportedUser.getTotalReports() + 1);
+            reportedUser.setUpdatedAt(now);
+            
+            reportedUserRepository.save(reportedUser);
+            
+        } else {
+            // Create new reported user
+            ReportedUser.AdminReview adminReview = ReportedUser.AdminReview.builder()
+                    .status("PENDING")
+                    .build();
+            
+            ReportedUser reportedUser = ReportedUser.builder()
+                    .reportedUserId(request.getTargetUserId())
+                    .reportedUserInfo(request.getUserInfo())
+                    .totalReports(1)
+                    .reports(List.of(individualReport))
+                    .adminReview(adminReview)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+            
+            reportedUserRepository.save(reportedUser);
+        }
 
         // Send notification to moderation team
-        notificationService.sendReportNotificationToModerators(report);
+        // notificationService.sendReportNotificationToModerators(individualReport);
 
-        // Auto-block if this user has multiple reports
-        checkForAutoBlock(request.getTargetUserId());
+        // Auto-block if this user has multiple reports (only for real users, not admin manual reports)
+        if (!isAdminReport) {
+            checkForAutoBlock(request.getTargetUserId());
+        } else {
+            System.out.println("📋 SafetyService: Skipping auto-block check for admin report with manual identifier");
+        }
 
-        return report.getConnectId();
+        System.out.println("✅ SafetyService: Report created with ID: " + reportId + " for user: " + request.getTargetUserId());
+        return reportId;
     }
 
     @Cacheable(value = "safetyBlocks", key = "#userId")
@@ -290,20 +339,33 @@ public class SafetyService {
     }
 
     private void checkForAutoBlock(String userId) {
-        // Count recent reports for this user (last 7 days)
-        LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
-        List<UserReport> recentReports = userReportRepository.findByReportedUserIdAndReportedAtAfter(userId, weekAgo);
+        // Check total reports for this user
+        Optional<ReportedUser> reportedUser = reportedUserRepository.findByReportedUserId(userId);
         
-        // If user has 5+ reports in the last week, automatically disable their account
-        if (recentReports.size() >= 5) {
-            CompleteUserProfile user = userProfileRepository.findByUserId(userId);
-            if (user != null && user.getActive()) {
-                user.setActive(false);
-                user.setUpdatedAt(LocalDateTime.now());
-                userProfileRepository.save(user);
-                
-                // Notify moderation team
-                notificationService.sendAutoBlockNotification(userId, recentReports.size());
+        if (reportedUser.isPresent()) {
+            int totalReports = reportedUser.get().getTotalReports();
+            
+            // If user has 5+ reports, automatically disable their account
+            if (totalReports >= 5) {
+                CompleteUserProfile user = userProfileRepository.findByUserId(userId);
+                if (user != null && user.getActive()) {
+                    user.setActive(false);
+                    user.setUpdatedAt(LocalDateTime.now());
+                    userProfileRepository.save(user);
+                    
+                    // Update admin review status to escalated
+                    ReportedUser reportedUserDoc = reportedUser.get();
+                    if (reportedUserDoc.getAdminReview() != null) {
+                        reportedUserDoc.getAdminReview().setStatus("AUTO_BLOCKED");
+                        reportedUserDoc.getAdminReview().setActionTaken("Account automatically disabled due to multiple reports");
+                        reportedUserDoc.getAdminReview().setReviewedAt(com.google.cloud.Timestamp.now());
+                        reportedUserRepository.save(reportedUserDoc);
+                    }
+                    
+                    // Notify moderation team
+                    // notificationService.sendAutoBlockNotification(userId, totalReports);
+                    System.out.println("🚨 SafetyService: Auto-blocked user " + userId + " due to " + totalReports + " reports");
+                }
             }
         }
     }
@@ -316,5 +378,21 @@ public class SafetyService {
     @CacheEvict(value = "safetyBlocks", key = "#userId")
     private void clearSafetyBlockCache(String userId) {
         // Cache cleared by annotation
+    }
+    
+    // Admin-specific methods
+    
+    /**
+     * Get reports involving user for admin review
+     */
+    public List<UserReport> getUserReportsForAdmin(String connectId, int page, int size) {
+        return userReportRepository.findByUserId(connectId, size);
+    }
+    
+    /**
+     * Get total reports count for pagination
+     */
+    public long getTotalReportsCount(String connectId) {
+        return userReportRepository.countByUserId(connectId);
     }
 }

@@ -8,10 +8,14 @@ import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.UserService;
 import com.tpg.connect.services.UserActionsService;
 import com.tpg.connect.services.ConversationService;
+import com.tpg.connect.services.MatchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import java.util.List;
 import java.util.Map;
@@ -32,6 +36,9 @@ public class MatchController extends BaseController {
     
     @Autowired
     private ConversationService conversationService;
+    
+    @Autowired
+    private MatchService matchService;
 
 
     // Get user matches (frontend expects /api/matches)
@@ -68,6 +75,77 @@ public class MatchController extends BaseController {
                             // Generate deterministic conversation ID
                             String conversationId = generateConversationId(userId, matchedUserId);
                             
+                            // Get actual match data from database to get real timestamp
+                            com.tpg.connect.model.match.Match matchEntity = matchService.getMatch(conversationId);
+                            
+                            long matchTimestamp = System.currentTimeMillis(); // fallback
+                            if (matchEntity != null && matchEntity.getMatchedAt() != null) {
+                                matchTimestamp = matchEntity.getMatchedAt()
+                                    .atZone(java.time.ZoneId.systemDefault())
+                                    .toInstant()
+                                    .toEpochMilli();
+                            }
+                            
+                            // Get conversation data for latest message and unread count
+                            Map<String, Object> lastMessage = Map.of(
+                                "content", "Start a conversation!",
+                                "timestamp", matchTimestamp,
+                                "senderId", ""
+                            );
+                            int unreadCount = 0;
+                            
+                            try {
+                                System.out.println("🔍 MatchController: Attempting to get conversation: " + conversationId);
+                                java.util.Optional<com.tpg.connect.model.conversation.Conversation> conversationOpt = 
+                                    conversationService.getConversationById(conversationId);
+                                
+                                if (conversationOpt.isPresent()) {
+                                    com.tpg.connect.model.conversation.Conversation conversation = conversationOpt.get();
+                                    System.out.println("✅ MatchController: Found conversation: " + conversationId);
+                                    System.out.println("🔍 MatchController: Conversation lastMessage is null: " + (conversation.getLastMessage() == null));
+                                    
+                                    if (conversation.getLastMessage() != null) {
+                                        System.out.println("✅ MatchController: Using actual lastMessage: " + conversation.getLastMessage().getContent());
+                                        lastMessage = Map.of(
+                                            "content", conversation.getLastMessage().getContent(),
+                                            "timestamp", conversation.getLastMessage().getSentAt()
+                                                .atZone(java.time.ZoneId.systemDefault())
+                                                .toInstant()
+                                                .toEpochMilli(),
+                                            "senderId", conversation.getLastMessage().getSenderId()
+                                        );
+                                        unreadCount = conversation.getUnreadCount();
+                                    } else {
+                                        System.out.println("❌ MatchController: Conversation lastMessage is null, trying to get latest message directly...");
+                                        // Fallback: get the latest message directly from messages
+                                        try {
+                                            java.util.List<com.tpg.connect.model.conversation.Message> messages = 
+                                                conversationService.getConversationMessages(conversationId, userId, 0, 1);
+                                            if (!messages.isEmpty()) {
+                                                com.tpg.connect.model.conversation.Message latestMessage = messages.get(messages.size() - 1);
+                                                System.out.println("✅ MatchController: Found latest message directly: " + latestMessage.getContent());
+                                                lastMessage = Map.of(
+                                                    "content", latestMessage.getContent(),
+                                                    "timestamp", latestMessage.getSentAt()
+                                                        .atZone(java.time.ZoneId.systemDefault())
+                                                        .toInstant()
+                                                        .toEpochMilli(),
+                                                    "senderId", latestMessage.getSenderId()
+                                                );
+                                            } else {
+                                                System.out.println("❌ MatchController: No messages found in conversation");
+                                            }
+                                        } catch (Exception e2) {
+                                            System.err.println("❌ MatchController: Failed to get latest message directly: " + e2.getMessage());
+                                        }
+                                    }
+                                } else {
+                                    System.out.println("❌ MatchController: Conversation not found: " + conversationId);
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Failed to get conversation data for " + conversationId + ": " + e.getMessage());
+                            }
+                            
                             return Map.of(
                                 "id", conversationId, // Use conversation ID as match ID
                                 "user", Map.of(
@@ -77,8 +155,10 @@ public class MatchController extends BaseController {
                                     "age", matchedUser.getAge()
                                 ),
                                 "conversationId", conversationId,
-                                "lastActivity", System.currentTimeMillis(),
-                                "unreadCount", 0
+                                "matchedAt", matchTimestamp,
+                                "lastActivity", matchTimestamp,
+                                "lastMessage", lastMessage,
+                                "unreadCount", unreadCount
                             );
                         }
                         return null;
@@ -268,6 +348,149 @@ public class MatchController extends BaseController {
             return userId1 + "_" + userId2;
         } else {
             return userId2 + "_" + userId1;
+        }
+    }
+
+    // Get users who liked the current user (for "Likes You" page)
+    @GetMapping("/liked-by")
+    public ResponseEntity<List<Map<String, Object>>> getLikedByUsers(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        System.out.println("🚀 MatchController: getLikedByUsers() called!");
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            System.out.println("🔍 MatchController: Getting users who liked user: " + userId);
+            
+            // Get users who liked this user from UserActions
+            List<String> likedByUserIds = userActionsService.getLikedByUsers(userId);
+            System.out.println("🔍 MatchController: Found " + likedByUserIds.size() + " users who liked this user: " + likedByUserIds);
+            
+            // Only filter out users the current user has PASSED on (not liked/matched)
+            List<String> passedUsers = userActionsService.getPassedUsers(userId);
+            
+            System.out.println("🔍 MatchController: User has passed on " + passedUsers.size() + " users: " + passedUsers);
+            
+            // Only filter out users current user has passed on - show everyone else who liked them
+            List<String> availableLikes = likedByUserIds.stream()
+                .filter(likedUserId -> !passedUsers.contains(likedUserId))
+                .collect(Collectors.toList());
+                
+            System.out.println("🔍 MatchController: After filtering, " + availableLikes.size() + " available likes remain");
+            
+            // Convert user IDs to user profile objects
+            List<Map<String, Object>> likesYou = availableLikes.stream()
+                .map(likedUserId -> {
+                    try {
+                        CompleteUserProfile likedUser = userService.getUserProfile(likedUserId);
+                        if (likedUser != null) {
+                            return Map.of(
+                                "connectId", likedUser.getConnectId(),
+                                "firstName", likedUser.getFirstName(),
+                                "age", likedUser.getAge(),
+                                "photos", likedUser.getPhotos() != null ? likedUser.getPhotos() : List.of(),
+                                "location", likedUser.getLocation() != null ? likedUser.getLocation() : "",
+                                "jobTitle", likedUser.getProfile() != null && likedUser.getProfile().getJobTitle() != null ? likedUser.getProfile().getJobTitle() : "",
+                                "university", likedUser.getProfile() != null && likedUser.getProfile().getUniversity() != null ? likedUser.getProfile().getUniversity() : "",
+                                "interests", likedUser.getInterests() != null ? likedUser.getInterests() : List.of(),
+                                "writtenPrompts", likedUser.getWrittenPrompts() != null ? likedUser.getWrittenPrompts() : List.of()
+                            );
+                        }
+                        return null;
+                    } catch (Exception e) {
+                        System.err.println("Error getting profile for liked by user " + likedUserId + ": " + e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(profile -> profile != null)
+                .collect(Collectors.toList());
+            
+            System.out.println("🎉 MatchController: Returning " + likesYou.size() + " users who liked this user");
+            return ResponseEntity.ok(likesYou);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting liked by users for user " + userId + ": " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    // Direct like action for Likes You page (bypasses discovery batch system)
+    @PostMapping("/like/{targetUserId}")
+    public ResponseEntity<Map<String, Object>> likeUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String targetUserId) {
+        
+        System.out.println("🚀 MatchController: likeUser() called for target: " + targetUserId);
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            System.out.println("🔍 MatchController: User " + userId + " is liking user " + targetUserId);
+            
+            // Add like action directly through UserActionsService
+            boolean isMutualMatch = userActionsService.addLikeAction(userId, targetUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Like action successful");
+            response.put("mutualMatch", isMutualMatch);
+            
+            if (isMutualMatch) {
+                response.put("message", "It's a match!");
+                System.out.println("🎉 MatchController: It's a match! " + userId + " ↔ " + targetUserId);
+            }
+            
+            System.out.println("✅ MatchController: Like action completed successfully");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error processing like action " + userId + " -> " + targetUserId + ": " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to process like action");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    // Direct pass action for Likes You page (bypasses discovery batch system)
+    @PostMapping("/pass/{targetUserId}")
+    public ResponseEntity<Map<String, Object>> passUser(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String targetUserId) {
+        
+        System.out.println("🚀 MatchController: passUser() called for target: " + targetUserId);
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            System.out.println("🔍 MatchController: User " + userId + " is passing on user " + targetUserId);
+            
+            // Add pass action directly through UserActionsService
+            userActionsService.addPassAction(userId, targetUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Pass action successful");
+            
+            System.out.println("✅ MatchController: Pass action completed successfully");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error processing pass action " + userId + " -> " + targetUserId + ": " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to process pass action");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.tpg.connect.services;
 
 import com.tpg.connect.model.conversation.Conversation;
+import com.tpg.connect.model.conversation.ConversationSummary;
 import com.tpg.connect.model.conversation.Message;
 import com.tpg.connect.model.match.Match;
 import com.tpg.connect.repository.ConversationRepository;
@@ -120,6 +121,7 @@ public class ConversationService {
 
     // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
     public Message sendMessage(String conversationId, String senderId, String content) {
+        System.out.println("🚀 ConversationService: sendMessage called - conversationId: " + conversationId + ", senderId: " + senderId);
         // Verify conversation exists and user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
         if (!conversationOpt.isPresent()) {
@@ -156,7 +158,9 @@ public class ConversationService {
                 .filter(id -> !id.equals(senderId))
                 .toList();
 
+        System.out.println("🔔 ConversationService: Sending notifications to " + otherParticipants.size() + " participants");
         for (String participantId : otherParticipants) {
+            System.out.println("🔔 ConversationService: Calling notification service for participant: " + participantId);
             notificationService.sendMessageNotification(participantId, senderId, conversationId, content);
         }
 
@@ -349,7 +353,7 @@ public class ConversationService {
                     "senderId", message.getSenderId(),
                     "content", message.getContent(),
                     "sentAt", message.getSentAt().toString(),
-                    "status", message.getStatus().toString()
+                    "status", message.getStatus() != null ? message.getStatus().toString() : "SENT"
                 );
 
                 // Wrap in structured format expected by Flutter client
@@ -380,7 +384,7 @@ public class ConversationService {
                     "senderId", message.getSenderId(),
                     "content", message.getContent(),
                     "sentAt", message.getSentAt().toString(),
-                    "status", message.getStatus().toString()
+                    "status", message.getStatus() != null ? message.getStatus().toString() : "SENT"
                 );
 
                 // Wrap in structured format expected by Flutter client
@@ -399,5 +403,28 @@ public class ConversationService {
         } else {
             System.out.println("⚠️ ConversationService: No WebSocket handlers available, skipping broadcast");
         }
+    }
+    
+    // Admin-specific methods
+    
+    /**
+     * Get user's conversations for admin review
+     */
+    public List<Conversation> getUserConversationsForAdmin(String connectId, int page, int size) {
+        return conversationRepository.findRecentByUserId(connectId, size);
+    }
+    
+    /**
+     * Get total conversations count for pagination
+     */
+    public long getTotalConversationsCount(String connectId) {
+        return conversationRepository.countByUserId(connectId);
+    }
+    
+    /**
+     * Get total messages count for user stats
+     */
+    public int countMessagesByUserId(String connectId) {
+        return (int) conversationRepository.countMessagesByUserId(connectId);
     }
 }

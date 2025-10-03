@@ -5,9 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -16,15 +14,15 @@ public class ReportUserRequest {
     @NotBlank(message = "Target user ID is required")
     private String targetUserId;
     
-    @NotEmpty(message = "At least one reason is required")
-    private List<String> reasons; // e.g., ["harassment", "inappropriate_photos", "spam"]
+    @NotBlank(message = "User info is required")
+    private String userInfo; // from frontend _nameController - user's name or profile info
+    
+    @NotBlank(message = "Reason is required") 
+    private String reason; // from frontend _selectedReason dropdown - single reason
+    
+    @NotBlank(message = "Location is required")
+    private String location; // from frontend _selectedLocation dropdown - where it occurred
     
     @Size(max = 1000, message = "Description must be less than 1000 characters")
-    private String description;
-    
-    private List<String> evidenceUrls; // Screenshots or other evidence
-    
-    private String context; // "profile", "message", "match"
-    
-    private String conversationId; // If reporting from a conversation
+    private String description; // from frontend _descriptionController - additional details
 }

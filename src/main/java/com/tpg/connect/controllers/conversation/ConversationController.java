@@ -113,7 +113,9 @@ public class ConversationController extends BaseController {
         }
 
         try {
+            System.out.println("🚀 ConversationController: Calling conversationService.sendMessage - conversationId: " + conversationId + ", userId: " + userId);
             Message message = conversationService.sendMessage(conversationId, userId, content.trim());
+            System.out.println("✅ ConversationController: Message sent successfully, messageId: " + message.getId());
             return successResponse(message, "Message sent successfully");
         } catch (IllegalArgumentException | IllegalStateException e) {
             return errorResponse(e.getMessage(), HttpStatus.FORBIDDEN);

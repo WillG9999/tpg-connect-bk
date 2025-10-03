@@ -287,4 +287,54 @@ public class UserActionRepositoryImpl implements UserActionRepository {
         
         return userAction;
     }
+
+    @Override
+    public long countByUserId(String userId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereEqualTo("userId", userId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count user actions by userId", e);
+        }
+    }
+
+    @Override
+    public List<UserAction> findRecentByUserId(String userId, int limit) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection
+                    .whereEqualTo("userId", userId)
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .limit(limit);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            List<UserAction> actions = new ArrayList<>();
+            
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                actions.add(convertToUserAction(doc));
+            }
+            
+            return actions;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find recent user actions by userId", e);
+        }
+    }
+
+    @Override
+    public long countByUserIdAndAction(String userId, String action) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("action", action);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count user actions by userId and action", e);
+        }
+    }
 }

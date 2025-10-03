@@ -20,6 +20,7 @@ public interface MatchRepository {
     List<Match> findRecentByUserId(String userId, Object status, int days);
     long countMatchesByUserId(String userId);
     long countByUserIdAndStatus(String userId, Object status);
+    long countByUserId(String userId);
     
     // Update Operations
     Match updateLastActivity(String id);

@@ -35,7 +35,10 @@ public interface ConversationRepository {
     // Statistics and Queries
     long countUnreadConversations(String userId);
     long countActiveConversations(String userId);
+    long countByUserId(String userId);
+    long countMessagesByUserId(String userId);
     List<Conversation> findRecentConversations(String userId, int days);
+    List<Conversation> findRecentByUserId(String userId, int limit);
     Optional<Conversation> findConversationBetweenUsers(String userId1, String userId2);
     
     // Archive Management

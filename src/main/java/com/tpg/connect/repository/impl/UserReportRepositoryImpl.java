@@ -425,4 +425,80 @@ public class UserReportRepositoryImpl implements UserReportRepository {
     public UserReport save(UserReport userReport) {
         return updateReport(userReport);
     }
+
+    @Override
+    public long countByUserId(String userId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereEqualTo("reportedUserId", userId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count reports by userId", e);
+        }
+    }
+
+    @Override
+    public long countByReporterId(String reporterId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereEqualTo("reporterId", reporterId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count reports by reporterId", e);
+        }
+    }
+
+    @Override
+    public long countByReportedUserId(String reportedUserId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection.whereEqualTo("reportedUserId", reportedUserId);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count reports by reportedUserId", e);
+        }
+    }
+
+    @Override
+    public boolean hasActiveReports(String userId) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection
+                    .whereEqualTo("reportedUserId", userId)
+                    .whereEqualTo("status", "PENDING");
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            return !querySnapshot.isEmpty();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to check for active reports", e);
+        }
+    }
+
+    @Override
+    public List<UserReport> findByUserId(String userId, int limit) {
+        try {
+            CollectionReference collection = firestore.collection(COLLECTION_NAME);
+            Query query = collection
+                    .whereEqualTo("reportedUserId", userId)
+                    .orderBy("reportedAt", Query.Direction.DESCENDING)
+                    .limit(limit);
+            
+            QuerySnapshot querySnapshot = query.get().get();
+            List<UserReport> reports = new ArrayList<>();
+            
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                reports.add(convertToUserReport(doc));
+            }
+            
+            return reports;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find reports by userId", e);
+        }
+    }
 }

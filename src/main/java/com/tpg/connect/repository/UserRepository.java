@@ -39,4 +39,8 @@ public interface UserRepository {
     // Batch Operations
     List<User> findUsersByConnectIds(List<String> connectIds);
     Map<String, User> findUserMapByConnectIds(List<String> connectIds);
+    
+    // Admin Operations
+    List<User> findAllForAdmin(int page, int size, String search, String status, String sortBy, String sortDirection);
+    long countForAdmin(String search, String status);
 }

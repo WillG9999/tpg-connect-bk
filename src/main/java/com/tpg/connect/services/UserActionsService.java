@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.tpg.connect.model.match.UserAction;
+import com.tpg.connect.repository.UserActionRepository;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +27,9 @@ public class UserActionsService {
     
     @Autowired
     private MatchService matchService;
+    
+    @Autowired
+    private UserActionRepository userActionRepository;
 
     /**
      * Add a like action: user likes targetUser
@@ -261,6 +266,28 @@ public class UserActionsService {
     }
 
     /**
+     * Get users this user has passed on
+     */
+    public List<String> getPassedUsers(String userId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME).document(userId).get().get();
+            
+            if (!doc.exists()) {
+                return new ArrayList<>();
+            }
+            
+            @SuppressWarnings("unchecked")
+            List<String> passes = (List<String>) doc.getData().getOrDefault("passes", new ArrayList<>());
+            
+            return new ArrayList<>(passes);
+            
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("❌ Error getting passed users for {}: {}", userId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Get users this user has matched with
      */
     public List<String> getMatches(String userId) {
@@ -297,5 +324,21 @@ public class UserActionsService {
         
         logger.info("🆕 Initializing new userActions document for user: {}", userId);
         return userData;
+    }
+    
+    // Admin-specific methods
+    
+    /**
+     * Get user's actions for admin review
+     */
+    public List<UserAction> getUserActionsForAdmin(String connectId, int page, int size) {
+        return userActionRepository.findRecentByUserId(connectId, size);
+    }
+    
+    /**
+     * Get total actions count for pagination
+     */
+    public long getTotalActionsCount(String connectId) {
+        return userActionRepository.countByUserId(connectId);
     }
 }
