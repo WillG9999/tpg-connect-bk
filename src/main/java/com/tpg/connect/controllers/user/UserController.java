@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/users")
 public class UserController extends BaseController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private AuthenticationService authService;
@@ -48,6 +52,14 @@ public class UserController extends BaseController {
         }
 
         try {
+            // First refresh photo URLs to ensure they're fresh
+            try {
+                profileService.refreshPhotoUrls(userId);
+                logger.info("✅ Auto-refreshed photo URLs for user: {}", userId);
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to auto-refresh photo URLs, continuing: {}", e.getMessage());
+            }
+            
             CompleteUserProfile profile = profileService.getCurrentProfile(userId, includePreferences);
             if (profile == null) {
                 return notFoundResponse("Profile not found");
@@ -58,6 +70,7 @@ public class UserController extends BaseController {
             return errorResponse("Failed to retrieve user: " + e.getMessage());
         }
     }
+
 
     // Update user (frontend expects PUT /api/users/{userId})
     @PutMapping("/{userId}")

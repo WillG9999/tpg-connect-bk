@@ -9,6 +9,7 @@ import com.tpg.connect.services.UserService;
 import com.tpg.connect.services.UserActionsService;
 import com.tpg.connect.services.ConversationService;
 import com.tpg.connect.services.MatchService;
+import com.tpg.connect.services.ProfileManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,9 @@ public class MatchController extends BaseController {
     
     @Autowired
     private MatchService matchService;
+    
+    @Autowired
+    private ProfileManagementService profileService;
 
 
     // Get user matches (frontend expects /api/matches)
@@ -70,6 +74,14 @@ public class MatchController extends BaseController {
             List<Map<String, Object>> matches = matchedUserIds.stream()
                 .map(matchedUserId -> {
                     try {
+                        // Auto-refresh match user photos before fetching profile
+                        try {
+                            profileService.refreshPhotoUrls(matchedUserId);
+                            System.out.println("✅ Auto-refreshed match user photos for: " + matchedUserId);
+                        } catch (Exception e) {
+                            System.out.println("⚠️ Failed to auto-refresh match user photos, continuing: " + e.getMessage());
+                        }
+                        
                         CompleteUserProfile matchedUser = userService.getUserProfile(matchedUserId);
                         if (matchedUser != null) {
                             // Generate deterministic conversation ID
@@ -205,6 +217,14 @@ public class MatchController extends BaseController {
             List<Map<String, Object>> conversations = matchedUserIds.stream()
                 .map(matchedUserId -> {
                     try {
+                        // Auto-refresh match user photos before fetching profile
+                        try {
+                            profileService.refreshPhotoUrls(matchedUserId);
+                            System.out.println("✅ Auto-refreshed conversation user photos for: " + matchedUserId);
+                        } catch (Exception e) {
+                            System.out.println("⚠️ Failed to auto-refresh conversation user photos, continuing: " + e.getMessage());
+                        }
+                        
                         CompleteUserProfile matchedUser = userService.getUserProfile(matchedUserId);
                         if (matchedUser != null) {
                             String conversationId = generateConversationId(userId, matchedUserId);
@@ -386,6 +406,14 @@ public class MatchController extends BaseController {
             List<Map<String, Object>> likesYou = availableLikes.stream()
                 .map(likedUserId -> {
                     try {
+                        // Auto-refresh liked user photos before fetching profile
+                        try {
+                            profileService.refreshPhotoUrls(likedUserId);
+                            System.out.println("✅ Auto-refreshed liked user photos for: " + likedUserId);
+                        } catch (Exception e) {
+                            System.out.println("⚠️ Failed to auto-refresh liked user photos, continuing: " + e.getMessage());
+                        }
+                        
                         CompleteUserProfile likedUser = userService.getUserProfile(likedUserId);
                         if (likedUser != null) {
                             return Map.of(

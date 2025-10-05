@@ -31,6 +31,9 @@ public class ProfileManagementService {
     @Autowired
     private PhotoCleanupService photoCleanupService;
 
+    @Autowired
+    private CloudStorageService cloudStorageService;
+
     @Cacheable(value = "userProfiles", key = "'user_profile_' + #userId", unless = "#result == null")
     public CompleteUserProfile getCurrentProfile(String userId, boolean includePreferences) {
         CompleteUserProfile profile = userProfileRepository.findByUserId(userId);
@@ -715,6 +718,40 @@ public class ProfileManagementService {
                 System.out.println("❌ Invalid photo index: " + entry.getKey());
             }
         }
+    }
+
+    @CacheEvict(value = "userProfiles", key = "'user_profile_' + #userId")
+    public CompleteUserProfile refreshPhotoUrls(String userId) {
+        CompleteUserProfile profile = userProfileRepository.findByUserId(userId);
+        if (profile == null) {
+            throw new RuntimeException("Profile not found for user: " + userId);
+        }
+
+        logger.info("🔄 Refreshing photo URLs for user: {}", userId);
+        
+        List<EnhancedPhoto> photos = profile.getPhotos();
+        if (photos != null && !photos.isEmpty()) {
+            int refreshedCount = 0;
+            for (EnhancedPhoto photo : photos) {
+                if (photo.getUrl() != null) {
+                    String newUrl = cloudStorageService.refreshSignedUrl(photo.getUrl());
+                    if (newUrl != null) {
+                        photo.setUrl(newUrl);
+                        refreshedCount++;
+                    }
+                }
+            }
+            
+            if (refreshedCount > 0) {
+                // Save the updated profile with new URLs
+                CompleteUserProfile updatedProfile = userProfileRepository.save(profile);
+                logger.info("✅ Refreshed {} photo URLs for user: {}", refreshedCount, userId);
+                return updatedProfile;
+            }
+        }
+        
+        logger.info("ℹ️ No photos to refresh for user: {}", userId);
+        return profile;
     }
 
 }

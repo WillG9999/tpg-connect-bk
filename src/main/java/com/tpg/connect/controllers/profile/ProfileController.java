@@ -228,6 +228,24 @@ public class ProfileController extends BaseController implements ProfileControll
         }
     }
 
+    @PostMapping("/refresh-photo-urls")
+    public ResponseEntity<Map<String, Object>> refreshPhotoUrls(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+
+        try {
+            CompleteUserProfile refreshedProfile = profileService.refreshPhotoUrls(userId);
+            UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(refreshedProfile);
+            return successResponse(Map.of("profile", dto, "message", "Photo URLs refreshed successfully"));
+        } catch (Exception e) {
+            return errorResponse("Failed to refresh photo URLs: " + e.getMessage());
+        }
+    }
+
     private String validateAndExtractUserId(String authHeader) {
         if (authHeader == null || !authHeader.startsWith(EndpointConstants.Headers.BEARER_PREFIX)) {
             return null;

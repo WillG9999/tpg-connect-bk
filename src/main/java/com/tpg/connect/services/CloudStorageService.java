@@ -186,11 +186,18 @@ public class CloudStorageService {
     public String generateSignedUrl(String filePath, int expirationMinutes) {
         try {
             BlobId blobId = BlobId.of(storageProperties.getBucketName(), filePath);
-            BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
+            Blob blob = storage.get(blobId);
             
-            return storage.signUrl(blobInfo, expirationMinutes, TimeUnit.MINUTES).toString();
+            if (blob != null && blob.exists()) {
+                String signedUrl = blob.signUrl(expirationMinutes, TimeUnit.MINUTES).toString();
+                logger.debug("Generated signed URL for {}: expires in {} minutes", filePath, expirationMinutes);
+                return signedUrl;
+            } else {
+                logger.warn("Blob does not exist for signed URL generation: {}", filePath);
+                return null;
+            }
         } catch (Exception e) {
-            logger.error("Failed to generate signed URL for: {}", filePath, e);
+            logger.error("Failed to generate signed URL for: {} - Error: {}", filePath, e.getMessage(), e);
             return null;
         }
     }
@@ -245,19 +252,21 @@ public class CloudStorageService {
 
     private String getPublicUrl(String filePath) {
         try {
-            // Generate signed URL with authentication that's valid for 7 days
+            // Generate signed URL with authentication that's valid for 24 hours to avoid clock skew issues
             BlobId blobId = BlobId.of(storageProperties.getBucketName(), filePath);
             Blob blob = storage.get(blobId);
             
             if (blob != null && blob.exists()) {
-                // Create signed URL valid for 7 days (long enough for caching)
-                return blob.signUrl(7, TimeUnit.DAYS).toString();
+                // Create signed URL valid for 24 hours to prevent clock skew issues
+                String signedUrl = blob.signUrl(24, TimeUnit.HOURS).toString();
+                logger.debug("Generated signed URL for {}: expires in 24 hours", filePath);
+                return signedUrl;
             } else {
                 logger.warn("Blob does not exist for path: {}", filePath);
                 return null;
             }
         } catch (Exception e) {
-            logger.error("Failed to generate signed URL for: {}", filePath, e);
+            logger.error("Failed to generate signed URL for: {} - Error: {}", filePath, e.getMessage(), e);
             return null;
         }
     }
@@ -291,6 +300,26 @@ public class CloudStorageService {
             return null;
         } catch (Exception e) {
             logger.error("Failed to extract file path from URL: {}", signedUrl, e);
+            return null;
+        }
+    }
+
+    /**
+     * Refresh a signed URL by extracting the file path and generating a new URL
+     */
+    public String refreshSignedUrl(String oldSignedUrl) {
+        try {
+            String filePath = extractFilePathFromUrl(oldSignedUrl);
+            if (filePath != null) {
+                String newUrl = getPublicUrl(filePath);
+                logger.info("Refreshed signed URL for path: {} - New URL generated", filePath);
+                return newUrl;
+            } else {
+                logger.warn("Could not extract file path from URL: {}", oldSignedUrl);
+                return null;
+            }
+        } catch (Exception e) {
+            logger.error("Failed to refresh signed URL: {}", oldSignedUrl, e);
             return null;
         }
     }
