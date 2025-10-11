@@ -213,6 +213,26 @@ public class MatchService {
             return connectId2 + "_" + connectId1;
         }
     }
+
+    /**
+     * Unmatch users by setting match status to UNMATCHED
+     */
+    public void unmatchUsers(String matchId) {
+        System.out.println("🚫 MatchService: Unmatching users for match ID: " + matchId);
+        
+        Optional<Match> matchOpt = matchRepository.findById(matchId);
+        if (matchOpt.isEmpty()) {
+            System.err.println("❌ MatchService: Match not found: " + matchId);
+            throw new RuntimeException("Match not found: " + matchId);
+        }
+        
+        Match match = matchOpt.get();
+        match.setStatus(Match.MatchStatus.UNMATCHED);
+        match.setLastActivityAt(LocalDateTime.now());
+        
+        matchRepository.save(match);
+        System.out.println("✅ MatchService: Match status updated to UNMATCHED: " + matchId);
+    }
     
     // Admin-specific methods
     

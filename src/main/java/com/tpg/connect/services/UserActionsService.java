@@ -39,6 +39,12 @@ public class UserActionsService {
      */
     public boolean addLikeAction(String userId, String targetUserId) {
         try {
+            // DEFENSIVE VALIDATION: Prevent users from liking themselves
+            if (userId.equals(targetUserId)) {
+                logger.warn("⚠️ BLOCKED SELF-LIKE: User {} attempted to like themselves", userId);
+                return false;
+            }
+            
             logger.info("👍 Adding like action: {} likes {}", userId, targetUserId);
             logger.info("🔍 Starting transaction for like action {} -> {}", userId, targetUserId);
             
@@ -156,6 +162,12 @@ public class UserActionsService {
      */
     public void addPassAction(String userId, String targetUserId) {
         try {
+            // DEFENSIVE VALIDATION: Prevent users from passing on themselves
+            if (userId.equals(targetUserId)) {
+                logger.warn("⚠️ BLOCKED SELF-PASS: User {} attempted to pass on themselves", userId);
+                return;
+            }
+            
             logger.info("👎 Adding pass action: {} passes {}", userId, targetUserId);
             
             DocumentReference userDoc = firestore.collection(COLLECTION_NAME).document(userId);
@@ -318,12 +330,141 @@ public class UserActionsService {
         userData.put("likes", new ArrayList<>());
         userData.put("passes", new ArrayList<>());
         userData.put("matches", new ArrayList<>());
+        userData.put("unmatched", new ArrayList<>());
         userData.put("likedBy", new ArrayList<>());
         userData.put("lastUpdated", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "Z");
         userData.put("totalActions", 0);
         
         logger.info("🆕 Initializing new userActions document for user: {}", userId);
         return userData;
+    }
+
+    /**
+     * Add an unmatch action: user unmatches targetUser
+     * - Adds targetUserId to user's unmatched array
+     * - Adds userId to targetUser's unmatched array (bilateral)
+     * - Prevents these users from matching in the future
+     */
+    public void addUnmatchAction(String userId, String targetUserId) {
+        try {
+            // DEFENSIVE VALIDATION: Prevent users from unmatching themselves
+            if (userId.equals(targetUserId)) {
+                logger.warn("⚠️ BLOCKED SELF-UNMATCH: User {} attempted to unmatch themselves", userId);
+                return;
+            }
+            
+            logger.info("🚫 Adding unmatch action: {} unmatches {}", userId, targetUserId);
+            
+            DocumentReference userDoc = firestore.collection(COLLECTION_NAME).document(userId);
+            DocumentReference targetDoc = firestore.collection(COLLECTION_NAME).document(targetUserId);
+            
+            firestore.runTransaction(transaction -> {
+                // Get both documents
+                DocumentSnapshot userSnapshot = transaction.get(userDoc).get();
+                DocumentSnapshot targetSnapshot = transaction.get(targetDoc).get();
+                
+                // Initialize user document if it doesn't exist
+                Map<String, Object> userData;
+                if (userSnapshot.exists()) {
+                    userData = new HashMap<>(userSnapshot.getData());
+                    logger.info("🔍 User {} document exists, loading data", userId);
+                } else {
+                    userData = initializeUserActionsDocument(userId);
+                    logger.info("🆕 User {} document doesn't exist, initializing", userId);
+                }
+                
+                // Initialize target document if it doesn't exist
+                Map<String, Object> targetData;
+                if (targetSnapshot.exists()) {
+                    targetData = new HashMap<>(targetSnapshot.getData());
+                    logger.info("🔍 Target {} document exists, loading data", targetUserId);
+                } else {
+                    targetData = initializeUserActionsDocument(targetUserId);
+                    logger.info("🆕 Target {} document doesn't exist, initializing", targetUserId);
+                }
+                
+                // Get current unmatched arrays
+                @SuppressWarnings("unchecked")
+                List<String> userUnmatched = (List<String>) userData.getOrDefault("unmatched", new ArrayList<>());
+                @SuppressWarnings("unchecked")
+                List<String> targetUnmatched = (List<String>) targetData.getOrDefault("unmatched", new ArrayList<>());
+                
+                // Add targetUserId to user's unmatched array (if not already there)
+                if (!userUnmatched.contains(targetUserId)) {
+                    userUnmatched.add(targetUserId);
+                    userData.put("unmatched", userUnmatched);
+                    logger.info("➕ Added {} to {}'s unmatched list", targetUserId, userId);
+                }
+                
+                // Add userId to target's unmatched array (if not already there)
+                if (!targetUnmatched.contains(userId)) {
+                    targetUnmatched.add(userId);
+                    targetData.put("unmatched", targetUnmatched);
+                    logger.info("➕ Added {} to {}'s unmatched list", userId, targetUserId);
+                }
+                
+                // Update timestamps
+                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "Z";
+                userData.put("lastUpdated", timestamp);
+                targetData.put("lastUpdated", timestamp);
+                
+                // Write both documents
+                logger.info("📝 Writing userActions document for user {}", userId);
+                transaction.set(userDoc, userData);
+                logger.info("📝 Writing userActions document for target {}", targetUserId);
+                transaction.set(targetDoc, targetData);
+                
+                logger.info("✅ Unmatch transaction completed: {} ↔ {}", userId, targetUserId);
+                return null;
+            }).get();
+            
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("❌ Error adding unmatch action {} -> {}: {}", userId, targetUserId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get users this user has unmatched with
+     */
+    public List<String> getUnmatchedUsers(String userId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME).document(userId).get().get();
+            
+            if (!doc.exists()) {
+                return new ArrayList<>();
+            }
+            
+            @SuppressWarnings("unchecked")
+            List<String> unmatched = (List<String>) doc.getData().getOrDefault("unmatched", new ArrayList<>());
+            
+            return new ArrayList<>(unmatched);
+            
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("❌ Error getting unmatched users for {}: {}", userId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Check if user has unmatched with target user
+     */
+    public boolean hasUnmatchedUser(String userId, String targetUserId) {
+        try {
+            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME).document(userId).get().get();
+            
+            if (!doc.exists()) {
+                return false;
+            }
+            
+            @SuppressWarnings("unchecked")
+            List<String> unmatched = (List<String>) doc.getData().getOrDefault("unmatched", new ArrayList<>());
+            
+            return unmatched.contains(targetUserId);
+            
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error("❌ Error checking if user {} unmatched {}: {}", userId, targetUserId, e.getMessage());
+            return false;
+        }
     }
     
     // Admin-specific methods
