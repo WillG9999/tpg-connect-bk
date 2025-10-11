@@ -727,17 +727,24 @@ public class ProfileManagementService {
             throw new RuntimeException("Profile not found for user: " + userId);
         }
 
-        logger.info("🔄 Refreshing photo URLs for user: {}", userId);
-        
         List<EnhancedPhoto> photos = profile.getPhotos();
         if (photos != null && !photos.isEmpty()) {
             int refreshedCount = 0;
+            int skippedCount = 0;
+            
             for (EnhancedPhoto photo : photos) {
                 if (photo.getUrl() != null) {
-                    String newUrl = cloudStorageService.refreshSignedUrl(photo.getUrl());
-                    if (newUrl != null) {
-                        photo.setUrl(newUrl);
-                        refreshedCount++;
+                    // Smart expiration check - only refresh if URL expires within 2 hours
+                    if (isUrlExpiringWithinHours(photo.getUrl(), 2)) {
+                        logger.debug("🔄 URL expiring soon, refreshing: {}", photo.getUrl().substring(0, Math.min(100, photo.getUrl().length())));
+                        String newUrl = cloudStorageService.refreshSignedUrl(photo.getUrl());
+                        if (newUrl != null) {
+                            photo.setUrl(newUrl);
+                            refreshedCount++;
+                        }
+                    } else {
+                        logger.debug("⏭️ URL still valid, skipping refresh: {}", photo.getUrl().substring(0, Math.min(100, photo.getUrl().length())));
+                        skippedCount++;
                     }
                 }
             }
@@ -745,13 +752,49 @@ public class ProfileManagementService {
             if (refreshedCount > 0) {
                 // Save the updated profile with new URLs
                 CompleteUserProfile updatedProfile = userProfileRepository.save(profile);
-                logger.info("✅ Refreshed {} photo URLs for user: {}", refreshedCount, userId);
+                logger.info("✅ Smart refresh completed for user {}: {} refreshed, {} skipped (still valid)", 
+                           userId, refreshedCount, skippedCount);
                 return updatedProfile;
+            } else {
+                logger.info("ℹ️ No photo URLs needed refresh for user {}: {} URLs still valid", userId, skippedCount);
             }
         }
         
-        logger.info("ℹ️ No photos to refresh for user: {}", userId);
         return profile;
+    }
+    
+    /**
+     * Check if a Firebase Storage signed URL is expiring within the specified hours
+     */
+    private boolean isUrlExpiringWithinHours(String signedUrl, int hours) {
+        try {
+            // Extract expiration timestamp from Firebase Storage URL
+            if (signedUrl.contains("Expires=")) {
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("Expires=(\\d+)");
+                java.util.regex.Matcher matcher = pattern.matcher(signedUrl);
+                if (matcher.find()) {
+                    long expiresTimestamp = Long.parseLong(matcher.group(1));
+                    long expiresMillis = expiresTimestamp * 1000L; // Convert to milliseconds
+                    long now = System.currentTimeMillis();
+                    long hoursInMillis = hours * 60 * 60 * 1000L;
+                    
+                    // Check if URL expires within the specified hours
+                    boolean isExpiring = (expiresMillis - now) <= hoursInMillis;
+                    logger.debug("🕐 URL expiration check: expires in {} hours, threshold {} hours, needs refresh: {}", 
+                               (expiresMillis - now) / (60 * 60 * 1000L), hours, isExpiring);
+                    return isExpiring;
+                }
+            }
+            
+            // If we can't parse expiration, assume it needs refresh to be safe
+            logger.warn("⚠️ Could not parse expiration from URL, defaulting to refresh");
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("❌ Error checking URL expiration: {}", e.getMessage());
+            // If error parsing, refresh to be safe
+            return true;
+        }
     }
 
 }

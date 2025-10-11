@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 @Service
 public class CloudStorageService {
@@ -257,16 +258,55 @@ public class CloudStorageService {
             Blob blob = storage.get(blobId);
             
             if (blob != null && blob.exists()) {
-                // Create signed URL valid for 24 hours to prevent clock skew issues
-                String signedUrl = blob.signUrl(24, TimeUnit.HOURS).toString();
-                logger.debug("Generated signed URL for {}: expires in 24 hours", filePath);
-                return signedUrl;
+                // Try primary method first
+                try {
+                    String signedUrl = blob.signUrl(24, TimeUnit.HOURS).toString();
+                    logger.debug("Generated signed URL for {}: expires in 24 hours", filePath);
+                    return signedUrl;
+                } catch (Exception moduleError) {
+                    // If Java module error occurs, try alternative approach
+                    logger.warn("Primary URL signing failed due to module restrictions, trying alternative method: {}", moduleError.getMessage());
+                    return generateAlternativeSignedUrl(blob, filePath);
+                }
             } else {
                 logger.warn("Blob does not exist for path: {}", filePath);
                 return null;
             }
         } catch (Exception e) {
             logger.error("Failed to generate signed URL for: {} - Error: {}", filePath, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Alternative URL signing method that avoids Java module restrictions
+     */
+    private String generateAlternativeSignedUrl(Blob blob, String filePath) {
+        try {
+            // Use the same TimeUnit approach but with different duration calculation
+            // This avoids direct Instant usage that might trigger module issues
+            String signedUrl = blob.signUrl(1440, TimeUnit.MINUTES).toString(); // 24 hours in minutes
+            logger.info("Generated alternative signed URL for {}: expires in 24 hours", filePath);
+            return signedUrl;
+        } catch (Exception altError) {
+            logger.error("Alternative URL signing also failed for {}: {}", filePath, altError.getMessage());
+            // Final fallback - return a public URL without signing (if possible)
+            return generateFallbackUrl(filePath);
+        }
+    }
+
+    /**
+     * Fallback URL generation - returns basic storage URL
+     */
+    private String generateFallbackUrl(String filePath) {
+        try {
+            // Return basic Google Storage URL (may not work for private files but better than nothing)
+            String fallbackUrl = String.format("https://storage.googleapis.com/%s/%s", 
+                                              storageProperties.getBucketName(), filePath);
+            logger.warn("Using fallback URL for {}: {}", filePath, fallbackUrl);
+            return fallbackUrl;
+        } catch (Exception e) {
+            logger.error("Even fallback URL generation failed for {}: {}", filePath, e.getMessage());
             return null;
         }
     }

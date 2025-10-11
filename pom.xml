@@ -202,6 +202,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<compilerArgs>
+						<arg>--add-opens</arg>
+						<arg>java.base/java.time=ALL-UNNAMED</arg>
+						<arg>--add-opens</arg>
+						<arg>java.base/java.time.chrono=ALL-UNNAMED</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
@@ -219,8 +225,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<jvmArguments>
-						--add-opens=java.base/java.time=ALL-UNNAMED
-						--add-opens=java.base/java.time.chrono=ALL-UNNAMED
+						--add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED
 					</jvmArguments>
 					<excludes>
 						<exclude>

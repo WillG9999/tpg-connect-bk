@@ -52,18 +52,11 @@ public class UserController extends BaseController {
         }
 
         try {
-            // First refresh photo URLs to ensure they're fresh
-            try {
-                profileService.refreshPhotoUrls(userId);
-                logger.info("✅ Auto-refreshed photo URLs for user: {}", userId);
-            } catch (Exception e) {
-                logger.warn("⚠️ Failed to auto-refresh photo URLs, continuing: {}", e.getMessage());
-            }
-            
             CompleteUserProfile profile = profileService.getCurrentProfile(userId, includePreferences);
             if (profile == null) {
                 return notFoundResponse("Profile not found");
             }
+            
             UserProfileDTO dto = UserProfileDTO.fromCompleteUserProfile(profile);
             return successResponse(dto);
         } catch (Exception e) {
