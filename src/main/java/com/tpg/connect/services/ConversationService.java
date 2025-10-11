@@ -172,9 +172,15 @@ public class ConversationService {
 
     // @Cacheable(value = "messages", key = "'conversation_messages_' + #conversationId + '_' + #page + '_' + #limit") // Temporarily disabled due to cache config issue
     public List<Message> getConversationMessages(String conversationId, String userId, int page, int limit) {
+        System.out.println("🔍 ConversationService: getConversationMessages called");
+        System.out.println("🔍 ConversationService: conversationId = '" + conversationId + "'");
+        System.out.println("🔍 ConversationService: userId = '" + userId + "'");
+        System.out.println("🔍 ConversationService: page = " + page + ", limit = " + limit);
+        
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
         if (!conversationOpt.isPresent()) {
+            System.out.println("❌ ConversationService: Conversation not found: " + conversationId);
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
 
@@ -214,18 +220,34 @@ public class ConversationService {
 
     // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
     public void archiveConversation(String conversationId, String userId) {
+        System.out.println("📁 ConversationService.archiveConversation CALLED");
+        System.out.println("📁 ConversationService: conversationId = " + conversationId);
+        System.out.println("📁 ConversationService: userId = " + userId);
+        
         // Verify user is participant
+        System.out.println("📁 ConversationService: Verifying conversation exists...");
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
         if (!conversationOpt.isPresent()) {
+            System.out.println("❌ ConversationService: Conversation not found: " + conversationId);
             throw new IllegalArgumentException("Conversation not found: " + conversationId);
         }
 
         Conversation conversation = conversationOpt.get();
+        System.out.println("📁 ConversationService: Found conversation with participants: " + conversation.getParticipantIds());
+        
         if (!conversation.getParticipantIds().contains(userId)) {
+            System.out.println("❌ ConversationService: User " + userId + " is not a participant");
             throw new IllegalArgumentException("User is not a participant in this conversation");
         }
 
+        System.out.println("📁 ConversationService: User verified as participant");
+        System.out.println("📁 ConversationService: Current archived status: " + conversation.isArchived());
+        System.out.println("📁 ConversationService: Calling conversationRepository.markAsArchived...");
+        
         conversationRepository.markAsArchived(conversationId, true);
+        
+        System.out.println("📁 ConversationService: markAsArchived call completed");
+        System.out.println("✅ ConversationService: Archive operation finished");
     }
 
     // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
@@ -242,6 +264,27 @@ public class ConversationService {
         }
 
         conversationRepository.markAsArchived(conversationId, false);
+    }
+
+    /**
+     * Unmatch conversation by setting status to UNMATCHED
+     */
+    public void unmatchConversation(String matchId) {
+        System.out.println("🚫 ConversationService: Unmatching conversation for match ID: " + matchId);
+        
+        // Find conversation by conversation ID (which is the same as match ID)
+        Optional<Conversation> conversationOpt = conversationRepository.findById(matchId);
+        if (!conversationOpt.isPresent()) {
+            System.err.println("❌ ConversationService: Conversation not found for match: " + matchId);
+            throw new RuntimeException("Conversation not found for match: " + matchId);
+        }
+        
+        Conversation conversation = conversationOpt.get();
+        conversation.setStatus(Conversation.ConversationStatus.UNMATCHED);
+        conversation.setUpdatedAt(java.time.LocalDateTime.now());
+        
+        conversationRepository.save(conversation);
+        System.out.println("✅ ConversationService: Conversation status updated to UNMATCHED for match: " + matchId);
     }
 
     // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue

@@ -42,14 +42,45 @@ public class ConversationRepositoryImpl implements ConversationRepository {
     @Override
     public Optional<Conversation> findById(String conversationId) {
         try {
+            System.out.println("🔍 ConversationRepositoryImpl: Looking up conversation ID: " + conversationId);
+            
             DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
                     .document(conversationId)
                     .get()
                     .get();
-                    
-            return doc.exists() ? Optional.of(convertToConversation(doc)) : Optional.empty();
+            
+            if (doc.exists()) {
+                System.out.println("✅ ConversationRepositoryImpl: Found conversation: " + conversationId);
+                return Optional.of(convertToConversation(doc));
+            } else {
+                System.out.println("❌ ConversationRepositoryImpl: Conversation not found: " + conversationId);
+                // Log all available conversations for debugging
+                _logAvailableConversations();
+                return Optional.empty();
+            }
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Failed to find conversation by id", e);
+        }
+    }
+    
+    private void _logAvailableConversations() {
+        try {
+            System.out.println("🔍 ConversationRepositoryImpl: Listing available conversations for debugging...");
+            QuerySnapshot allConversations = firestore.collection(COLLECTION_NAME)
+                    .limit(10) // Limit to first 10 for debugging
+                    .get()
+                    .get();
+            
+            if (allConversations.isEmpty()) {
+                System.out.println("📭 ConversationRepositoryImpl: No conversations exist in database");
+            } else {
+                System.out.println("📋 ConversationRepositoryImpl: Available conversations:");
+                for (DocumentSnapshot doc : allConversations.getDocuments()) {
+                    System.out.println("  - ID: " + doc.getId());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("💥 ConversationRepositoryImpl: Error listing conversations: " + e.getMessage());
         }
     }
 
@@ -211,16 +242,37 @@ public class ConversationRepositoryImpl implements ConversationRepository {
     @Override
     public Conversation markAsArchived(String conversationId, boolean archived) {
         try {
+            System.out.println("📁 ConversationRepositoryImpl.markAsArchived CALLED");
+            System.out.println("📁 ConversationRepositoryImpl: conversationId = " + conversationId);
+            System.out.println("📁 ConversationRepositoryImpl: archived = " + archived);
+            
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(conversationId);
             
             Map<String, Object> updates = new HashMap<>();
             updates.put("archived", archived);
             updates.put("updatedAt", Timestamp.now());
             
+            System.out.println("📁 ConversationRepositoryImpl: Update map = " + updates);
+            System.out.println("📁 ConversationRepositoryImpl: Executing Firestore update...");
+            
             docRef.update(updates).get();
             
-            return findById(conversationId).orElse(null);
+            System.out.println("📁 ConversationRepositoryImpl: Firestore update completed");
+            System.out.println("📁 ConversationRepositoryImpl: Retrieving updated conversation...");
+            
+            Conversation updatedConversation = findById(conversationId).orElse(null);
+            
+            if (updatedConversation != null) {
+                System.out.println("📁 ConversationRepositoryImpl: Retrieved conversation with archived status: " + updatedConversation.isArchived());
+            } else {
+                System.out.println("❌ ConversationRepositoryImpl: Failed to retrieve updated conversation");
+            }
+            
+            System.out.println("✅ ConversationRepositoryImpl: markAsArchived operation completed");
+            return updatedConversation;
         } catch (InterruptedException | ExecutionException e) {
+            System.err.println("❌ ConversationRepositoryImpl: Error in markAsArchived: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to mark conversation as archived", e);
         }
     }
@@ -457,7 +509,7 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         map.put("participantIds", conversation.getParticipantIds());
         map.put("status", conversation.getStatus() != null ? conversation.getStatus().name() : null);
         map.put("unreadCount", conversation.getUnreadCount());
-        map.put("archived", false); // Default to not archived
+        map.put("archived", conversation.isArchived()); // Use actual archived status
         
         if (conversation.getLastMessage() != null) {
             map.put("lastMessage", convertMessageToMap(conversation.getLastMessage()));
@@ -518,6 +570,13 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         Object lastMessageData = data.get("lastMessage");
         if (lastMessageData instanceof Map) {
             conversation.setLastMessage(convertMapToMessage((Map<String, Object>) lastMessageData));
+        }
+        
+        // Set archived status
+        if (data.get("archived") != null) {
+            conversation.setArchived((Boolean) data.get("archived"));
+        } else {
+            conversation.setArchived(false); // Default to not archived if field missing
         }
         
         // Convert Timestamp to LocalDateTime

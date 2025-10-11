@@ -52,7 +52,8 @@ public class MatchController extends BaseController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String since) {
+            @RequestParam(required = false) String since,
+            @RequestParam(defaultValue = "false") boolean includeArchived) {
         
         System.out.println("🚀 MatchController: getMatches() called!");
         System.out.println("🔑 MatchController: authHeader present: " + (authHeader != null));
@@ -69,6 +70,19 @@ public class MatchController extends BaseController {
             // Get user's matches from UserActions
             List<String> matchedUserIds = userActionsService.getMatches(userId);
             System.out.println("🔍 MatchController: Found " + matchedUserIds.size() + " matched user IDs: " + matchedUserIds);
+            
+            // DEFENSIVE FIX: Filter out current user's own ID from matches (should never happen but defensive)
+            List<String> filteredMatchedUserIds = matchedUserIds.stream()
+                .filter(matchedUserId -> !matchedUserId.equals(userId))
+                .collect(Collectors.toList());
+            
+            if (filteredMatchedUserIds.size() != matchedUserIds.size()) {
+                System.out.println("⚠️ MatchController: DETECTED SELF-MATCH! Filtered out user's own ID from matches");
+                System.out.println("⚠️ MatchController: Original list: " + matchedUserIds);
+                System.out.println("⚠️ MatchController: Filtered list: " + filteredMatchedUserIds);
+            }
+            
+            matchedUserIds = filteredMatchedUserIds;
             
             // Convert user IDs to match objects with user profiles
             List<Map<String, Object>> matches = matchedUserIds.stream()
@@ -114,6 +128,11 @@ public class MatchController extends BaseController {
                                 if (conversationOpt.isPresent()) {
                                     com.tpg.connect.model.conversation.Conversation conversation = conversationOpt.get();
                                     System.out.println("✅ MatchController: Found conversation: " + conversationId);
+                                    System.out.println("🔍 MatchController: Conversation archived status: " + conversation.isArchived());
+                                    
+                                    // No filtering - return all matches with their archived status
+                                    // The frontend will split them based on the archived field
+                                    
                                     System.out.println("🔍 MatchController: Conversation lastMessage is null: " + (conversation.getLastMessage() == null));
                                     
                                     if (conversation.getLastMessage() != null) {
@@ -158,6 +177,18 @@ public class MatchController extends BaseController {
                                 System.err.println("Failed to get conversation data for " + conversationId + ": " + e.getMessage());
                             }
                             
+                            // Get archived status from conversation
+                            boolean isArchived = false;
+                            try {
+                                java.util.Optional<com.tpg.connect.model.conversation.Conversation> convOpt = 
+                                    conversationService.getConversationById(conversationId);
+                                if (convOpt.isPresent()) {
+                                    isArchived = convOpt.get().isArchived();
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Failed to get archived status: " + e.getMessage());
+                            }
+                            
                             return Map.of(
                                 "id", conversationId, // Use conversation ID as match ID
                                 "user", Map.of(
@@ -170,7 +201,8 @@ public class MatchController extends BaseController {
                                 "matchedAt", matchTimestamp,
                                 "lastActivity", matchTimestamp,
                                 "lastMessage", lastMessage,
-                                "unreadCount", unreadCount
+                                "unreadCount", unreadCount,
+                                "archived", isArchived
                             );
                         }
                         return null;
@@ -317,6 +349,84 @@ public class MatchController extends BaseController {
         }
     }
 
+    // Archive match (frontend expects /api/matches/{matchId}/archive-match)
+    @PostMapping("/{matchId}/archive-match")
+    public ResponseEntity<Map<String, Object>> archiveMatch(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String matchId) {
+        
+        System.out.println("🎯 MatchController.archiveMatch CALLED");
+        System.out.println("🎯 matchId parameter: " + matchId);
+        System.out.println("🎯 authHeader present: " + (authHeader != null));
+        
+        String userId = validateAndExtractUserId(authHeader);
+        System.out.println("🎯 Extracted userId: " + userId);
+        
+        if (userId == null) {
+            System.out.println("❌ MatchController: Invalid authorization, returning 401");
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+        
+        try {
+            System.out.println("📁 MatchController: Starting archive operation for match " + matchId + " for user " + userId);
+            
+            // Archive the conversation but keep match active
+            System.out.println("📁 MatchController: Calling conversationService.archiveConversation...");
+            conversationService.archiveConversation(matchId, userId);
+            System.out.println("📁 MatchController: conversationService.archiveConversation completed");
+            
+            Map<String, Object> response = Map.of(
+                "message", "Match archived successfully",
+                "matchId", matchId,
+                "action", "ARCHIVED",
+                "timestamp", java.time.Instant.now().toString()
+            );
+            
+            System.out.println("📁 MatchController: Response prepared: " + response);
+            System.out.println("✅ MatchController: Match archived successfully: " + matchId);
+            return successResponse(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ MatchController: Failed to archive match " + matchId + ": " + e.getMessage());
+            System.err.println("❌ MatchController: Exception type: " + e.getClass().getSimpleName());
+            e.printStackTrace();
+            return errorResponse("Failed to archive match: " + e.getMessage());
+        }
+    }
+
+    // Unarchive match (frontend expects /api/matches/{matchId}/unarchive)
+    @PostMapping("/{matchId}/unarchive")
+    public ResponseEntity<Map<String, Object>> unarchiveMatch(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String matchId) {
+        
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return unauthorizedResponse("Invalid or missing authorization");
+        }
+        
+        try {
+            System.out.println("📂 MatchController: Unarchiving match " + matchId + " for user " + userId);
+            
+            // Unarchive the conversation
+            conversationService.unarchiveConversation(matchId, userId);
+            
+            Map<String, Object> response = Map.of(
+                "message", "Match unarchived successfully",
+                "matchId", matchId,
+                "action", "UNARCHIVED",
+                "timestamp", java.time.Instant.now().toString()
+            );
+            
+            System.out.println("✅ MatchController: Match unarchived successfully: " + matchId);
+            return successResponse(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ MatchController: Failed to unarchive match " + matchId + ": " + e.getMessage());
+            return errorResponse("Failed to unarchive match: " + e.getMessage());
+        }
+    }
+
     // Unmatch (frontend expects /api/matches/{matchId}/unmatch)
     @PostMapping("/{matchId}/unmatch")
     public ResponseEntity<Map<String, Object>> unmatch(
@@ -327,11 +437,41 @@ public class MatchController extends BaseController {
         if (userId == null) {
             return unauthorizedResponse("Invalid or missing authorization");
         }
-
+        
         try {
-            // For now, just return success - in a real implementation you'd handle the unmatch
-            return successResponse(Map.of("message", "Unmatched successfully", "matchId", matchId));
+            System.out.println("🚫 MatchController: Unmatching " + matchId + " for user " + userId);
+            
+            // Get the match to find the other user
+            var match = matchService.getMatch(matchId);
+            if (match == null) {
+                return errorResponse("Match not found");
+            }
+            
+            // Determine the other user ID
+            String otherUserId = match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id();
+            System.out.println("🔍 MatchController: Other user ID: " + otherUserId);
+            
+            // 1. Add to unmatched arrays (prevents future matching)
+            userActionsService.addUnmatchAction(userId, otherUserId);
+            
+            // 2. Update match status to UNMATCHED
+            matchService.unmatchUsers(matchId);
+            
+            // 3. Update conversation status to UNMATCHED
+            conversationService.unmatchConversation(matchId);
+            
+            Map<String, Object> response = Map.of(
+                "message", "Unmatched successfully",
+                "matchId", matchId,
+                "action", "UNMATCHED",
+                "timestamp", java.time.Instant.now().toString()
+            );
+            
+            System.out.println("✅ MatchController: Unmatch completed successfully: " + matchId);
+            return successResponse(response);
+            
         } catch (Exception e) {
+            System.err.println("❌ MatchController: Failed to unmatch " + matchId + ": " + e.getMessage());
             return errorResponse("Failed to unmatch: " + e.getMessage());
         }
     }
