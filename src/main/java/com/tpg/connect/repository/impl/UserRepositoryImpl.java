@@ -2,6 +2,7 @@ package com.tpg.connect.repository.impl;
 
 import com.tpg.connect.model.User;
 import com.tpg.connect.model.user.ApplicationStatus;
+import com.tpg.connect.model.user.UserStatus;
 import com.tpg.connect.repository.UserRepository;
 import com.tpg.connect.util.ConnectIdGenerator;
 import com.google.cloud.Timestamp;
@@ -382,6 +383,14 @@ public class UserRepositoryImpl implements UserRepository {
         map.put("deletedAt", user.getDeletedAt());
         map.put("lastLoginDevice", user.getLastLoginDevice());
         
+        // Add status fields
+        if (user.getApplicationStatus() != null) {
+            map.put("applicationStatus", user.getApplicationStatus().toString());
+        }
+        if (user.getUserStatus() != null) {
+            map.put("userStatus", user.getUserStatus().toString());
+        }
+        
         if (user.getFcmTokens() != null) {
             map.put("fcmTokens", user.getFcmTokens().stream()
                     .map(this::convertTokenToMap)
@@ -397,6 +406,25 @@ public class UserRepositoryImpl implements UserRepository {
             throw new RuntimeException("Document data is null");
         }
         
+        // Parse status fields
+        ApplicationStatus applicationStatus = null;
+        if (data.get("applicationStatus") != null) {
+            try {
+                applicationStatus = ApplicationStatus.valueOf((String) data.get("applicationStatus"));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid applicationStatus value in document {}: {}", doc.getId(), data.get("applicationStatus"));
+            }
+        }
+        
+        UserStatus userStatus = null;
+        if (data.get("userStatus") != null) {
+            try {
+                userStatus = UserStatus.valueOf((String) data.get("userStatus"));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid userStatus value in document {}: {}", doc.getId(), data.get("userStatus"));
+            }
+        }
+        
         return User.builder()
                 .connectId(doc.getId())
                 .username((String) data.get("username"))
@@ -405,6 +433,8 @@ public class UserRepositoryImpl implements UserRepository {
                 .role((String) data.get("role"))
                 .active((Boolean) data.get("active"))
                 .emailVerified((Boolean) data.get("emailVerified"))
+                .applicationStatus(applicationStatus)
+                .userStatus(userStatus)
                 .createdAt((Timestamp) data.get("createdAt"))
                 .updatedAt((Timestamp) data.get("updatedAt"))
                 .lastLoginAt((Timestamp) data.get("lastLoginAt"))
@@ -522,6 +552,66 @@ public class UserRepositoryImpl implements UserRepository {
             return querySnapshot.size();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Failed to count users for admin", e);
+        }
+    }
+    
+    @Override
+    public List<User> findByApplicationStatus(ApplicationStatus applicationStatus) {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("applicationStatus", applicationStatus.toString())
+                    .get()
+                    .get();
+                    
+            return querySnapshot.getDocuments().stream()
+                    .map(this::convertToUser)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find users by application status", e);
+        }
+    }
+    
+    @Override
+    public List<User> findByUserStatus(UserStatus userStatus) {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("userStatus", userStatus.toString())
+                    .get()
+                    .get();
+                    
+            return querySnapshot.getDocuments().stream()
+                    .map(this::convertToUser)
+                    .collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to find users by user status", e);
+        }
+    }
+    
+    @Override
+    public long countByApplicationStatus(ApplicationStatus applicationStatus) {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("applicationStatus", applicationStatus.toString())
+                    .get()
+                    .get();
+                    
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count users by application status", e);
+        }
+    }
+    
+    @Override
+    public long countByUserStatus(UserStatus userStatus) {
+        try {
+            QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
+                    .whereEqualTo("userStatus", userStatus.toString())
+                    .get()
+                    .get();
+                    
+            return querySnapshot.size();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to count users by user status", e);
         }
     }
 }

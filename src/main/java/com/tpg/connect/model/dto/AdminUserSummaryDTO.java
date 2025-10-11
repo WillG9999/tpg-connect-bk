@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.google.cloud.Timestamp;
 import com.tpg.connect.model.user.ApplicationStatus;
+import com.tpg.connect.model.user.UserStatus;
 
 @Data
 @Builder
@@ -18,6 +19,7 @@ public class AdminUserSummaryDTO {
     private String email;
     private String profilePhotoUrl;
     private ApplicationStatus applicationStatus;
+    private UserStatus userStatus;
     private Boolean active;
     private Boolean emailVerified;
     private Timestamp createdAt;

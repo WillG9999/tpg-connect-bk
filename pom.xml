@@ -207,6 +207,10 @@
 						<arg>java.base/java.time=ALL-UNNAMED</arg>
 						<arg>--add-opens</arg>
 						<arg>java.base/java.time.chrono=ALL-UNNAMED</arg>
+						<arg>--add-opens</arg>
+						<arg>java.base/java.lang=ALL-UNNAMED</arg>
+						<arg>--add-opens</arg>
+						<arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
 					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>
@@ -225,7 +229,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<jvmArguments>
-						--add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED
+						--add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED
 					</jvmArguments>
 					<excludes>
 						<exclude>
@@ -243,7 +247,7 @@
 						<include>**/*Test.java</include>
 						<include>**/CucumberTestRunner.java</include>
 					</includes>
-					<argLine>--add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</argLine>
+					<argLine>--add-opens java.base/java.time.chrono=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED</argLine>
 				</configuration>
 			</plugin>
 			<plugin>

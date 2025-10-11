@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.google.cloud.Timestamp;
 import com.tpg.connect.model.user.ApplicationStatus;
+import com.tpg.connect.model.user.UserStatus;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class User {
     private Boolean active;
     private Boolean emailVerified;
     private ApplicationStatus applicationStatus;
+    private UserStatus userStatus;
     
     // Convenience methods for backwards compatibility
     public boolean isActive() {
@@ -33,7 +35,8 @@ public class User {
     }
     
     public boolean canAccessApp() {
-        return applicationStatus != null && applicationStatus.canLogin();
+        return applicationStatus != null && applicationStatus.canLogin() 
+               && (userStatus == null || userStatus.canLogin());
     }
     
     public boolean needsPayment() {

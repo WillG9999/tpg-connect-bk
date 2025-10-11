@@ -446,9 +446,12 @@ public class UserProfileRepositoryImpl implements UserProfileRepository {
         map.put("isVerified", profile.getVerified());
         map.put("subscriptionType", profile.getSubscriptionType());
         map.put("interests", profile.getInterests());
-        map.put("createdAt", profile.getCreatedAt());
-        map.put("updatedAt", profile.getUpdatedAt());
-        map.put("lastActive", profile.getLastActive());
+        map.put("createdAt", profile.getCreatedAt() != null ? 
+            Timestamp.of(java.sql.Timestamp.valueOf(profile.getCreatedAt())) : null);
+        map.put("updatedAt", profile.getUpdatedAt() != null ? 
+            Timestamp.of(java.sql.Timestamp.valueOf(profile.getUpdatedAt())) : null);
+        map.put("lastActive", profile.getLastActive() != null ? 
+            Timestamp.of(java.sql.Timestamp.valueOf(profile.getLastActive())) : null);
         map.put("version", profile.getVersion());
         
         if (profile.getPhotos() != null) {

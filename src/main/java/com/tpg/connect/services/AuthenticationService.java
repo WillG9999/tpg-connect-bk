@@ -115,8 +115,8 @@ public class AuthenticationService {
         profile.setGender(request.getGender());
         profile.setEmail(request.getEmail());
         profile.setLocation(request.getLocation());
-        profile.setCreatedAt(LocalDateTime.now());
-        profile.setUpdatedAt(LocalDateTime.now());
+        profile.setCreatedAt(Timestamp.now().toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        profile.setUpdatedAt(Timestamp.now().toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
         profile.setActive(true);
 
         userProfileRepository.save(profile);

@@ -1,8 +1,11 @@
 package com.tpg.connect.services;
 
 import com.tpg.connect.model.application.ApplicationSubmission;
+import com.tpg.connect.model.User;
 import com.tpg.connect.model.user.ApplicationStatus;
+import com.tpg.connect.model.user.UserStatus;
 import com.tpg.connect.repository.ApplicationSubmissionRepository;
+import com.tpg.connect.repository.UserRepository;
 import com.tpg.connect.util.ConnectIdGenerator;
 import com.google.cloud.Timestamp;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +21,9 @@ public class ApplicationService {
     
     @Autowired
     private ApplicationSubmissionRepository applicationRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     /**
      * Submit a new application
@@ -164,6 +170,10 @@ public class ApplicationService {
             
             ApplicationSubmission updated = applicationRepository.save(application);
             
+            // TODO: When payment processing is implemented, this should set UserStatus based on payment completion.
+            // For now, directly set to ACTIVE since we're not using payment processing yet.
+            updateUserStatusAfterApproval(application.getConnectId());
+            
             log.info("✅ Application approved successfully: {}", applicationId);
             return updated;
             
@@ -241,6 +251,35 @@ public class ApplicationService {
         } catch (Exception e) {
             log.error("❌ Error cleaning up legacy fields: ", e);
             throw new RuntimeException("Failed to cleanup legacy fields", e);
+        }
+    }
+    
+    /**
+     * Update user status to ACTIVE after application approval
+     */
+    private void updateUserStatusAfterApproval(String connectId) {
+        try {
+            log.info("🔄 Setting user status to ACTIVE for approved application: {}", connectId);
+            
+            User user = userRepository.findByConnectId(connectId).orElse(null);
+            if (user == null) {
+                log.warn("⚠️ User not found for connectId: {} - cannot set UserStatus", connectId);
+                return;
+            }
+            
+            // Set user status to ACTIVE and application status to APPROVED
+            user.setUserStatus(UserStatus.ACTIVE);
+            user.setApplicationStatus(ApplicationStatus.APPROVED);
+            user.setActive(true);
+            
+            userRepository.save(user);
+            
+            log.info("✅ User {} status set to ACTIVE after application approval", connectId);
+            
+        } catch (Exception e) {
+            log.error("❌ Error updating user status for {}: ", connectId, e);
+            // Don't throw exception here - application approval should still succeed
+            // even if user status update fails
         }
     }
     

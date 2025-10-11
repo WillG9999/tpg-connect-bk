@@ -1,6 +1,8 @@
 package com.tpg.connect.repository;
 
 import com.tpg.connect.model.User;
+import com.tpg.connect.model.user.ApplicationStatus;
+import com.tpg.connect.model.user.UserStatus;
 import com.google.cloud.Timestamp;
 
 import java.util.List;
@@ -43,4 +45,10 @@ public interface UserRepository {
     // Admin Operations
     List<User> findAllForAdmin(int page, int size, String search, String status, String sortBy, String sortDirection);
     long countForAdmin(String search, String status);
+    
+    // Status-based queries
+    List<User> findByApplicationStatus(ApplicationStatus applicationStatus);
+    List<User> findByUserStatus(UserStatus userStatus);
+    long countByApplicationStatus(ApplicationStatus applicationStatus);
+    long countByUserStatus(UserStatus userStatus);
 }
