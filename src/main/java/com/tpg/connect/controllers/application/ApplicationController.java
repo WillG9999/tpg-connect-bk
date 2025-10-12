@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.application;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.model.application.ApplicationSubmission;
 import com.tpg.connect.model.user.ApplicationStatus;
 import com.tpg.connect.services.ApplicationService;
@@ -14,9 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController

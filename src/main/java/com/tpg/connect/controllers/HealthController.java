@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

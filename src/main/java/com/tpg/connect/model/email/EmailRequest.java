@@ -1,6 +1,7 @@
 package com.tpg.connect.model.email;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmailRequest {
@@ -22,6 +24,7 @@ public class EmailRequest {
     private String replyTo;
     private List<String> cc;
     private List<String> bcc;
+    @Builder.Default
     private boolean isHtml = true;
     
     public EmailRequest(String to, EmailTemplate.TemplateType templateType, Map<String, Object> templateData) {

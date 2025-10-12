@@ -1,8 +1,7 @@
 package com.tpg.connect.controllers.match;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
-import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
 import com.tpg.connect.services.AuthenticationService;
 import com.tpg.connect.services.UserService;
@@ -19,7 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController

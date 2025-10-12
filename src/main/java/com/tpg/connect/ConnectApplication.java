@@ -11,19 +11,23 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 public class ConnectApplication {
-	
-	// TODO: Initialize payment gateway services (Stripe/PayPal/Apple Pay)
-	// TODO: Configure Firebase Cloud Messaging for push notifications
-	// TODO: Set up subscription management and webhook endpoints
+
+	//TODO: Set up comprehensive testing infrastructure with unit tests, integration tests, and E2E tests
+	//TODO: Implement DevOps pipeline and deployment automation with CI/CD
+	//TODO: Remove all keys and secrets from codebase and implement proper secret management
+	//TODO: Generate test data or create real test accounts for validation
+	//TODO: Initialize payment gateway services (Stripe/PayPal/Apple Pay)
+	//TODO: Configure Firebase Cloud Messaging for push notifications
+	//TODO: Set up subscription management and webhook endpoints
 
 	private static final Logger logger = LoggerFactory.getLogger(ConnectApplication.class);
 
 	public static void main(String[] args) {
-		// Set default profile to 'dev' if no profile is specified
+		// Set default profile to 'bld' if no profile is specified
 		if (System.getProperty("spring.profiles.active") == null && 
 			System.getenv("SPRING_PROFILES_ACTIVE") == null) {
-			System.setProperty("spring.profiles.active", "dev");
-			logger.info("No active profile set, defaulting to 'dev' profile");
+			System.setProperty("spring.profiles.active", "bld");
+			logger.info("No active profile set, defaulting to 'bld' profile");
 		}
 
 		ConfigurableApplicationContext context = SpringApplication.run(ConnectApplication.class, args);

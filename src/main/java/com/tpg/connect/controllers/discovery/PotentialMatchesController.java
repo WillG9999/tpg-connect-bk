@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.discovery;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.api.PotentialMatchesResponse;
 import com.tpg.connect.model.dto.MatchActionsRequest;

@@ -398,8 +398,8 @@ mvn clean compile
 # Run tests
 mvn test
 
-# Run with dev profile  
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# Run with bld profile  
+mvn spring-boot:run -Dspring-boot.run.profiles=bld
 
 # Package application
 mvn clean package
@@ -409,7 +409,7 @@ java -Dspring.profiles.active=prod -jar target/Connect-0.0.1-SNAPSHOT.jar
 ```
 
 #### Maven Profiles
-- **`dev`** - Development profile with enhanced logging and test data
+- **`bld`** - Build/Development profile with enhanced logging and test data
 - **`test`** - Testing profile for automated tests
 - **`prod`** - Production profile with optimized settings
 
@@ -534,7 +534,7 @@ spring.jackson.serialization.write-dates-as-timestamps=false
 spring.jackson.deserialization.fail-on-unknown-properties=false
 ```
 
-#### Development Profile (`application-dev.yaml`)
+#### Build/Development Profile (`application-bld.yaml`)
 ```yaml
 # Firebase Configuration
 firebase:
@@ -598,7 +598,7 @@ ConnectBackend/
 │   │   └── exceptions/              # Exception handling
 │   └── resources/
 │       ├── application.properties   # Main configuration
-│       ├── application-dev.yaml     # Development profile
+│       ├── application-bld.yaml     # Build/Development profile
 │       └── firebase/                # Firebase configuration
 └── src/test/
     ├── java/                        # Java test files
@@ -650,7 +650,7 @@ Connect_CWA/
 ### Backend Setup
 1. Clone repository
 2. Configure Firebase service account key
-3. Update `application-dev.yaml` with Firebase settings
+3. Update `application-bld.yaml` with Firebase settings
 4. Run `mvn clean install`
 5. Start with `mvn spring-boot:run`
 6. Access Swagger UI at `http://localhost:8080/swagger-ui.html`

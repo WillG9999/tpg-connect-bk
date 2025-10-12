@@ -1,0 +1,80 @@
+# Connect Dating Application - Build/Development Environment Configuration
+# Used for local development with developer-friendly settings and dummy email support
+
+spring:
+  config:
+    activate:
+      on-profile: bld
+
+# Feature Flags - Build/Development Environment (Developer-friendly)
+app:
+  features:
+    email-verification: false      # Disable for easier local development with dummy emails
+    email-service: true           # Enable email service for testing
+    push-notifications: false     # Disable push notifications in development
+    premium-features: true        # Enable premium features for testing
+    admin-features: true          # Enable admin features for testing
+    realtime-messaging: true      # Enable real-time features for testing
+    analytics: false              # Disable analytics in development
+    file-uploads: true            # Enable file uploads for testing
+    social-sharing: false         # Disable social sharing in development
+    safety-features: true         # Enable safety features for testing
+  
+  # Development Settings
+  dev:
+    expose-reset-tokens: true     # Expose reset tokens for easier development
+    auto-verify-users: true       # Automatically verify all users in bld environment
+    default-test-password: "Test123!"  # Default password for easier testing
+  
+  # Frontend Configuration
+  frontend:
+    base-url: "http://localhost:3000"  # Frontend URL for deep-links
+
+# Email Configuration - Development (real email for testing)
+email:
+  enabled: false  # Disable in development to avoid sending real emails
+  provider: smtp
+  from-email: thepromeutheusgroup@gmail.com
+  from-name: "Connect"
+  
+  # Gmail SMTP Settings
+  smtp-host: smtp.gmail.com
+  smtp-port: 587
+  username: thepromeutheusgroup@gmail.com
+  password: lmtr nxvu dvrc oqim
+  authentication-enabled: true
+  start-tls-enabled: true
+  ssl-enabled: false
+  
+  # Email Settings - More relaxed for development
+  connection-timeout: 45000
+  read-timeout: 45000
+  max-retries: 5
+  debug-enabled: true
+
+# Logging Configuration - Verbose for development
+logging:
+  level:
+    root: INFO
+    com.tpg.connect: DEBUG
+    org.springframework.web: DEBUG
+
+# Firebase Configuration (Development)
+firebase:
+  config:
+    path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+  database:
+    url: https://connect-ea4c2-default-rtdb.firebaseio.com
+  storage:
+    bucket: connect-ea4c2.firebasestorage.app
+  project:
+    id: connect-ea4c2
+
+# Google Cloud Storage (Development)
+gcp:
+  project:
+    id: connect-ea4c2
+  storage:
+    bucket: connect-ea4c2.firebasestorage.app
+    credentials:
+      location: /Users/willgraham/Desktop/keys/firebase-service-account.json

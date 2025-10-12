@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.premium;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.SubscriptionRequest;
 import com.tpg.connect.model.premium.Subscription;

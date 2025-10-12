@@ -1,0 +1,74 @@
+# Connect Dating Application - Pre-Production Environment Configuration
+# Used for staging environment that mirrors production settings with safety controls
+
+spring:
+  config:
+    activate:
+      on-profile: pre
+
+# Feature Flags - Pre-Production Environment (Production-like with safety)
+app:
+  features:
+    email-verification: true       # Enable email verification like production
+    email-service: true           # Enable email service
+    push-notifications: true      # Enable push notifications
+    premium-features: true        # Enable premium features for testing
+    admin-features: true          # Enable admin features
+    realtime-messaging: true      # Enable real-time features
+    analytics: true               # Enable analytics for testing
+    file-uploads: true            # Enable file uploads
+    social-sharing: true          # Enable social sharing
+    safety-features: true         # Enable safety features
+  
+  # Development Settings
+  dev:
+    expose-reset-tokens: true     # Expose tokens for pre-prod testing
+
+# Email Configuration - Real email service with staging markers
+email:
+  enabled: true
+  provider: smtp
+  from-email: thepromeutheusgroup@gmail.com
+  from-name: Connect Dating App - Staging
+  
+  # Gmail SMTP Settings
+  smtp-host: smtp.gmail.com
+  smtp-port: 587
+  username: thepromeutheusgroup@gmail.com
+  password: lmtr nxvu dvrc oqim
+  authentication-enabled: true
+  start-tls-enabled: true
+  ssl-enabled: false
+  
+  # Email Settings - Production-like settings
+  connection-timeout: 30000
+  read-timeout: 30000
+  max-retries: 3
+  debug-enabled: false
+
+# Logging Configuration - Production-like with some debug info
+logging:
+  level:
+    root: INFO
+    com.tpg.connect: DEBUG
+    org.springframework: WARN
+
+# Firebase Configuration - Pre-production database (could be separate instance)
+firebase:
+  config:
+    path: /Users/willgraham/Desktop/keys/firebase-service-account.json
+  database:
+    url: https://connect-ea4c2-default-rtdb.firebaseio.com
+  storage:
+    bucket: connect-ea4c2.firebasestorage.app
+  project:
+    id: connect-ea4c2
+
+# Google Cloud Storage - Pre-production
+gcp:
+  project:
+    id: connect-ea4c2
+  storage:
+    bucket: connect-ea4c2.firebasestorage.app
+    credentials:
+      location: /Users/willgraham/Desktop/keys/firebase-service-account.json

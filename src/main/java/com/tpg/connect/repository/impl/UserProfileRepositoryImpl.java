@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @Repository
 public class UserProfileRepositoryImpl implements UserProfileRepository {
 
-    private static final String COLLECTION_NAME = "user_profiles";
+    private static final String COLLECTION_NAME = "userProfiles";
     
     @Autowired
     private Firestore firestore;

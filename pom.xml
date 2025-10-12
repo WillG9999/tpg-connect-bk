@@ -33,9 +33,9 @@
 	</properties>
 	<profiles>
 		<profile>
-			<id>dev</id>
+			<id>bld</id>
 			<properties>
-				<spring.profiles.active>dev</spring.profiles.active>
+				<spring.profiles.active>bld</spring.profiles.active>
 				<groups>unit,integration</groups>
 			</properties>
 		</profile>

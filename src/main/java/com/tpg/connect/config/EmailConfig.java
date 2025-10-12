@@ -1,5 +1,9 @@
 package com.tpg.connect.config;
 
+import com.tpg.connect.services.email.EmailProvider;
+import com.tpg.connect.services.email.SMTPEmailProvider;
+import com.tpg.connect.services.email.SendGridEmailProvider;
+import com.tpg.connect.services.email.AWSEmailProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +60,22 @@ public class EmailConfig {
         props.put("mail.debug", "false");
 
         return mailSender;
+    }
+
+    @Bean
+    public EmailProvider emailProvider(SMTPEmailProvider smtpEmailProvider, 
+                                      SendGridEmailProvider sendGridEmailProvider,
+                                      AWSEmailProvider awsEmailProvider) {
+        switch (emailProvider.toLowerCase()) {
+            case "sendgrid":
+                return sendGridEmailProvider;
+            case "aws":
+            case "ses":
+                return awsEmailProvider;
+            case "smtp":
+            default:
+                return smtpEmailProvider;
+        }
     }
 
     public String getEmailProvider() {

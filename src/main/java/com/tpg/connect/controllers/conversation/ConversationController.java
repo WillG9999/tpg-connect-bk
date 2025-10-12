@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.conversation;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.conversation.Conversation;
 import com.tpg.connect.model.conversation.Message;

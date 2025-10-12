@@ -14,10 +14,10 @@ import java.util.Arrays;
 import java.util.List;
 
 @Configuration
-@Profile("dev")
-public class DevConfig {
+@Profile("bld")
+public class BldConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(DevConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(BldConfig.class);
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000}")
     private String allowedOrigins;
@@ -35,9 +35,9 @@ public class DevConfig {
     private long maxAge;
 
     @Bean
-    @Profile("dev")
+    @Profile("bld")
     public CorsConfigurationSource corsConfigurationSource() {
-        logger.info("Configuring CORS for development environment");
+        logger.info("Configuring CORS for build/development environment");
         
         CorsConfiguration configuration = new CorsConfiguration();
         
@@ -69,20 +69,20 @@ public class DevConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         
-        logger.info("CORS configuration completed for development");
+        logger.info("CORS configuration completed for build/development");
         return source;
     }
 
     @Bean
-    @Profile("dev")
-    public DevProperties devProperties() {
-        DevProperties properties = new DevProperties();
+    @Profile("bld")
+    public BldProperties bldProperties() {
+        BldProperties properties = new BldProperties();
         properties.setMockEmailService(false);
         properties.setCreateSampleData(true);
         properties.setDetailedErrorResponses(true);
         properties.setAutoCreateTestUsers(true);
         
-        logger.info("Development properties configured:");
+        logger.info("Build/Development properties configured:");
         logger.info("  Mock email service: {}", properties.isMockEmailService());
         logger.info("  Create sample data: {}", properties.isCreateSampleData());
         logger.info("  Detailed error responses: {}", properties.isDetailedErrorResponses());
@@ -91,7 +91,7 @@ public class DevConfig {
         return properties;
     }
 
-    public static class DevProperties {
+    public static class BldProperties {
         private boolean mockEmailService;
         private boolean createSampleData;
         private boolean detailedErrorResponses;

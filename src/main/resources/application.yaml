@@ -1,0 +1,111 @@
+# Connect Dating Application - Main Configuration
+# This file contains the default configuration for all environments
+
+spring:
+  application:
+    name: freedom
+  
+  # Profile Configuration
+  profiles:
+    active: bld
+  
+  # Jackson JSON Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      write-date-keys-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+  
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names: userProfiles,matches,userMatches,conversations,messages,userBlocked
+  
+  # Disable Spring Cloud GCP auto-configuration to avoid credentials conflicts
+  cloud:
+    gcp:
+      firestore:
+        enabled: false
+      datastore:
+        enabled: false
+      pubsub:
+        enabled: false
+      parametermanager:
+        enabled: false
+  
+  # MongoDB auto-configuration exclusion
+  autoconfigure:
+    exclude: 
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+
+# Server Configuration
+server:
+  port: 8080
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# JWT Configuration
+jwt:
+  secret: mySecretKeyForJWTTokenGenerationThatIsLongEnough123456789ABCDEF
+
+app:
+  # JWT Token Settings
+  jwt:
+    access-token-expiration: 3600000      # 1 hour
+    refresh-token-expiration: 604800000   # 7 days
+    token-prefix: Bearer 
+    header-string: Authorization
+  
+  # Feature Flags - Production Defaults
+  features:
+    email-verification: true        # Require email verification for login
+    email-service: true            # Enable email sending functionality
+    push-notifications: true       # Enable push notification features
+    premium-features: true         # Enable subscription and premium features
+    admin-features: true           # Enable admin functionality
+    realtime-messaging: true       # Enable WebSocket and real-time messaging
+    analytics: true                # Enable user analytics and tracking
+    file-uploads: true             # Enable photo and file upload functionality
+    social-sharing: true           # Enable social sharing features
+    safety-features: true          # Enable user reporting and safety features
+  
+  # Development Settings
+  dev:
+    expose-reset-tokens: false     # Don't expose reset tokens in production
+
+# Email Configuration - Gmail SMTP (Production defaults)
+email:
+  enabled: true
+  provider: smtp
+  from-email: thepromeutheusgroup@gmail.com
+  from-name: Connect Dating App
+  
+  # Gmail SMTP Settings
+  smtp-host: smtp.gmail.com
+  smtp-port: 587
+  username: thepromeutheusgroup@gmail.com
+  password: lmtr nxvu dvrc oqim
+  authentication-enabled: true
+  start-tls-enabled: true
+  ssl-enabled: false
+  
+  # Email Settings
+  connection-timeout: 30000
+  read-timeout: 30000
+  max-retries: 3
+  debug-enabled: false
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.tpg.connect: INFO

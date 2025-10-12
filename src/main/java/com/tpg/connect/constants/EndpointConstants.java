@@ -1,4 +1,4 @@
-package com.tpg.connect.constants.enums;
+package com.tpg.connect.constants;
 
 public final class EndpointConstants {
 

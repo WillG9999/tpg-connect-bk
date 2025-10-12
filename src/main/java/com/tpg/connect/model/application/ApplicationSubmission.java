@@ -31,13 +31,13 @@ public class ApplicationSubmission {
     private String education;
     
     // Contact Information
-    private String phoneNumber;
     private String linkedinProfile;
     
     // Application Content
     private String bio;
     private List<String> interests;
     private String whyJoinReason;
+    private String applicationNotes; // Additional information provided by applicant
     
     // Photos (URLs to Firebase Storage in applications/{connectId}/ folder)
     private List<String> photoUrls;

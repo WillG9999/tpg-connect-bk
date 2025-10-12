@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.settings;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.AccountSettingsRequest;
 import com.tpg.connect.model.dto.NotificationSettingsRequest;
@@ -196,6 +196,34 @@ public class AccountSettingsController extends BaseController implements Account
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("success", false, "message", "Failed to request data export: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Initiate password change from settings page
+     * This generates a token and redirects to the unified password reset flow
+     */
+    @PostMapping("/change-password/request")
+    public ResponseEntity<Map<String, Object>> requestPasswordChange(@RequestHeader("Authorization") String authHeader) {
+        String userId = validateAndExtractUserId(authHeader);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "message", "Unauthorized"));
+        }
+
+        try {
+            // Generate token for password change (same flow as forgot password)
+            String resetToken = authService.generatePasswordChangeTokenForLoggedInUser(userId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password change token generated",
+                "token", resetToken,
+                "expiresInMinutes", 60,
+                "redirectTo", "/reset-password?token=" + resetToken
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("success", false, "message", "Failed to initiate password change: " + e.getMessage()));
         }
     }
 

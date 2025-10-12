@@ -62,7 +62,7 @@ export FIREBASE_DATABASE_URL=https://connect-dev-default-rtdb.firebaseio.com
 ### 6. Testing Connection
 Once configured, you can test the Firebase connection by running:
 ```bash
-mvn spring-boot:run -Dspring.profiles.active=dev
+mvn spring-boot:run -Dspring.profiles.active=bld
 ```
 
 Check the logs for successful Firebase initialization.

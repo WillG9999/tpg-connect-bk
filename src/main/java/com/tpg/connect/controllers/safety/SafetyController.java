@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.safety;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.dto.BlockUserRequest;
 import com.tpg.connect.model.dto.ReportUserRequest;

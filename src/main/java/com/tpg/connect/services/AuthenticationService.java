@@ -3,12 +3,15 @@ package com.tpg.connect.services;
 import com.tpg.connect.repository.UserProfileRepository;
 import com.tpg.connect.repository.UserRepository;
 import com.tpg.connect.util.ConnectIdGenerator;
+import com.tpg.connect.config.FeatureFlagConfig;
 import com.tpg.connect.model.api.LoginResponse;
 import com.tpg.connect.model.api.RegisterResponse;
 import com.tpg.connect.model.dto.ChangePasswordRequest;
 import com.tpg.connect.model.dto.LoginRequest;
 import com.tpg.connect.model.dto.RegisterRequest;
 import com.tpg.connect.model.dto.ResetPasswordRequest;
+import com.tpg.connect.model.dto.TokenBasedResetRequest;
+import com.tpg.connect.model.dto.TokenVerificationResponse;
 import com.tpg.connect.model.User;
 import com.tpg.connect.model.dto.UserProfileDTO;
 import com.tpg.connect.model.user.CompleteUserProfile;
@@ -52,6 +55,9 @@ public class AuthenticationService {
     @Autowired
     private ConnectIdGenerator connectIdGenerator;
 
+    @Autowired
+    private FeatureFlagConfig featureFlagConfig;
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     @Value("${jwt.secret:mySecretKey}")
@@ -65,6 +71,12 @@ public class AuthenticationService {
     
     @Value("${app.dev.expose-reset-tokens:false}")
     private boolean exposeResetTokens;
+    
+    @Value("${app.dev.auto-verify-users:false}")
+    private boolean autoVerifyUsers;
+    
+    @Value("${app.dev.default-test-password:}")
+    private String defaultTestPassword;
 
     // In-memory store for invalidated tokens (in production, use Redis)
     private final Set<String> invalidatedTokens = ConcurrentHashMap.newKeySet();
@@ -81,6 +93,13 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Passwords do not match");
         }
 
+        // In bld profile, override password with test password if configured
+        String actualPassword = request.getPassword();
+        if (isDevelopmentMode() && !defaultTestPassword.isEmpty()) {
+            actualPassword = defaultTestPassword;
+            System.out.println("🛠️ Development mode: Using default test password for user registration");
+        }
+
         // Validate age
         if (!isUserOldEnough(request.getDateOfBirth())) {
             throw new IllegalArgumentException("User must be at least 18 years old");
@@ -95,10 +114,10 @@ public class AuthenticationService {
         User user = User.builder()
                 .connectId(connectIdGenerator.generateUniqueConnectId(userRepository))
                 .email(request.getEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .passwordHash(passwordEncoder.encode(actualPassword))
                 .createdAt(Timestamp.now())
                 .updatedAt(Timestamp.now())
-                .emailVerified(false)
+                .emailVerified(autoVerifyUsers) // Auto-verify in development mode
                 .active(true)
                 .role("USER")
                 // Application status will be set when user submits application
@@ -121,11 +140,24 @@ public class AuthenticationService {
 
         userProfileRepository.save(profile);
 
-        // Generate email verification token
-        String verificationToken = generateEmailVerificationToken(user.getConnectId(), request.getEmail());
-        
-        // Send verification email
-        emailService.sendEmailVerification(request.getEmail(), request.getFirstName(), verificationToken);
+        // Generate email verification token and send email only if features are enabled
+        String verificationToken = null;
+        if (featureFlagConfig.isEmailService() && featureFlagConfig.isEmailVerification() && !autoVerifyUsers) {
+            verificationToken = generateEmailVerificationToken(user.getConnectId(), request.getEmail());
+            emailService.sendEmailVerification(request.getEmail(), request.getFirstName(), verificationToken);
+        } else if (featureFlagConfig.isEmailVerification() && !featureFlagConfig.isEmailService() && !autoVerifyUsers) {
+            // If email verification is required but email service is disabled, generate token but don't send
+            verificationToken = generateEmailVerificationToken(user.getConnectId(), request.getEmail());
+        } else {
+            // If email verification is disabled or auto-verify is enabled, mark user as verified immediately
+            if (!user.getEmailVerified()) {
+                user.setEmailVerified(true);
+                userRepository.updateUser(user);
+            }
+            if (autoVerifyUsers) {
+                System.out.println("🛠️ Development mode: Auto-verified user email for " + request.getEmail());
+            }
+        }
 
         // Generate JWT token for immediate login
         String accessToken = generateAccessToken(user.getConnectId(), request.getEmail());
@@ -133,14 +165,24 @@ public class AuthenticationService {
         // Create UserProfileDTO for response (should work with fixed Jackson config)
         UserProfileDTO profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
         
-        // In development mode, include verification token for testing
-        if (isDevelopmentMode()) {
-            return new RegisterResponse(true, "Registration successful. Please verify your email.", 
-                                      accessToken, profileDTO, verificationToken);
+        // Create appropriate response message based on feature flags
+        String message;
+        if (autoVerifyUsers) {
+            message = "Registration successful. Email automatically verified in development environment.";
+        } else if (!featureFlagConfig.isEmailVerification()) {
+            message = "Registration successful. Email verification is disabled in this environment.";
+        } else if (!featureFlagConfig.isEmailService()) {
+            message = "Registration successful. Email verification is required but email service is disabled.";
+        } else {
+            message = "Registration successful. Please check your email for verification instructions.";
         }
         
-        return new RegisterResponse(true, "Registration successful. Please verify your email.", 
-                                  accessToken, profileDTO);
+        // In development mode, include verification token for testing
+        if (isDevelopmentMode() && verificationToken != null) {
+            return new RegisterResponse(true, message, accessToken, profileDTO, verificationToken);
+        }
+        
+        return new RegisterResponse(true, message, accessToken, profileDTO);
     }
 
     public LoginResponse loginUser(LoginRequest request) {
@@ -154,8 +196,24 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Account is deactivated");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        // Verify password - in development mode, also accept test password
+        boolean passwordValid = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+        
+        // In bld profile, also allow login with default test password
+        if (!passwordValid && isDevelopmentMode() && !defaultTestPassword.isEmpty()) {
+            passwordValid = request.getPassword().equals(defaultTestPassword);
+            if (passwordValid) {
+                System.out.println("🛠️ Development mode: Login accepted with default test password for " + request.getEmail());
+            }
+        }
+        
+        if (!passwordValid) {
             throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        // Check email verification if feature flag is enabled
+        if (featureFlagConfig.isEmailVerification() && !user.getEmailVerified()) {
+            throw new IllegalArgumentException("EMAIL_NOT_VERIFIED: Please verify your email address before logging in");
         }
 
         // Check application status - determine where to direct users after login
@@ -300,6 +358,7 @@ public class AuthenticationService {
         return null;
     }
 
+    //TODO: Complete email verification system and forgot password functionality with secure token-based reset
     public void resetPassword(ResetPasswordRequest request) {
         PasswordResetToken resetToken = passwordResetTokens.get(request.getToken());
         if (resetToken == null || resetToken.isExpired()) {
@@ -531,6 +590,7 @@ public class AuthenticationService {
 
         public String getUserId() { return userId; }
         public String getEmail() { return email; }
+        public LocalDateTime getExpiryTime() { return expiryTime; }
         public boolean isExpired() { return LocalDateTime.now().isAfter(expiryTime); }
     }
 
@@ -585,5 +645,103 @@ public class AuthenticationService {
         ));
         
         return dto;
+    }
+
+    /**
+     * Verify password reset token and return user context
+     */
+    public TokenVerificationResponse verifyPasswordResetToken(String token) {
+        PasswordResetToken resetToken = passwordResetTokens.get(token);
+        
+        if (resetToken == null) {
+            return TokenVerificationResponse.builder()
+                .valid(false)
+                .message("Invalid reset token")
+                .expired(false)
+                .build();
+        }
+        
+        if (resetToken.isExpired()) {
+            // Clean up expired token
+            passwordResetTokens.remove(token);
+            return TokenVerificationResponse.builder()
+                .valid(false)
+                .message("Reset token has expired")
+                .expired(true)
+                .build();
+        }
+        
+        // Token is valid, return user context
+        String maskedEmail = maskEmail(resetToken.getEmail());
+        long expiresInMinutes = java.time.Duration.between(
+            LocalDateTime.now(), 
+            resetToken.getExpiryTime()
+        ).toMinutes();
+        
+        return TokenVerificationResponse.builder()
+            .valid(true)
+            .message("Token is valid")
+            .email(maskedEmail)
+            .expired(false)
+            .expiresInMinutes(expiresInMinutes)
+            .build();
+    }
+
+    /**
+     * Reset password using token-based request (unified flow)
+     */
+    public void resetPasswordWithToken(TokenBasedResetRequest request) {
+        PasswordResetToken resetToken = passwordResetTokens.get(request.getToken());
+        if (resetToken == null || resetToken.isExpired()) {
+            throw new IllegalArgumentException("Invalid or expired reset token");
+        }
+
+        Optional<User> userOpt = userRepository.findByConnectId(resetToken.getUserId());
+        if (!userOpt.isPresent() || !userOpt.get().getActive()) {
+            throw new IllegalArgumentException("User not found or inactive");
+        }
+
+        User user = userOpt.get();
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(Timestamp.now());
+        userRepository.updateUser(user);
+
+        // Remove used token
+        passwordResetTokens.remove(request.getToken());
+
+        // Send confirmation email
+        emailService.sendPasswordResetConfirmation(user.getEmail());
+    }
+
+    /**
+     * Generate password change token for logged-in users
+     * This bypasses email sending and returns token directly
+     */
+    public String generatePasswordChangeTokenForLoggedInUser(String userId) {
+        Optional<User> userOpt = userRepository.findByConnectId(userId);
+        if (!userOpt.isPresent() || !userOpt.get().getActive()) {
+            throw new IllegalArgumentException("User not found or inactive");
+        }
+
+        User user = userOpt.get();
+        return generatePasswordResetToken(user.getConnectId(), user.getEmail());
+    }
+
+    /**
+     * Mask email for privacy (e.g., j***@gmail.com)
+     */
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***@***.com";
+        }
+        
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domain = parts[1];
+        
+        String maskedLocal = localPart.length() > 1 ? 
+            localPart.charAt(0) + "***" : "***";
+            
+        return maskedLocal + "@" + domain;
     }
 }

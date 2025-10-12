@@ -1,6 +1,6 @@
 package com.tpg.connect.controllers.profile;
 
-import com.tpg.connect.constants.enums.EndpointConstants;
+import com.tpg.connect.constants.EndpointConstants;
 import com.tpg.connect.controllers.BaseController;
 import com.tpg.connect.model.api.ProfileUpdateRequest;
 import com.tpg.connect.model.api.ProfileUpdateResponse;
