@@ -105,15 +105,18 @@ public class AuthenticationService {
             throw new IllegalArgumentException("User must be at least 18 years old");
         }
 
-        // Check if email already exists
-        if (userRepository.existsByEmail(request.getEmail())) {
+        // Normalize email to lowercase for case-insensitive comparison
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        
+        // Check if email already exists (using normalized email)
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Email already registered");
         }
 
         // Create user account
         User user = User.builder()
                 .connectId(connectIdGenerator.generateUniqueConnectId(userRepository))
-                .email(request.getEmail())
+                .email(normalizedEmail)
                 .passwordHash(passwordEncoder.encode(actualPassword))
                 .createdAt(Timestamp.now())
                 .updatedAt(Timestamp.now())
@@ -132,7 +135,7 @@ public class AuthenticationService {
         profile.setLastName(request.getLastName());
         profile.setDateOfBirth(LocalDate.parse(request.getDateOfBirth()));
         profile.setGender(request.getGender());
-        profile.setEmail(request.getEmail());
+        profile.setEmail(normalizedEmail);
         profile.setLocation(request.getLocation());
         profile.setCreatedAt(Timestamp.now().toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
         profile.setUpdatedAt(Timestamp.now().toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
@@ -186,7 +189,9 @@ public class AuthenticationService {
     }
 
     public LoginResponse loginUser(LoginRequest request) {
-        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        // Normalize email to lowercase for case-insensitive lookup
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (!userOpt.isPresent()) {
             throw new IllegalArgumentException("Invalid email or password");
         }
@@ -203,7 +208,7 @@ public class AuthenticationService {
         if (!passwordValid && isDevelopmentMode() && !defaultTestPassword.isEmpty()) {
             passwordValid = request.getPassword().equals(defaultTestPassword);
             if (passwordValid) {
-                System.out.println("🛠️ Development mode: Login accepted with default test password for " + request.getEmail());
+                System.out.println("🛠️ Development mode: Login accepted with default test password for " + normalizedEmail);
             }
         }
         
@@ -347,11 +352,13 @@ public class AuthenticationService {
     }
 
     public String initiatePasswordReset(String email) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        // Normalize email to lowercase for case-insensitive lookup
+        String normalizedEmail = email.toLowerCase().trim();
+        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (userOpt.isPresent() && userOpt.get().getActive()) {
             User user = userOpt.get();
-            String resetToken = generatePasswordResetToken(user.getConnectId(), email);
-            emailService.sendPasswordReset(email, resetToken);
+            String resetToken = generatePasswordResetToken(user.getConnectId(), normalizedEmail);
+            emailService.sendPasswordReset(normalizedEmail, resetToken);
             return resetToken; // Return token for development/testing
         }
         // Always succeed for security (don't reveal if email exists)
@@ -446,12 +453,14 @@ public class AuthenticationService {
     }
 
     public void resendEmailVerification(String email) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        // Normalize email to lowercase for case-insensitive lookup
+        String normalizedEmail = email.toLowerCase().trim();
+        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (userOpt.isPresent() && userOpt.get().getActive() && !userOpt.get().getEmailVerified()) {
             User user = userOpt.get();
             CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
-            String verificationToken = generateEmailVerificationToken(user.getConnectId(), email);
-            emailService.sendEmailVerification(email, profile.getFirstName(), verificationToken);
+            String verificationToken = generateEmailVerificationToken(user.getConnectId(), normalizedEmail);
+            emailService.sendEmailVerification(normalizedEmail, profile.getFirstName(), verificationToken);
         }
         // Always succeed for security
     }

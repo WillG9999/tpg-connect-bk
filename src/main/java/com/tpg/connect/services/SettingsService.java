@@ -67,15 +67,18 @@ public class SettingsService {
 
         // Update email if changed
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            // Normalize email to lowercase for case-insensitive comparison
+            String normalizedEmail = request.getEmail().toLowerCase().trim();
+            
             // Check if new email is already in use
-            User existingUser = userRepository.findByEmail(request.getEmail()).orElse(null);
+            User existingUser = userRepository.findByEmail(normalizedEmail).orElse(null);
             if (existingUser != null && !existingUser.getId().equals(userId)) {
                 throw new IllegalArgumentException("Email is already in use");
             }
             
-            user.setEmail(request.getEmail());
+            user.setEmail(normalizedEmail);
             user.setEmailVerified(false); // Require re-verification for new email
-            emailService.sendEmailVerification(request.getEmail(), "User", UUID.randomUUID().toString());
+            emailService.sendEmailVerification(normalizedEmail, "User", UUID.randomUUID().toString());
         }
 
         // Update other settings (placeholder implementations)

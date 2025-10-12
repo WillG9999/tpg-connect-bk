@@ -207,7 +207,6 @@ public class AdminController {
             response.put("status", approved.getStatus().name());
             response.put("message", "Application approved successfully");
             
-            // TODO: Send approval notification email to applicant
             // TODO: Trigger payment flow setup
             
             log.info("✅ Application {} approved by admin {}", applicationId, adminId);

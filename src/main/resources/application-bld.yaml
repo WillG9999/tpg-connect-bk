@@ -5,6 +5,24 @@ spring:
   config:
     activate:
       on-profile: bld
+  
+  # DevTools Configuration for Firebase Compatibility
+  devtools:
+    restart:
+      enabled: true
+      exclude: |
+        com/google/firebase/**,
+        com/google/cloud/**,
+        firebase/**,
+        **/FirebaseConfig.class,
+        **/firestore/**
+      additional-exclude: |
+        com/tpg/connect/config/FirebaseConfig.class,
+        com/tpg/connect/repository/impl/**Repository*.class
+      trigger-file: .reloadtrigger
+    livereload:
+      enabled: true
+      port: 35729
 
 # Feature Flags - Build/Development Environment (Developer-friendly)
 app:

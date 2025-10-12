@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
+import jakarta.annotation.PreDestroy;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -44,6 +45,11 @@ public class FirebaseConfig {
 
     @Value("${firebase.project.id:#{null}}")
     private String projectId;
+    
+    // Instance variables to track client lifecycle
+    private FirebaseApp firebaseAppInstance;
+    private Firestore firestoreInstance;
+    private volatile boolean isShuttingDown = false;
 
     @Bean
     public FirebaseApp firebaseApp() throws IOException {
@@ -80,22 +86,28 @@ public class FirebaseConfig {
             }
 
             FirebaseOptions options = optionsBuilder.build();
-            FirebaseApp app = FirebaseApp.initializeApp(options);
+            firebaseAppInstance = FirebaseApp.initializeApp(options);
             
             logger.info("Firebase initialized successfully with storage bucket: {}", storageBucket);
-            return app;
+            return firebaseAppInstance;
         }
         logger.info("Firebase app already initialized, returning existing instance");
-        return FirebaseApp.getInstance();
+        firebaseAppInstance = FirebaseApp.getInstance();
+        return firebaseAppInstance;
     }
 
     @Bean
     public Firestore firestore() throws IOException {
         logger.info("Creating Firestore client");
         try {
-            Firestore firestore = FirestoreClient.getFirestore(firebaseApp());
+            if (isShuttingDown) {
+                logger.warn("Application is shutting down, skipping Firestore client creation");
+                throw new RuntimeException("Application is shutting down");
+            }
+            
+            firestoreInstance = FirestoreClient.getFirestore(firebaseApp());
             logger.info("Firestore client created successfully");
-            return firestore;
+            return firestoreInstance;
         } catch (Exception e) {
             logger.error("Failed to create Firestore client: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize Firestore", e);
@@ -136,5 +148,82 @@ public class FirebaseConfig {
                 .setProjectId(projectId)
                 .build()
                 .getService();
+    }
+    
+    /**
+     * Clean shutdown of Firebase resources
+     */
+    @PreDestroy
+    public void cleanup() {
+        logger.info("🧹 Starting Firebase cleanup...");
+        isShuttingDown = true;
+        
+        try {
+            // Close Firestore client if it exists
+            if (firestoreInstance != null) {
+                try {
+                    firestoreInstance.close();
+                    logger.info("✅ Firestore client closed successfully");
+                } catch (Exception e) {
+                    logger.warn("⚠️ Error closing Firestore client: {}", e.getMessage());
+                }
+            }
+            
+            // Delete Firebase app instances to free resources
+            if (firebaseAppInstance != null) {
+                try {
+                    firebaseAppInstance.delete();
+                    logger.info("✅ Firebase app instance deleted successfully");
+                } catch (Exception e) {
+                    logger.warn("⚠️ Error deleting Firebase app: {}", e.getMessage());
+                }
+            }
+            
+            // Clean up all Firebase apps as fallback
+            FirebaseApp.getApps().forEach(app -> {
+                try {
+                    app.delete();
+                    logger.debug("🧹 Cleaned up Firebase app: {}", app.getName());
+                } catch (Exception e) {
+                    logger.warn("⚠️ Error cleaning up Firebase app {}: {}", app.getName(), e.getMessage());
+                }
+            });
+            
+            logger.info("✅ Firebase cleanup completed");
+            
+        } catch (Exception e) {
+            logger.error("❌ Error during Firebase cleanup: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Check if Firestore connection is healthy
+     */
+    public boolean isFirestoreHealthy() {
+        if (isShuttingDown || firestoreInstance == null) {
+            return false;
+        }
+        
+        try {
+            // Simple health check - attempt to access a collection
+            firestoreInstance.collection("health-check").limit(1);
+            return true;
+        } catch (Exception e) {
+            logger.warn("🔴 Firestore health check failed: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get current connection status for monitoring
+     */
+    public String getConnectionStatus() {
+        if (isShuttingDown) {
+            return "SHUTTING_DOWN";
+        }
+        if (firestoreInstance == null) {
+            return "NOT_INITIALIZED";
+        }
+        return isFirestoreHealthy() ? "HEALTHY" : "UNHEALTHY";
     }
 }

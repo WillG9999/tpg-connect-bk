@@ -4,6 +4,7 @@ import com.tpg.connect.model.User;
 import com.tpg.connect.model.user.ApplicationStatus;
 import com.tpg.connect.model.user.UserStatus;
 import com.tpg.connect.repository.UserRepository;
+import com.tpg.connect.repository.base.FirestoreRepositoryBase;
 import com.tpg.connect.util.ConnectIdGenerator;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
@@ -17,13 +18,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Repository
-public class UserRepositoryImpl implements UserRepository {
+public class UserRepositoryImpl extends FirestoreRepositoryBase implements UserRepository {
 
     private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
     private static final String COLLECTION_NAME = "userAuth";
-    
-    @Autowired
-    private Firestore firestore;
     
     @Autowired
     private ConnectIdGenerator connectIdGenerator;
@@ -36,7 +34,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public User createUserWithConnectId(User user, String connectId) {
-        try {
+        return executeWithRetry((firestore) -> {
             user.setConnectId(connectId);
             user.setCreatedAt(Timestamp.now());
             user.setUpdatedAt(Timestamp.now());
@@ -45,24 +43,21 @@ public class UserRepositoryImpl implements UserRepository {
             DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(connectId);
             docRef.set(convertToMap(user)).get();
             
+            log.debug("✅ User created with connection status: {}", getConnectionStatus());
             return user;
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to create user", e);
-        }
+        }, "createUserWithConnectId");
     }
 
     @Override
     public Optional<User> findByConnectId(String connectId) {
-        try {
+        return executeWithRetry((firestore) -> {
             DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
                     .document(connectId)
                     .get()
                     .get();
                     
             return doc.exists() ? Optional.of(convertToUser(doc)) : Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to find user by connectId", e);
-        }
+        }, "findByConnectId");
     }
 
     @Override
@@ -73,7 +68,7 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        try {
+        return executeWithRetry((firestore) -> {
             QuerySnapshot querySnapshot = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("email", email)
                     .whereEqualTo("active", true)
@@ -83,9 +78,7 @@ public class UserRepositoryImpl implements UserRepository {
             return querySnapshot.getDocuments().isEmpty() ? 
                 Optional.empty() : 
                 Optional.of(convertToUser(querySnapshot.getDocuments().get(0)));
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Failed to find user by email", e);
-        }
+        }, "findByEmail");
     }
 
     @Override

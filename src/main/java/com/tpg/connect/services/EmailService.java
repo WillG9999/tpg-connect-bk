@@ -166,6 +166,30 @@ public class EmailService {
         }
     }
     
+    public void sendApplicationApprovalEmail(String email, String firstName) {
+        if (!emailEnabled) {
+            logger.info("Email disabled - Mock Email: Application approval email sent to {} ({})", email, firstName);
+            return;
+        }
+        
+        try {
+            String subject = "🎉 Your Connect Application Has Been Approved!";
+            String htmlContent = buildApplicationApprovalTemplate(email, firstName);
+            
+            EmailRequest emailRequest = EmailRequest.builder()
+                    .to(email)
+                    .subject(subject)
+                    .htmlContent(htmlContent)
+                    .build();
+                    
+            emailProvider.sendEmail(emailRequest);
+            logger.info("Application approval email sent to: {} ({})", email, firstName);
+        } catch (Exception e) {
+            logger.error("Failed to send application approval email to {}: {}", email, e.getMessage());
+            // Don't rethrow - email failures shouldn't break the approval process
+        }
+    }
+    
     private String buildResetLink(String resetToken) {
         return String.format("%s/reset-password?token=%s", frontendBaseUrl, resetToken);
     }
@@ -384,6 +408,64 @@ public class EmailService {
             </body>
             </html>
             """, email);
+    }
+    
+    private String buildApplicationApprovalTemplate(String email, String firstName) {
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #00b894 0%%, #00a085 100%%); color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background: #f9f9f9; }
+                    .button { display: inline-block; padding: 12px 24px; background: #00b894; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                    .footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+                    .success { background: #d1f2eb; border: 1px solid #00b894; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                    .highlight { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🎉 Application Approved!</h1>
+                    </div>
+                    <div class="content">
+                        <div class="success">
+                            <strong>Congratulations %s! Your Connect application has been approved!</strong>
+                        </div>
+                        
+                        <h2>Welcome to Connect!</h2>
+                        <p>We're thrilled to welcome you to the Connect community. After careful review, we're excited to have you join our exclusive network of exceptional individuals.</p>
+                        
+                        <div class="highlight">
+                            <strong>Next Steps:</strong>
+                            <ul>
+                                <li>Complete your profile with photos and personal details</li>
+                                <li>Set your discovery preferences</li>
+                                <li>Start connecting with like-minded people</li>
+                                <li>Explore premium features to enhance your experience</li>
+                            </ul>
+                        </div>
+                        
+                        <p>Your account (%s) is now active and ready to use. You can sign in and start building meaningful connections right away.</p>
+                        
+                        <a href="%s" class="button">Start Using Connect</a>
+                        
+                        <p>We're here to help you make the most of your Connect experience. If you have any questions, don't hesitate to reach out to our support team.</p>
+                        
+                        <p>Welcome aboard!</p>
+                        <p><strong>The Connect Team</strong></p>
+                    </div>
+                    <div class="footer">
+                        <p>This email was sent because your Connect application was approved.</p>
+                        <p>&copy; 2024 Connect Dating App. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, firstName, email, frontendBaseUrl);
     }
     
     // Additional methods for subscription services

@@ -25,6 +25,9 @@ public class ApplicationService {
     @Autowired
     private UserRepository userRepository;
     
+    @Autowired
+    private EmailService emailService;
+    
     /**
      * Submit a new application
      */
@@ -173,6 +176,15 @@ public class ApplicationService {
             // TODO: When payment processing is implemented, this should set UserStatus based on payment completion.
             // For now, directly set to ACTIVE since we're not using payment processing yet.
             updateUserStatusAfterApproval(application.getConnectId());
+            
+            // Send approval notification email to the applicant
+            try {
+                emailService.sendApplicationApprovalEmail(application.getEmail(), application.getFirstName());
+                log.info("📧 Application approval email sent to: {} ({})", application.getEmail(), application.getFirstName());
+            } catch (Exception emailEx) {
+                log.error("⚠️ Failed to send approval email to {} ({}): {}", application.getEmail(), application.getFirstName(), emailEx.getMessage());
+                // Don't fail the approval process if email sending fails
+            }
             
             log.info("✅ Application approved successfully: {}", applicationId);
             return updated;
