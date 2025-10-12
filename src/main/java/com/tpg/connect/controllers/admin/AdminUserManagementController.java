@@ -112,6 +112,114 @@ public class AdminUserManagementController {
     }
     
     /**
+     * Get raw JSON data from database for a user (both userAuth and userProfiles)
+     */
+    @GetMapping("/users/{connectId}/raw")
+    public ResponseEntity<Map<String, Object>> getUserRawData(
+            @PathVariable String connectId,
+            @RequestParam(defaultValue = "false") boolean format,
+            @RequestParam(defaultValue = "false") boolean chunks,
+            @RequestParam(defaultValue = "") String collections,
+            HttpServletRequest request) {
+        
+        log.info("🔍 Admin requesting raw JSON data for user: {} (format={}, chunks={}, collections={})", 
+                connectId, format, chunks, collections);
+        
+        try {
+            // Validate admin authentication
+            if (!isAdminAuthenticated(request)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Admin access required"));
+            }
+            
+            Map<String, Object> rawData;
+            
+            // If specific collections requested, filter them
+            if (!collections.isEmpty()) {
+                String[] requestedCollections = collections.split(",");
+                rawData = adminUserManagementService.getUserRawDataFiltered(connectId, requestedCollections);
+            } else {
+                rawData = adminUserManagementService.getUserRawData(connectId);
+            }
+            
+            if (rawData.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("connectId", connectId);
+            
+            if (chunks) {
+                // Split large data into manageable chunks for UI display
+                response.put("rawDataChunks", adminUserManagementService.chunkRawData(rawData));
+                response.put("totalCollections", rawData.keySet().size() - 1); // -1 for metadata
+            } else {
+                response.put("rawData", rawData);
+            }
+            
+            if (format) {
+                // Add formatted/prettified versions for display
+                response.put("formattedData", adminUserManagementService.formatRawDataForDisplay(rawData));
+            }
+            
+            response.put("displayOptions", Map.of(
+                "format", format,
+                "chunks", chunks,
+                "collectionsFilter", collections,
+                "totalSize", adminUserManagementService.calculateDataSize(rawData)
+            ));
+            
+            response.put("message", "Retrieved raw user data successfully");
+            
+            log.info("✅ Retrieved raw data for user: {} with options: format={}, chunks={}", 
+                    connectId, format, chunks);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error getting raw data for user {}: ", connectId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to get raw user data: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Get available collections for a user (for filtering in UI)
+     */
+    @GetMapping("/users/{connectId}/raw/collections")
+    public ResponseEntity<Map<String, Object>> getAvailableCollections(
+            @PathVariable String connectId,
+            HttpServletRequest request) {
+        
+        log.info("📋 Admin requesting available collections for user: {}", connectId);
+        
+        try {
+            // Validate admin authentication
+            if (!isAdminAuthenticated(request)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(createErrorResponse("Admin access required"));
+            }
+            
+            List<String> availableCollections = adminUserManagementService.getAvailableCollections(connectId);
+            Map<String, Integer> collectionSizes = adminUserManagementService.getCollectionSizes(connectId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("connectId", connectId);
+            response.put("availableCollections", availableCollections);
+            response.put("collectionSizes", collectionSizes);
+            response.put("message", "Retrieved available collections successfully");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("❌ Error getting available collections for user {}: ", connectId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Failed to get available collections: " + e.getMessage()));
+        }
+    }
+    
+    /**
      * Update user status (ACTIVE, SUSPENDED, BANNED)
      */
     @PutMapping("/users/{connectId}/status")
