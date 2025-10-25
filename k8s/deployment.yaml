@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connect-backend
+  namespace: connect
+  labels:
+    app: connect-backend
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: connect-backend
+  template:
+    metadata:
+      labels:
+        app: connect-backend
+        version: v1
+    spec:
+      serviceAccountName: connect-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+      - name: connect-backend
+        image: gcr.io/connect-ea4c2/connect-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: jwt-secret
+        - name: FIREBASE_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: firebase-project-id
+        - name: FIREBASE_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: firebase-database-url
+        - name: FIREBASE_STORAGE_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: firebase-storage-bucket
+        - name: FIREBASE_CONFIG_PATH
+          value: "/secrets/firebase/credentials.json"
+        - name: GCP_PROJECT_ID
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: gcp-project-id
+        - name: GCP_STORAGE_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: gcp-storage-bucket
+        - name: GCP_CREDENTIALS_PATH
+          value: "/secrets/gcp/credentials.json"
+        - name: EMAIL_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: email-from-email
+        - name: EMAIL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: email-username
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: connect-secrets
+              key: email-password
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/health/live
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 12
+        volumeMounts:
+        - name: firebase-credentials
+          mountPath: /secrets/firebase
+          readOnly: true
+        - name: gcp-credentials
+          mountPath: /secrets/gcp
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: firebase-credentials
+        secret:
+          secretName: firebase-credentials
+          items:
+          - key: credentials.json
+            path: credentials.json
+      - name: gcp-credentials
+        secret:
+          secretName: gcp-credentials
+          items:
+          - key: credentials.json
+            path: credentials.json
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: connect-backend-service
+  namespace: connect
+  labels:
+    app: connect-backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: connect-backend
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: connect-backend-ingress
+  namespace: connect
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "connect-backend-ip"
+    networking.gke.io/managed-certificates: "connect-backend-ssl"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: api.connect-app.com
+    http:
+      paths:
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: connect-backend-service
+            port:
+              number: 80

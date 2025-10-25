@@ -55,13 +55,13 @@ springdoc:
 
 # JWT Configuration
 jwt:
-  secret: mySecretKeyForJWTTokenGenerationThatIsLongEnough123456789ABCDEF
+  secret: ${JWT_SECRET}
 
 app:
   # JWT Token Settings
   jwt:
-    access-token-expiration: 3600000      # 1 hour
-    refresh-token-expiration: 604800000   # 7 days
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}      # 1 hour
+    refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}   # 7 days
     token-prefix: Bearer 
     header-string: Authorization
   
@@ -86,14 +86,14 @@ app:
 email:
   enabled: true
   provider: smtp
-  from-email: thepromeutheusgroup@gmail.com
+  from-email: ${EMAIL_FROM_EMAIL}
   from-name: Connect Dating App
   
   # Gmail SMTP Settings
   smtp-host: smtp.gmail.com
   smtp-port: 587
-  username: thepromeutheusgroup@gmail.com
-  password: lmtr nxvu dvrc oqim
+  username: ${EMAIL_USERNAME}
+  password: ${EMAIL_PASSWORD:changeme}
   authentication-enabled: true
   start-tls-enabled: true
   ssl-enabled: false

@@ -34,16 +34,16 @@ public class FirebaseConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
 
-    @Value("${firebase.config.path:#{null}}")
+    @Value("${FIREBASE_CONFIG_PATH:#{null}}")
     private String firebaseConfigPath;
 
-    @Value("${firebase.database.url:#{null}}")
+    @Value("${FIREBASE_DATABASE_URL:#{null}}")
     private String databaseUrl;
 
-    @Value("${firebase.storage.bucket:#{null}}")
+    @Value("${FIREBASE_STORAGE_BUCKET:#{null}}")
     private String storageBucket;
 
-    @Value("${firebase.project.id:#{null}}")
+    @Value("${FIREBASE_PROJECT_ID:#{null}}")
     private String projectId;
     
     // Instance variables to track client lifecycle

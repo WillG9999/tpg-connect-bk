@@ -496,4 +496,41 @@ public class EmailService {
     public void sendDataExportRequestConfirmation(String email, String requestId) {
         System.out.println("Mock Email: Data export request confirmation sent to " + email + " for request: " + requestId);
     }
+    
+    /**
+     * Health check method for container orchestration
+     * @return true if email service is healthy and functional
+     */
+    public boolean isHealthy() {
+        try {
+            // Check if email is enabled
+            if (!emailEnabled) {
+                logger.debug("Email service health check: DISABLED");
+                return true; // Disabled is considered healthy for optional service
+            }
+            
+            // Check if email provider is available
+            if (emailProvider == null) {
+                logger.warn("Email service health check: EMAIL_PROVIDER_NULL");
+                return false;
+            }
+            
+            // Check email provider health if method exists
+            try {
+                if (emailProvider instanceof com.tpg.connect.services.email.EmailProvider) {
+                    // Basic health check - service is configured and injectable
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.warn("Email service health check failed: {}", e.getMessage());
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("Email service health check error: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 }

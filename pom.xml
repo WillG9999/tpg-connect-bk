@@ -53,6 +53,10 @@
 			<groupId>com.google.cloud</groupId>
 			<artifactId>spring-cloud-gcp-starter</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>spring-cloud-gcp-starter-secretmanager</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -263,6 +267,75 @@
 						<goals>
 							<goal>integration-test</goal>
 							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<!-- Google Jib Plugin for Container Builds -->
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.0</version>
+				<configuration>
+					<!-- Base image optimized for Java 21 -->
+					<from>
+						<image>gcr.io/distroless/java21-debian12:nonroot</image>
+					</from>
+					
+					<!-- Target container configuration -->
+					<to>
+						<image>gcr.io/${GCP_PROJECT_ID}/connect-backend</image>
+						<tags>
+							<tag>latest</tag>
+							<tag>${project.version}</tag>
+						</tags>
+					</to>
+					
+					<!-- Container configuration -->
+					<container>
+						<mainClass>com.tpg.connect.ConnectApplication</mainClass>
+						<ports>
+							<port>8080</port>
+						</ports>
+						<environment>
+							<SPRING_PROFILES_ACTIVE>prod</SPRING_PROFILES_ACTIVE>
+						</environment>
+						<jvmFlags>
+							<jvmFlag>-Xms512m</jvmFlag>
+							<jvmFlag>-Xmx2g</jvmFlag>
+							<jvmFlag>-XX:+UseG1GC</jvmFlag>
+							<jvmFlag>-XX:MaxGCPauseMillis=100</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.time=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.time.chrono=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.lang=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</jvmFlag>
+							<jvmFlag>--add-opens=java.base/java.util=ALL-UNNAMED</jvmFlag>
+						</jvmFlags>
+						<user>nonroot:nonroot</user>
+						<workingDirectory>/app</workingDirectory>
+						<labels>
+							<label>maintainer=Connect Team</label>
+							<label>version=${project.version}</label>
+							<label>application=connect-backend</label>
+						</labels>
+					</container>
+					
+					<!-- Optimization settings -->
+					<extraDirectories>
+						<paths>
+							<path>
+								<from>src/main/jib</from>
+								<into>/app</into>
+							</path>
+						</paths>
+					</extraDirectories>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
 						</goals>
 					</execution>
 				</executions>

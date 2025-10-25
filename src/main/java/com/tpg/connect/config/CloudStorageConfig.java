@@ -18,13 +18,13 @@ public class CloudStorageConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(CloudStorageConfig.class);
 
-    @Value("${gcp.storage.bucket:#{null}}")
+    @Value("${GCP_STORAGE_BUCKET:#{null}}")
     private String storageBucket;
 
-    @Value("${gcp.project.id:#{null}}")
+    @Value("${GCP_PROJECT_ID:#{null}}")
     private String projectId;
 
-    @Value("${gcp.storage.credentials.location:#{null}}")
+    @Value("${GCP_STORAGE_CREDENTIALS_LOCATION:#{null}}")
     private String credentialsLocation;
 
     @Value("${app.profile.photo.max-size:5MB}")

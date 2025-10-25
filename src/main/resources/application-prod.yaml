@@ -28,14 +28,14 @@ app:
 email:
   enabled: true
   provider: smtp
-  from-email: thepromeutheusgroup@gmail.com
+  from-email: ${EMAIL_FROM_EMAIL}
   from-name: Connect Dating App
   
   # Gmail SMTP Settings
   smtp-host: smtp.gmail.com
   smtp-port: 587
-  username: thepromeutheusgroup@gmail.com
-  password: ${EMAIL_PASSWORD:lmtr nxvu dvrc oqim}  # Use environment variable in production
+  username: ${EMAIL_USERNAME}
+  password: ${EMAIL_PASSWORD}  # Use environment variable in production
   authentication-enabled: true
   start-tls-enabled: true
   ssl-enabled: false
@@ -46,37 +46,47 @@ email:
   max-retries: 3
   debug-enabled: false
 
-# Logging Configuration - Production logging (minimal for performance)
+# Logging Configuration - Production logging with structured output
 logging:
   level:
     root: WARN
     com.tpg.connect: INFO
     org.springframework: WARN
+    org.springframework.web: INFO  # For request logging
+    org.springframework.security: WARN
+    com.google.cloud: WARN
+    com.google.firebase: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    # Structured JSON logging for container environments
+    console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%msg","mdc":"%X"}%n'
+    # Fallback file pattern for debugging
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: /var/log/connect/application.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB
 
 # Firebase Configuration - Production database
 # NOTE: In production, use environment variables for sensitive paths
 firebase:
   config:
-    path: ${FIREBASE_CONFIG_PATH:/secure/firebase-service-account.json}
+    path: ${FIREBASE_CONFIG_PATH}
   database:
-    url: ${FIREBASE_DATABASE_URL:https://connect-production.firebaseio.com}
+    url: ${FIREBASE_DATABASE_URL}
   storage:
-    bucket: ${FIREBASE_STORAGE_BUCKET:connect-production.firebasestorage.app}
+    bucket: ${FIREBASE_STORAGE_BUCKET}
   project:
-    id: ${FIREBASE_PROJECT_ID:connect-production}
+    id: ${FIREBASE_PROJECT_ID}
 
 # Google Cloud Storage - Production
 gcp:
   project:
-    id: ${GCP_PROJECT_ID:connect-production}
+    id: ${GCP_PROJECT_ID}
   storage:
-    bucket: ${GCP_STORAGE_BUCKET:connect-production.firebasestorage.app}
+    bucket: ${GCP_STORAGE_BUCKET}
     credentials:
-      location: ${GCP_CREDENTIALS_PATH:/secure/firebase-service-account.json}
+      location: ${GCP_CREDENTIALS_PATH}
 
 # Production Security Settings
 server:
@@ -91,7 +101,7 @@ server:
 
 # Production JWT Settings
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsLongEnough123456789ABCDEF}
+  secret: ${JWT_SECRET}
 
 # Production Database Connection Pool Settings (if using SQL database)
 # spring:

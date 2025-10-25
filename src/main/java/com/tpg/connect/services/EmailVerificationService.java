@@ -32,10 +32,10 @@ public class EmailVerificationService {
     @Autowired
     private VerificationCodeGenerator codeGenerator;
     
-    @Value("${email.from-email}")
+    @Value("${EMAIL_FROM_EMAIL}")
     private String fromEmail;
     
-    @Value("${email.from-name}")
+    @Value("${EMAIL_FROM_NAME}")
     private String fromName;
     
     // In-memory storage for verification codes (replace with Redis/database in production)
