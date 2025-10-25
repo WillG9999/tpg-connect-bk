@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import javax.crypto.SecretKey;
 import com.google.cloud.Timestamp;
@@ -32,10 +33,36 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Counter;
 
 @Service
 public class AuthenticationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    
+    private Timer loginTimer;
+    private Timer registrationTimer;
+    private Counter loginSuccessCounter;
+    private Counter loginFailureCounter;
+    private Counter registrationCounter;
+    private Counter passwordResetCounter;
+    
+    // Redis key prefixes
+    private static final String PASSWORD_RESET_PREFIX = "auth:password_reset:";
+    private static final String EMAIL_VERIFICATION_PREFIX = "auth:email_verification:";
+    private static final String INVALIDATED_TOKEN_PREFIX = "auth:invalidated:";
+    
+    // Token expiration times
+    private static final long PASSWORD_RESET_TTL_MINUTES = 15;
+    private static final long EMAIL_VERIFICATION_TTL_MINUTES = 60;
 
     @Autowired
     private UserRepository userRepository;
@@ -51,12 +78,24 @@ public class AuthenticationService {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private ConnectIdGenerator connectIdGenerator;
 
     @Autowired
     private FeatureFlagConfig featureFlagConfig;
+    
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
@@ -77,21 +116,176 @@ public class AuthenticationService {
     
     @Value("${app.dev.default-test-password:}")
     private String defaultTestPassword;
+    
+    @PostConstruct
+    private void initializeMetrics() {
+        // Initialize timing metrics
+        loginTimer = Timer.builder("connect_auth_login_duration")
+            .description("Time taken for user login operations")
+            .tag("operation", "login")
+            .register(meterRegistry);
+            
+        registrationTimer = Timer.builder("connect_auth_registration_duration")
+            .description("Time taken for user registration operations")
+            .tag("operation", "registration")
+            .register(meterRegistry);
+        
+        // Initialize counter metrics
+        loginSuccessCounter = Counter.builder("connect_auth_login_success")
+            .description("Number of successful login attempts")
+            .tag("result", "success")
+            .register(meterRegistry);
+            
+        loginFailureCounter = Counter.builder("connect_auth_login_failure")
+            .description("Number of failed login attempts")
+            .tag("result", "failure")
+            .register(meterRegistry);
+            
+        registrationCounter = Counter.builder("connect_auth_registration_total")
+            .description("Total number of user registrations")
+            .tag("operation", "registration")
+            .register(meterRegistry);
+            
+        passwordResetCounter = Counter.builder("connect_auth_password_reset")
+            .description("Number of password reset requests")
+            .tag("operation", "password_reset")
+            .register(meterRegistry);
+    }
 
-    // In-memory store for invalidated tokens (in production, use Redis)
-    private final Set<String> invalidatedTokens = ConcurrentHashMap.newKeySet();
+    // Redis-based token storage - replaced in-memory ConcurrentHashMaps for production scalability
     
-    // In-memory store for password reset tokens (in production, use Redis with TTL)
-    private final Map<String, PasswordResetToken> passwordResetTokens = new ConcurrentHashMap<>();
+    /**
+     * Store password reset token in Redis with TTL
+     */
+    private void storePasswordResetToken(String token, PasswordResetToken resetToken) {
+        try {
+            String redisKey = PASSWORD_RESET_PREFIX + token;
+            String tokenJson = objectMapper.writeValueAsString(resetToken);
+            stringRedisTemplate.opsForValue().set(redisKey, tokenJson, PASSWORD_RESET_TTL_MINUTES, TimeUnit.MINUTES);
+            logger.info("🔑 Password reset token stored in Redis with TTL: {} minutes", PASSWORD_RESET_TTL_MINUTES);
+        } catch (Exception e) {
+            logger.error("❌ Failed to store password reset token in Redis: {}", e.getMessage());
+            throw new RuntimeException("Failed to store password reset token", e);
+        }
+    }
     
-    // In-memory store for email verification tokens (in production, use Redis with TTL)
-    private final Map<String, EmailVerificationToken> emailVerificationTokens = new ConcurrentHashMap<>();
+    /**
+     * Retrieve password reset token from Redis
+     */
+    private PasswordResetToken getPasswordResetToken(String token) {
+        try {
+            String redisKey = PASSWORD_RESET_PREFIX + token;
+            String tokenJson = stringRedisTemplate.opsForValue().get(redisKey);
+            if (tokenJson != null) {
+                return objectMapper.readValue(tokenJson, PasswordResetToken.class);
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("❌ Failed to retrieve password reset token from Redis: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Remove password reset token from Redis
+     */
+    private void removePasswordResetToken(String token) {
+        try {
+            String redisKey = PASSWORD_RESET_PREFIX + token;
+            stringRedisTemplate.delete(redisKey);
+            logger.info("🗑️ Password reset token removed from Redis");
+        } catch (Exception e) {
+            logger.error("❌ Failed to remove password reset token from Redis: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Store email verification token in Redis with TTL
+     */
+    private void storeEmailVerificationToken(String token, EmailVerificationToken verificationToken) {
+        try {
+            String redisKey = EMAIL_VERIFICATION_PREFIX + token;
+            String tokenJson = objectMapper.writeValueAsString(verificationToken);
+            stringRedisTemplate.opsForValue().set(redisKey, tokenJson, EMAIL_VERIFICATION_TTL_MINUTES, TimeUnit.MINUTES);
+            logger.info("📧 Email verification token stored in Redis with TTL: {} minutes", EMAIL_VERIFICATION_TTL_MINUTES);
+        } catch (Exception e) {
+            logger.error("❌ Failed to store email verification token in Redis: {}", e.getMessage());
+            throw new RuntimeException("Failed to store email verification token", e);
+        }
+    }
+    
+    /**
+     * Retrieve email verification token from Redis
+     */
+    private EmailVerificationToken getEmailVerificationToken(String token) {
+        try {
+            String redisKey = EMAIL_VERIFICATION_PREFIX + token;
+            String tokenJson = stringRedisTemplate.opsForValue().get(redisKey);
+            if (tokenJson != null) {
+                return objectMapper.readValue(tokenJson, EmailVerificationToken.class);
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("❌ Failed to retrieve email verification token from Redis: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Remove email verification token from Redis
+     */
+    private void removeEmailVerificationToken(String token) {
+        try {
+            String redisKey = EMAIL_VERIFICATION_PREFIX + token;
+            stringRedisTemplate.delete(redisKey);
+            logger.info("🗑️ Email verification token removed from Redis");
+        } catch (Exception e) {
+            logger.error("❌ Failed to remove email verification token from Redis: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Mark token as invalidated in Redis
+     */
+    private void invalidateToken(String token) {
+        try {
+            String redisKey = INVALIDATED_TOKEN_PREFIX + token;
+            // Store for the remaining lifetime of the token
+            stringRedisTemplate.opsForValue().set(redisKey, "invalidated", 24, TimeUnit.HOURS);
+            logger.info("🚫 Token marked as invalidated in Redis");
+        } catch (Exception e) {
+            logger.error("❌ Failed to invalidate token in Redis: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Store invalidated token in Redis (alias for invalidateToken)
+     */
+    private void storeInvalidatedToken(String token) {
+        invalidateToken(token);
+    }
+    
+    /**
+     * Check if token is invalidated in Redis
+     */
+    private boolean isTokenInvalidated(String token) {
+        try {
+            String redisKey = INVALIDATED_TOKEN_PREFIX + token;
+            return Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey));
+        } catch (Exception e) {
+            logger.error("❌ Failed to check token invalidation in Redis: {}", e.getMessage());
+            return false; // Fail open
+        }
+    }
 
     public RegisterResponse registerUser(RegisterRequest request) {
-        // Validate passwords match
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match");
-        }
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            // Validate passwords match
+            if (!request.getPassword().equals(request.getConfirmPassword())) {
+                throw new IllegalArgumentException("Passwords do not match");
+            }
 
         // In bld profile, override password with test password if configured
         String actualPassword = request.getPassword();
@@ -180,18 +374,29 @@ public class AuthenticationService {
             message = "Registration successful. Please check your email for verification instructions.";
         }
         
-        // In development mode, include verification token for testing
-        if (isDevelopmentMode() && verificationToken != null) {
-            return new RegisterResponse(true, message, accessToken, profileDTO, verificationToken);
+            // In development mode, include verification token for testing
+            if (isDevelopmentMode() && verificationToken != null) {
+                registrationCounter.increment();
+                sample.stop(registrationTimer);
+                return new RegisterResponse(true, message, accessToken, profileDTO, verificationToken);
+            }
+            
+            registrationCounter.increment();
+            sample.stop(registrationTimer);
+            return new RegisterResponse(true, message, accessToken, profileDTO);
+        } catch (Exception e) {
+            sample.stop(registrationTimer);
+            throw e;
         }
-        
-        return new RegisterResponse(true, message, accessToken, profileDTO);
     }
 
     public LoginResponse loginUser(LoginRequest request) {
-        // Normalize email to lowercase for case-insensitive lookup
-        String normalizedEmail = request.getEmail().toLowerCase().trim();
-        Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            // Normalize email to lowercase for case-insensitive lookup
+            String normalizedEmail = request.getEmail().toLowerCase().trim();
+            Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
         if (!userOpt.isPresent()) {
             throw new IllegalArgumentException("Invalid email or password");
         }
@@ -299,8 +504,17 @@ public class AuthenticationService {
                 System.err.println("Profile conversion failed, using minimal profile: " + e.getMessage());
                 e.printStackTrace();
             }
+            
+            // Record successful login
+            loginSuccessCounter.increment();
+            sample.stop(loginTimer);
+            
             return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO, applicationStatus);
         } catch (Exception e) {
+            // Record failed login
+            loginFailureCounter.increment();
+            sample.stop(loginTimer);
+            
             System.err.println("Error in login process: " + e.getMessage());
             e.printStackTrace();
             throw e;
@@ -310,7 +524,7 @@ public class AuthenticationService {
     public void logoutUser(String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            invalidatedTokens.add(token);
+            storeInvalidatedToken(token);
         }
     }
 
@@ -321,7 +535,7 @@ public class AuthenticationService {
 
         String refreshToken = authHeader.substring(7);
         
-        if (invalidatedTokens.contains(refreshToken)) {
+        if (isTokenInvalidated(refreshToken)) {
             throw new IllegalArgumentException("Token has been invalidated");
         }
 
@@ -342,7 +556,7 @@ public class AuthenticationService {
             String newRefreshToken = generateRefreshToken(userId);
 
             // Invalidate old refresh token
-            invalidatedTokens.add(refreshToken);
+            storeInvalidatedToken(refreshToken);
 
             return new LoginResponse(true, "Token refreshed successfully", 
                                    newAccessToken, newRefreshToken, profile);
@@ -359,6 +573,10 @@ public class AuthenticationService {
             User user = userOpt.get();
             String resetToken = generatePasswordResetToken(user.getConnectId(), normalizedEmail);
             emailService.sendPasswordReset(normalizedEmail, resetToken);
+            
+            // Record password reset request
+            passwordResetCounter.increment();
+            
             return resetToken; // Return token for development/testing
         }
         // Always succeed for security (don't reveal if email exists)
@@ -367,7 +585,7 @@ public class AuthenticationService {
 
     //TODO: Complete email verification system and forgot password functionality with secure token-based reset
     public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokens.get(request.getToken());
+        PasswordResetToken resetToken = getPasswordResetToken(request.getToken());
         if (resetToken == null || resetToken.isExpired()) {
             throw new IllegalArgumentException("Invalid or expired reset token");
         }
@@ -383,7 +601,7 @@ public class AuthenticationService {
         userRepository.updateUser(user);
 
         // Remove used token
-        passwordResetTokens.remove(request.getToken());
+        removePasswordResetToken(request.getToken());
 
         emailService.sendPasswordResetConfirmation(user.getEmail());
     }
@@ -433,7 +651,7 @@ public class AuthenticationService {
     }
 
     public void verifyEmail(String token) {
-        EmailVerificationToken verificationToken = emailVerificationTokens.get(token);
+        EmailVerificationToken verificationToken = getEmailVerificationToken(token);
         if (verificationToken == null || verificationToken.isExpired()) {
             throw new IllegalArgumentException("Invalid or expired verification token");
         }
@@ -447,7 +665,7 @@ public class AuthenticationService {
         userRepository.updateEmailVerificationStatus(user.getConnectId(), true, Timestamp.now());
 
         // Remove used token
-        emailVerificationTokens.remove(token);
+        removeEmailVerificationToken(token);
 
         emailService.sendWelcomeEmail(user.getEmail());
     }
@@ -466,7 +684,7 @@ public class AuthenticationService {
     }
 
     public String extractUserIdFromToken(String token) {
-        if (invalidatedTokens.contains(token)) {
+        if (isTokenInvalidated(token)) {
             throw new IllegalArgumentException("Token has been invalidated");
         }
 
@@ -493,7 +711,7 @@ public class AuthenticationService {
     }
 
     public boolean isTokenValid(String token) {
-        if (invalidatedTokens.contains(token)) {
+        if (isTokenInvalidated(token)) {
             return false;
         }
 
@@ -534,7 +752,7 @@ public class AuthenticationService {
         String token = UUID.randomUUID().toString();
         PasswordResetToken resetToken = new PasswordResetToken(userId, email, 
                 LocalDateTime.now().plusHours(1)); // 1 hour expiry
-        passwordResetTokens.put(token, resetToken);
+        storePasswordResetToken(token, resetToken);
         return token;
     }
 
@@ -542,7 +760,7 @@ public class AuthenticationService {
         String token = UUID.randomUUID().toString();
         EmailVerificationToken verificationToken = new EmailVerificationToken(userId, email,
                 LocalDateTime.now().plusDays(7)); // 7 days expiry
-        emailVerificationTokens.put(token, verificationToken);
+        storeEmailVerificationToken(token, verificationToken);
         return token;
     }
 
@@ -660,7 +878,7 @@ public class AuthenticationService {
      * Verify password reset token and return user context
      */
     public TokenVerificationResponse verifyPasswordResetToken(String token) {
-        PasswordResetToken resetToken = passwordResetTokens.get(token);
+        PasswordResetToken resetToken = getPasswordResetToken(token);
         
         if (resetToken == null) {
             return TokenVerificationResponse.builder()
@@ -672,7 +890,7 @@ public class AuthenticationService {
         
         if (resetToken.isExpired()) {
             // Clean up expired token
-            passwordResetTokens.remove(token);
+            removePasswordResetToken(token);
             return TokenVerificationResponse.builder()
                 .valid(false)
                 .message("Reset token has expired")
@@ -700,7 +918,7 @@ public class AuthenticationService {
      * Reset password using token-based request (unified flow)
      */
     public void resetPasswordWithToken(TokenBasedResetRequest request) {
-        PasswordResetToken resetToken = passwordResetTokens.get(request.getToken());
+        PasswordResetToken resetToken = getPasswordResetToken(request.getToken());
         if (resetToken == null || resetToken.isExpired()) {
             throw new IllegalArgumentException("Invalid or expired reset token");
         }
@@ -716,7 +934,7 @@ public class AuthenticationService {
         userRepository.updateUser(user);
 
         // Remove used token
-        passwordResetTokens.remove(request.getToken());
+        removePasswordResetToken(request.getToken());
 
         // Send confirmation email
         emailService.sendPasswordResetConfirmation(user.getEmail());

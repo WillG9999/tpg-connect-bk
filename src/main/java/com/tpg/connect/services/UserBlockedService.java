@@ -19,7 +19,7 @@ public class UserBlockedService {
     @Autowired
     private UserBlockedRepository userBlockedRepository;
 
-    // @Cacheable(value = "userBlocked", key = "#userId") // Temporarily disabled for debugging
+    @Cacheable(value = "userBlocked", key = "#userId")
     public UserBlocked getUserBlockedConfig(String userId) {
         UserBlocked config = userBlockedRepository.findByConnectId(userId);
         if (config == null) {
@@ -155,7 +155,7 @@ public class UserBlockedService {
                upperBlockType.equals("HOMETOWN");
     }
 
-    // @CacheEvict(value = "userBlocked", key = "#userId") // Temporarily disabled for debugging
+    @CacheEvict(value = "userBlocked", key = "#userId")
     private void clearUserBlockedCache(String userId) {
         // Cache cleared by annotation
     }

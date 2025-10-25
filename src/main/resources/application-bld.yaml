@@ -52,14 +52,14 @@ app:
 email:
   enabled: false  # Disable in development to avoid sending real emails
   provider: smtp
-  from-email: ${EMAIL_FROM_EMAIL}
+  from-email: test@example.com
   from-name: "Connect"
   
   # Gmail SMTP Settings
   smtp-host: smtp.gmail.com
   smtp-port: 587
-  username: ${EMAIL_USERNAME}
-  password: ${EMAIL_PASSWORD:changeme}
+  username: test@example.com
+  password: test123
   authentication-enabled: true
   start-tls-enabled: true
   ssl-enabled: false
@@ -96,3 +96,7 @@ gcp:
     bucket: ${FIREBASE_STORAGE_BUCKET}
     credentials:
       location: ${GCP_CREDENTIALS_PATH}
+
+# JWT Configuration - Development
+jwt:
+  secret: mySecretKeyForJWTTokenGenerationThatIsLongEnough123456789ABCDEF

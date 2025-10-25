@@ -43,7 +43,7 @@ public class ConversationService {
     @Autowired(required = false)
     private SimpleWebSocketHandler simpleWebSocketHandler;
 
-    // @Cacheable(value = "conversations", key = "'user_conversations_' + #userId") // Temporarily disabled due to cache config issue
+    @Cacheable(value = "conversations", key = "'user_conversations_' + #userId")
     public List<Conversation> getUserConversations(String userId, boolean includeArchived) {
         if (includeArchived) {
             return conversationRepository.findByParticipantId(userId);
@@ -52,7 +52,7 @@ public class ConversationService {
         }
     }
 
-    // @Cacheable(value = "conversations", key = "'conversation_' + #conversationId") // Temporarily disabled due to cache config issue
+    @Cacheable(value = "conversations", key = "'conversation_' + #conversationId")
     public Optional<Conversation> getConversationById(String conversationId) {
         return conversationRepository.findById(conversationId);
     }
@@ -67,7 +67,7 @@ public class ConversationService {
         return Optional.empty();
     }
 
-    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = "conversations", allEntries = true)
     public Conversation createConversationFromMatch(String matchId) {
         System.out.println("📞 ConversationService: Creating conversation from match: " + matchId);
         
@@ -119,7 +119,7 @@ public class ConversationService {
         return savedConversation;
     }
 
-    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public Message sendMessage(String conversationId, String senderId, String content) {
         System.out.println("🚀 ConversationService: sendMessage called - conversationId: " + conversationId + ", senderId: " + senderId);
         // Verify conversation exists and user is participant
@@ -170,7 +170,7 @@ public class ConversationService {
         return savedMessage;
     }
 
-    // @Cacheable(value = "messages", key = "'conversation_messages_' + #conversationId + '_' + #page + '_' + #limit") // Temporarily disabled due to cache config issue
+    @Cacheable(value = "messages", key = "'conversation_messages_' + #conversationId + '_' + #page + '_' + #limit")
     public List<Message> getConversationMessages(String conversationId, String userId, int page, int limit) {
         System.out.println("🔍 ConversationService: getConversationMessages called");
         System.out.println("🔍 ConversationService: conversationId = '" + conversationId + "'");
@@ -198,7 +198,7 @@ public class ConversationService {
         }
     }
 
-    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public void markMessagesAsRead(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -218,7 +218,7 @@ public class ConversationService {
         conversationRepository.updateUnreadCount(conversationId, userId, 0);
     }
 
-    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = "conversations", allEntries = true)
     public void archiveConversation(String conversationId, String userId) {
         System.out.println("📁 ConversationService.archiveConversation CALLED");
         System.out.println("📁 ConversationService: conversationId = " + conversationId);
@@ -250,7 +250,7 @@ public class ConversationService {
         System.out.println("✅ ConversationService: Archive operation finished");
     }
 
-    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = "conversations", allEntries = true)
     public void unarchiveConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -287,7 +287,7 @@ public class ConversationService {
         System.out.println("✅ ConversationService: Conversation status updated to UNMATCHED for match: " + matchId);
     }
 
-    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public void endConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -329,7 +329,7 @@ public class ConversationService {
         return conversationRepository.findRecentConversations(userId, days);
     }
 
-    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = "conversations", allEntries = true)
     public void autoArchiveInactiveConversations() {
         // Archive conversations that haven't been active for 30 days
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30);
@@ -340,7 +340,7 @@ public class ConversationService {
         return conversationRepository.findConversationBetweenUsers(userId1, userId2);
     }
 
-    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public void deleteConversation(String conversationId, String userId) {
         // Verify user is participant
         Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
@@ -357,12 +357,12 @@ public class ConversationService {
         conversationRepository.deleteById(conversationId);
     }
 
-    // @CacheEvict(value = {"conversations", "messages"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"conversations", "messages"}, allEntries = true)
     public void deleteUserConversations(String userId) {
         conversationRepository.deleteByParticipantId(userId);
     }
 
-    // @CacheEvict(value = "conversations", allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = "conversations", allEntries = true)
     public Conversation saveConversation(Conversation conversation) {
         return conversationRepository.save(conversation);
     }

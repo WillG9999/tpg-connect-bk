@@ -40,7 +40,7 @@ public class MatchService {
                 targetUserId, userId, UserAction.ActionType.LIKE);
     }
 
-    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled due to cache config issue
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
     public Match createMatch(String userId, String targetUserId) {
         // Note: Mutual like validation is already done by UserActionsService before calling this method
         System.out.println("🔄 MatchService.createMatch() called for " + userId + " ↔ " + targetUserId);
@@ -91,17 +91,17 @@ public class MatchService {
         return savedMatch;
     }
 
-    // @Cacheable(value = "userMatches", key = "'matches_' + #userId") // Temporarily disabled due to cache config issue
+    @Cacheable(value = "userMatches", key = "'matches_' + #userId")
     public List<Match> getUserMatches(String userId) {
         return matchRepository.findByUserIdAndStatus(userId, Match.MatchStatus.ACTIVE);
     }
 
-    // @Cacheable(value = "matches", key = "'match_' + #matchId") // Temporarily disabled due to cache config issue
+    @Cacheable(value = "matches", key = "'match_' + #matchId")
     public Match getMatch(String matchId) {
         return matchRepository.findById(matchId).orElse(null);
     }
 
-    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
     public void unmatch(String matchId, String userId) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {
@@ -122,7 +122,7 @@ public class MatchService {
         notificationService.sendUnmatchNotification(otherUserId, matchId);
     }
 
-    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
     public void blockUser(String matchId, String userId, String blockedUserId) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {
@@ -144,7 +144,7 @@ public class MatchService {
         matchRepository.save(match);
     }
 
-    // @CacheEvict(value = {"matches", "userMatches"}, allEntries = true) // Temporarily disabled
+    @CacheEvict(value = {"matches", "userMatches"}, allEntries = true)
     public void reportMatch(String matchId, String reporterId, String reason) {
         Match match = matchRepository.findById(matchId).orElse(null);
         if (match == null) {
