@@ -88,9 +88,9 @@ namespace:
 secretManager:
   projectId: connect-ea4c2-int
   
-# Firebase configuration - placeholder for integration
+# Firebase configuration - credentials will be injected from Secret Manager at deploy time
 firebase:
-  # credentials: ""  # Will use placeholder secret if not provided
+  # credentials will be set by deployment workflow from Secret Manager
   
 # Feature flags - enable all for testing
 features:

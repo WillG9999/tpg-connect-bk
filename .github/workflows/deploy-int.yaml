@@ -124,6 +124,10 @@ jobs:
         
         echo "📝 Proceeding to deployment"
         
+        # Fetch Firebase credentials from Secret Manager
+        echo "🔑 Fetching Firebase credentials from Secret Manager"
+        FIREBASE_CREDENTIALS=$(gcloud secrets versions access latest --secret=firebase-config-path --project=${{ env.PROJECT_ID }})
+        
         # Use helm upgrade --install for automated deployment (best practice)
         echo "🚀 Starting helm deployment with debug output"
         helm upgrade --install connect-int ./helm \
@@ -132,6 +136,7 @@ jobs:
           --values helm/values-int.yaml \
           --set image.tag="${{ steps.version.outputs.version }}" \
           --set app.version="${{ steps.version.outputs.version }}" \
+          --set-json firebase.credentials="$FIREBASE_CREDENTIALS" \
           --debug \
           --timeout=5m \
           --wait || {
