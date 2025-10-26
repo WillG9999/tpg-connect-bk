@@ -1,9 +1,11 @@
 name: Deploy to Integration
 
 on:
-  push:
-    tags:
-      - '*'  # Trigger on ANY tag creation
+  workflow_run:
+    workflows: ["Auto Release & Deploy"]
+    types:
+      - completed
+    branches: [main]
   workflow_dispatch:  # Allow manual triggering for testing
 
 env:
@@ -23,16 +25,36 @@ jobs:
       url: https://int-api.connect-app.com
     
     steps:
+    - name: Check if release workflow succeeded
+      run: |
+        if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+          echo "❌ Release workflow failed - skipping deployment"
+          exit 1
+        fi
+        echo "✅ Release workflow completed successfully"
+        
     - name: Debug trigger information
       run: |
-        echo "🔍 Integration deployment triggered!"
+        echo "🔍 Integration deployment triggered by workflow_run!"
         echo "Event: ${{ github.event_name }}"
-        echo "Ref: ${{ github.ref }}"
-        echo "Tag: ${GITHUB_REF#refs/tags/}"
+        echo "Triggering workflow: ${{ github.event.workflow_run.name }}"
+        echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
         
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history to find latest tag
       
+    - name: Get latest release tag
+      id: version
+      run: |
+        # Get the latest tag (should be the one just created by release workflow)
+        git fetch --tags
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        echo "version=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+        echo "🏷️ Latest tag: $LATEST_TAG"
+        
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -67,13 +89,6 @@ jobs:
       uses: azure/setup-helm@v3
       with:
         version: '3.13.0'
-        
-    - name: Extract version from tag
-      id: version
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
         
     - name: Build and push container image
       run: |
