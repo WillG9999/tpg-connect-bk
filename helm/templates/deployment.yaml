@@ -56,9 +56,12 @@ spec:
           value: "true"
         - name: SPRING_CLOUD_GCP_PROJECT_ID
           value: {{ .Values.gcp.projectId | quote }}
-        # Firebase configuration from Secret Manager
+        # Firebase configuration from Kubernetes secret
         - name: FIREBASE_CREDENTIALS_JSON
-          value: "${sm://firebase-credentials}"
+          valueFrom:
+            secretKeyRef:
+              name: firebase-credentials
+              key: credentials.json
         - name: FIREBASE_CONFIG_PATH
           value: ""
         - name: FIREBASE_DATABASE_URL

@@ -175,36 +175,7 @@ jobs:
         kubectl get services -n connect-int
         kubectl get deployments -n connect-int
         
-        # Patch deployment to use Kubernetes secret for Firebase credentials
-        echo "🔧 Patching deployment to use Kubernetes secret for Firebase credentials"
-        kubectl patch deployment connect-backend-int -n connect-int \
-          --patch '{
-            "spec": {
-              "template": {
-                "spec": {
-                  "containers": [{
-                    "name": "connect-backend",
-                    "env": [{
-                      "name": "FIREBASE_CREDENTIALS_JSON",
-                      "valueFrom": {
-                        "secretKeyRef": {
-                          "name": "firebase-credentials",
-                          "key": "credentials.json"
-                        }
-                      }
-                    }]
-                  }]
-                }
-              }
-            }
-          }'
-        
-        echo "✅ Deployment patched to use Kubernetes secret"
-        
-        # Trigger rollout restart to apply the patched configuration
-        echo "🔄 Triggering rollout restart to apply Firebase credentials"
-        kubectl rollout restart deployment/connect-backend-int -n connect-int
-        echo "✅ Rollout restart initiated"
+        echo "✅ Deployment completed successfully - Firebase credentials configured via Kubernetes secret"
         
         # Deployment completed successfully
       env:
