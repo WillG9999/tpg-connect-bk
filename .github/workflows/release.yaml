@@ -19,6 +19,11 @@ on:
         - minor
         - major
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 env:
   PROJECT_ID: connect-ea4c2
   SERVICE_NAME: connect-backend
