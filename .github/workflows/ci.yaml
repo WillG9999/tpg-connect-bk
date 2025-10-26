@@ -34,7 +34,7 @@ jobs:
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        credentials_json: ${{ secrets.GCP_SA_KEY_INT }}
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
@@ -45,12 +45,12 @@ jobs:
     - name: Build and push with Jib
       run: |
         mvn clean compile jib:build \
-          -Dimage=gcr.io/connect-ea4c2/connect-backend:${{ github.sha }} \
-          -Dimage=gcr.io/connect-ea4c2/connect-backend:main \
+          -Dimage=gcr.io/connect-ea4c2-int/connect-backend:${{ github.sha }} \
+          -Dimage=gcr.io/connect-ea4c2-int/connect-backend:main \
           -DskipTests=true
           
     - name: Build Success
       run: |
         echo "✅ Image built and pushed successfully"
-        echo "Image: gcr.io/connect-ea4c2/connect-backend:${{ github.sha }}"
-        echo "Tagged as: gcr.io/connect-ea4c2/connect-backend:main"
+        echo "Image: gcr.io/connect-ea4c2-int/connect-backend:${{ github.sha }}"
+        echo "Tagged as: gcr.io/connect-ea4c2-int/connect-backend:main"
