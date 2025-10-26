@@ -134,19 +134,9 @@ jobs:
         done
         echo "✅ Old ReplicaSets cleanup completed"
         
-        # Create Firebase credentials Kubernetes secret from Secret Manager
-        echo "🔥 Creating Firebase credentials Kubernetes secret"
-        echo "Fetching Firebase credentials from Secret Manager"
-        FIREBASE_CREDS=$(gcloud secrets versions access latest --secret=firebase-credentials --project=${{ env.PROJECT_ID }})
-        kubectl create secret generic firebase-credentials \
-          --namespace connect-int \
-          --from-literal=credentials.json="$FIREBASE_CREDS" \
-          --dry-run=client -o yaml | kubectl apply -f -
-        echo "✅ Firebase credentials secret created/updated"
-        
         # Use helm upgrade --install for automated deployment (best practice)
         echo "🚀 Starting helm deployment with debug output"
-        echo "Firebase credentials will be loaded from Kubernetes secret (post-deployment patch)"
+        echo "Firebase credentials will be loaded via Spring Cloud GCP Secret Manager integration"
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
           --create-namespace \
@@ -175,7 +165,7 @@ jobs:
         kubectl get services -n connect-int
         kubectl get deployments -n connect-int
         
-        echo "✅ Deployment completed successfully - Firebase credentials configured via Kubernetes secret"
+        echo "✅ Deployment completed successfully - Firebase credentials configured via Spring Cloud GCP Secret Manager"
         
         # Deployment completed successfully
       env:
