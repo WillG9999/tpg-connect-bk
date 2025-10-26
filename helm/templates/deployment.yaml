@@ -53,6 +53,13 @@ spec:
           value: "true"
         - name: spring.cloud.gcp.project-id
           value: {{ .Values.gcp.projectId | quote }}
+        # Firebase configuration from values
+        - name: firebase.project.id
+          value: {{ .Values.firebase.projectId | quote }}
+        - name: firebase.database.url
+          value: {{ .Values.firebase.databaseUrl | quote }}
+        - name: firebase.storage.bucket
+          value: {{ .Values.firebase.storageBucket | quote }}
         # JWT Secret from Secret Manager (keeping as environment variable for now)
         - name: JWT_SECRET
           value: "${sm://jwt-secret}"
