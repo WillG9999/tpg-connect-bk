@@ -47,7 +47,9 @@ jobs:
       run: |
         # Get the latest commit message
         COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-        echo "Latest commit: $COMMIT_MSG"
+        echo "🔍 Debug: Latest commit: '$COMMIT_MSG'"
+        echo "🔍 Debug: Event name: ${{ github.event_name }}"
+        echo "🔍 Debug: Ref: ${{ github.ref }}"
         
         # Check for release triggers in commit message
         SHOULD_RELEASE=false
@@ -66,6 +68,8 @@ jobs:
           else
             RELEASE_TYPE="patch"
           fi
+        else
+          echo "❌ No release trigger found in commit message"
         fi
         
         # If manual trigger, always release
@@ -78,7 +82,7 @@ jobs:
         echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
         echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
         
-        echo "Release decision:"
+        echo "🎯 Final Release decision:"
         echo "  Should release: $SHOULD_RELEASE"
         echo "  Release type: $RELEASE_TYPE"
 
@@ -107,37 +111,44 @@ jobs:
       id: version
       run: |
         # Get current version from last tag
-        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "1.0.0")
         echo "Current version: $CURRENT_VERSION"
         
         # Remove 'v' prefix if present
         CURRENT_VERSION=${CURRENT_VERSION#v}
         
-        # Split version into parts
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        # If no version exists, start at 1.0.0
+        if [ "$CURRENT_VERSION" = "1.0.0" ] && [ -z "$(git tag -l)" ]; then
+          MAJOR=1
+          MINOR=0
+          PATCH=0
+        else
+          # Split version into parts
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          # Get bump type from the release trigger check
+          BUMP_TYPE="${{ needs.check-release-trigger.outputs.release-type }}"
+          
+          echo "Using bump type: $BUMP_TYPE"
+          
+          # Calculate new version
+          case $BUMP_TYPE in
+            "major")
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            "minor")
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            *)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+        fi
         
-        # Get bump type from the release trigger check
-        BUMP_TYPE="${{ needs.check-release-trigger.outputs.release-type }}"
-        
-        echo "Using bump type: $BUMP_TYPE"
-        
-        # Calculate new version
-        case $BUMP_TYPE in
-          "major")
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            ;;
-          "minor")
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            ;;
-          *)
-            PATCH=$((PATCH + 1))
-            ;;
-        esac
-        
-        NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+        NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
         echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "🏷️ New version: $NEW_VERSION (was $CURRENT_VERSION)"
         
