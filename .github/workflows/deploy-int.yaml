@@ -111,12 +111,19 @@ jobs:
           
     - name: Deploy to Integration using Helm
       run: |
-        # Create namespace if it doesn't exist
+        # Clean up any existing Helm release with namespace conflicts
+        if helm list -n connect-int | grep -q connect-int; then
+          echo "🧹 Cleaning up existing Helm release"
+          helm uninstall connect-int -n connect-int || true
+        fi
+        
+        # Ensure namespace exists and is properly configured
         kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f -
         
-        # Deploy using Helm
+        # Deploy using Helm with create-namespace flag
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
+          --create-namespace \
           --values helm/values-int.yaml \
           --set image.tag="${{ steps.version.outputs.version }}" \
           --set app.version="${{ steps.version.outputs.version }}" \
