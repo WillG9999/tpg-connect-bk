@@ -1,8 +1,0 @@
-spring:
-  cloud:
-    gcp:
-      secretmanager:
-        enabled: true
-      project-id: ${GCP_PROJECT_ID:connect-ea4c2-int}
-  application:
-    name: connect-backend

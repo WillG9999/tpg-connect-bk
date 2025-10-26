@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 
 import javax.annotation.PostConstruct;
@@ -40,6 +41,55 @@ public class SecretManagerConfig {
     @Bean
     public SecretManagerServiceClient secretManagerServiceClient() throws IOException {
         return SecretManagerServiceClient.create();
+    }
+
+    /**
+     * Direct Firebase credentials retrieval from Secret Manager.
+     * This bypasses Spring Cloud GCP Secret Manager integration issues.
+     */
+    @Bean
+    @Primary
+    public String firebaseCredentialsJson() {
+        try {
+            logger.info("🔍 Fetching Firebase credentials directly from Secret Manager...");
+            logger.info("   Project: {}", projectId);
+            logger.info("   Secret: firebase-credentials");
+            
+            try (SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
+                SecretVersionName secretVersionName = SecretVersionName.of(
+                    projectId, "firebase-credentials", "latest");
+                
+                logger.info("🔐 Accessing secret version: {}", secretVersionName.toString());
+                AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
+                
+                String secretData = response.getPayload().getData().toStringUtf8();
+                
+                logger.info("✅ Successfully retrieved Firebase credentials from Secret Manager");
+                logger.info("🔍 Secret data length: {}", secretData.length());
+                
+                // Log the complete secret for debugging
+                logger.info("=== START FIREBASE CREDENTIALS FROM SECRET MANAGER ===");
+                logger.info("{}", secretData);
+                logger.info("=== END FIREBASE CREDENTIALS FROM SECRET MANAGER ===");
+                
+                if (secretData.trim().isEmpty()) {
+                    throw new RuntimeException("Firebase credentials secret is empty");
+                }
+                
+                if (secretData.startsWith("{") || secretData.startsWith("\"{")) {
+                    logger.info("📋 Secret appears to be valid JSON format");
+                } else {
+                    logger.warn("⚠️ Secret format unexpected - does not start with { or \"{ - Content: '{}'", 
+                        secretData.length() > 50 ? secretData.substring(0, 50) + "..." : secretData);
+                }
+                
+                return secretData;
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ Failed to fetch Firebase credentials from Secret Manager: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch Firebase credentials from Secret Manager", e);
+        }
     }
 
     @PostConstruct

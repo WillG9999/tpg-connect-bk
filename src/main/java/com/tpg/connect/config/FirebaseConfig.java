@@ -40,7 +40,7 @@ public class FirebaseConfig {
     @Value("${FIREBASE_CONFIG_PATH:#{null}}")
     private String firebaseConfigPath;
     
-    @Value("${firebase.credentials.json:#{null}}")
+    @Autowired(required = false)
     private String firebaseCredentialsJson;
 
     @Value("${firebase.database.url:#{null}}")
@@ -64,61 +64,26 @@ public class FirebaseConfig {
     public FirebaseApp firebaseApp() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {
             logger.info("🔥 Firebase initialization starting...");
-            logger.info("🔍 Checking Secret Manager integration status...");
-            
-            // Log Spring Cloud GCP configuration
-            logger.info("🔧 Spring Cloud GCP Secret Manager enabled: {}", 
-                environment.getProperty("spring.cloud.gcp.secretmanager.enabled", "not set"));
-            logger.info("🔧 Spring Cloud GCP Project ID: {}", 
-                environment.getProperty("spring.cloud.gcp.project-id", "not set"));
+            logger.info("🔍 Using direct Secret Manager client approach...");
             
             // Log what we received
             logger.info("Firebase config path value received: '{}'", firebaseConfigPath);
-            logger.info("Firebase credentials JSON available: {}", firebaseCredentialsJson != null);
+            logger.info("Firebase credentials JSON available from Spring bean: {}", firebaseCredentialsJson != null);
             
-            // Log the COMPLETE RAW value we received for FIREBASE_CREDENTIALS_JSON
-            logger.info("🔍 COMPLETE RAW FIREBASE_CREDENTIALS_JSON value:");
-            logger.info("=== START FIREBASE CREDENTIALS ===");
-            logger.info("{}", firebaseCredentialsJson != null ? firebaseCredentialsJson : "NULL");
-            logger.info("=== END FIREBASE CREDENTIALS ===");
-            
-            logger.info("🔍 COMPLETE RAW FIREBASE_CREDENTIALS_JSON from environment:");
-            logger.info("=== START ENVIRONMENT FIREBASE CREDENTIALS ===");
-            String envValue = environment.getProperty("FIREBASE_CREDENTIALS_JSON", "NOT FOUND");
-            logger.info("{}", envValue);
-            logger.info("=== END ENVIRONMENT FIREBASE CREDENTIALS ===");
+            // The Secret Manager bean will log the complete credentials during its initialization
             
             if (firebaseCredentialsJson != null) {
+                logger.info("✅ Firebase credentials received from direct Secret Manager client");
                 logger.info("Firebase credentials JSON length: {}", firebaseCredentialsJson.length());
-                
-                // Check if Spring Cloud GCP Secret Manager substitution worked
-                if (firebaseCredentialsJson.contains("${sm://")) {
-                    logger.error("❌ Secret Manager placeholder NOT replaced by Spring Cloud GCP!");
-                    logger.error("   Raw value: '{}'", firebaseCredentialsJson);
-                    logger.error("   This means Spring Cloud GCP Secret Manager integration is not working");
-                } else {
-                    logger.info("✅ Secret Manager placeholder appears to have been replaced");
-                    logger.info("Firebase credentials JSON first 100 chars: '{}'", 
-                        firebaseCredentialsJson.length() > 100 ? firebaseCredentialsJson.substring(0, 100) + "..." : firebaseCredentialsJson);
-                    
-                    // Log if it looks like escaped JSON or raw JSON
-                    if (firebaseCredentialsJson.startsWith("{")) {
-                        logger.info("📋 Credentials appear to be raw JSON format");
-                    } else if (firebaseCredentialsJson.startsWith("\"{")) {
-                        logger.info("📋 Credentials appear to be escaped JSON string format");
-                    } else {
-                        logger.warn("⚠️ Credentials format unexpected - does not start with { or \"{");
-                    }
-                }
             } else {
-                logger.error("❌ Firebase credentials JSON is null - Secret Manager integration failed");
+                logger.error("❌ Firebase credentials JSON is null - Secret Manager bean failed");
             }
             
             InputStream serviceAccount;
             
-            // Priority: Use JSON credentials from environment variable if available
+            // Priority: Use JSON credentials from Secret Manager bean if available
             if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
-                logger.info("🔧 Initializing Firebase with credentials from environment variable");
+                logger.info("🔧 Initializing Firebase with credentials from Secret Manager bean");
                 
                 try {
                     serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));

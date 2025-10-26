@@ -48,6 +48,11 @@ spec:
           value: {{ .Values.environment.name | quote }}
         - name: GCP_PROJECT_ID
           value: {{ .Values.gcp.projectId | quote }}
+        # Enable direct Secret Manager client approach
+        - name: app.secret-manager.enabled
+          value: "true"
+        - name: spring.cloud.gcp.project-id
+          value: {{ .Values.gcp.projectId | quote }}
         # JWT Secret from Secret Manager (keeping as environment variable for now)
         - name: JWT_SECRET
           value: "${sm://jwt-secret}"
