@@ -1,5 +1,7 @@
 name: Auto Release & Deploy
 
+run-name: Release ${{ github.event.head_commit.message }} 🚀
+
 on:
   push:
     branches: [ main ]
@@ -245,33 +247,14 @@ jobs:
         echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
 
-    - name: Trigger build workflow
-      run: |
-        echo "🚀 Triggering build workflow for tag ${{ steps.version.outputs.new_version }}"
-        
-        # Make the API call and capture response
-        RESPONSE=$(curl -s -w "%{http_code}" -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/dispatches \
-          -d '{"event_type":"build-image","client_payload":{"tag_name":"${{ steps.version.outputs.new_version }}"}}')
-        
-        # Extract HTTP status code and response body
-        HTTP_CODE="${RESPONSE: -3}"
-        BODY="${RESPONSE%???}"
-        
-        echo "HTTP Status Code: $HTTP_CODE"
-        echo "Response Body: $BODY"
-        
-        # Check if the request was successful
-        if [ "$HTTP_CODE" -eq 204 ] || [ "$HTTP_CODE" -eq 200 ]; then
-          echo "✅ Successfully triggered build workflow"
-        else
-          echo "❌ Failed to trigger build workflow"
-          echo "HTTP Code: $HTTP_CODE"
-          echo "Response: $BODY"
-          exit 1
-        fi
+  call-build-workflow:
+    name: Build and Deploy
+    needs: auto-release
+    if: needs.auto-release.outputs.release-created == 'true'
+    uses: ./.github/workflows/ci.yaml
+    with:
+      tag_name: ${{ needs.auto-release.outputs.new-version }}
+    secrets: inherit
 
   no-release:
     name: No Release Triggered

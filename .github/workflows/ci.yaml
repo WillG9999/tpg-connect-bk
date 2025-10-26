@@ -1,4 +1,6 @@
-name: Build Images
+name: Build Images${{ inputs.tag_name && format(' - v{0}', inputs.tag_name) || '' }}
+
+run-name: Build v${{ inputs.tag_name || 'latest' }} 🚀
 
 on:
   workflow_call:
@@ -7,8 +9,6 @@ on:
         description: 'Tag name to build'
         required: true
         type: string
-  repository_dispatch:
-    types: [build-image]
   workflow_dispatch:
     inputs:
       tag_name:
@@ -22,7 +22,7 @@ env:
 
 jobs:
   build:
-    name: Build and Push Image - ${{ github.event.client_payload.tag_name || inputs.tag_name || 'latest' }}
+    name: Build and Push Image - ${{ inputs.tag_name || 'latest' }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -31,16 +31,15 @@ jobs:
     - name: Get build version
       id: version
       run: |
-        # Get tag from different trigger types
-        if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-          VERSION="${{ github.event.client_payload.tag_name }}"
-        elif [ "${{ github.event_name }}" = "workflow_call" ]; then
-          VERSION="${{ inputs.tag_name }}"
+        # Get tag from input
+        VERSION="${{ inputs.tag_name }}"
+        if [ "${{ github.event_name }}" = "workflow_call" ]; then
+          echo "🔗 Workflow call triggered for version: $VERSION"
         else
-          VERSION="${{ inputs.tag_name }}"
+          echo "📋 Manual workflow dispatch for version: $VERSION"
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "🏷️ Building tag: $VERSION"
+        echo "🏷️ Building container image for version: $VERSION"
         
     - name: Checkout code
       uses: actions/checkout@v4
@@ -81,30 +80,10 @@ jobs:
           -DskipTests=true
         echo "✅ Image built and pushed successfully"
           
-    - name: Trigger integration deployment
-      run: |
-        echo "🚀 Triggering integration deployment for tag ${{ steps.version.outputs.version }}"
-        
-        # Make the API call and capture response
-        RESPONSE=$(curl -s -w "%{http_code}" -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/dispatches \
-          -d '{"event_type":"deploy-integration","client_payload":{"tag_name":"${{ steps.version.outputs.version }}"}}')
-        
-        # Extract HTTP status code and response body
-        HTTP_CODE="${RESPONSE: -3}"
-        BODY="${RESPONSE%???}"
-        
-        echo "HTTP Status Code: $HTTP_CODE"
-        echo "Response Body: $BODY"
-        
-        # Check if the request was successful
-        if [ "$HTTP_CODE" -eq 204 ] || [ "$HTTP_CODE" -eq 200 ]; then
-          echo "✅ Successfully triggered integration deployment"
-        else
-          echo "❌ Failed to trigger integration deployment"
-          echo "HTTP Code: $HTTP_CODE"
-          echo "Response: $BODY"
-          exit 1
-        fi
+  call-deploy-workflow:
+    name: Deploy to Integration
+    needs: build
+    uses: ./.github/workflows/deploy-int.yaml
+    with:
+      tag_name: ${{ needs.build.outputs.version }}
+    secrets: inherit

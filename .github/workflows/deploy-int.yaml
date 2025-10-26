@@ -1,4 +1,6 @@
-name: Deploy to Integration
+name: Deploy to Integration${{ inputs.tag_name && format(' - v{0}', inputs.tag_name) || '' }}
+
+run-name: Deploy v${{ inputs.tag_name || 'latest' }} to Integration 🚀
 
 on:
   workflow_call:
@@ -7,8 +9,6 @@ on:
         description: 'Tag name to deploy'
         required: true
         type: string
-  repository_dispatch:
-    types: [deploy-integration]
   workflow_dispatch:  # Keep manual trigger for testing
     inputs:
       tag_name:
@@ -26,7 +26,7 @@ env:
 
 jobs:
   deploy-int:
-    name: Deploy to Integration - ${{ github.event.client_payload.tag_name || inputs.tag_name || 'latest' }}
+    name: Deploy to Integration - ${{ inputs.tag_name || 'latest' }}
     runs-on: ubuntu-latest
     environment: 
       name: integration
@@ -37,24 +37,17 @@ jobs:
       run: |
         echo "🔍 Integration deployment triggered!"
         echo "Event: ${{ github.event_name }}"
-        if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-          echo "Repository dispatch event: ${{ github.event.action }}"
-          echo "Deploying tag: ${{ github.event.client_payload.tag_name }}"
-        else
-          echo "Manual workflow dispatch"
-          echo "Deploying tag: ${{ inputs.tag_name }}"
-        fi
+        echo "Deploying tag: ${{ inputs.tag_name }}"
         
     - name: Set deployment version
       id: version
       run: |
-        # Get tag from different trigger types
-        if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-          VERSION="${{ github.event.client_payload.tag_name }}"
-        elif [ "${{ github.event_name }}" = "workflow_call" ]; then
-          VERSION="${{ inputs.tag_name }}"
+        # Get tag from input
+        VERSION="${{ inputs.tag_name }}"
+        if [ "${{ github.event_name }}" = "workflow_call" ]; then
+          echo "🔗 Workflow call triggered for version: $VERSION"
         else
-          VERSION="${{ inputs.tag_name }}"
+          echo "📋 Manual workflow dispatch for version: $VERSION"
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
