@@ -117,16 +117,30 @@ jobs:
         kubectl annotate namespace connect-int meta.helm.sh/release-name- --overwrite || true
         kubectl annotate namespace connect-int meta.helm.sh/release-namespace- --overwrite || true
         
-        # Deploy using Helm with create-namespace flag
+        # Deploy using Helm - force install since we cleaned up releases
         echo "🚀 Deploying to clean namespace"
-        helm upgrade --install connect-int ./helm \
-          --namespace connect-int \
-          --create-namespace \
-          --values helm/values-int.yaml \
-          --set image.tag="${{ steps.version.outputs.version }}" \
-          --set app.version="${{ steps.version.outputs.version }}" \
-          --wait \
-          --timeout=10m
+        
+        # Check if release exists, if not do install, otherwise upgrade
+        if helm status connect-int -n connect-int >/dev/null 2>&1; then
+          echo "Release exists, doing upgrade"
+          helm upgrade connect-int ./helm \
+            --namespace connect-int \
+            --values helm/values-int.yaml \
+            --set image.tag="${{ steps.version.outputs.version }}" \
+            --set app.version="${{ steps.version.outputs.version }}" \
+            --wait \
+            --timeout=10m
+        else
+          echo "No existing release, doing fresh install"
+          helm install connect-int ./helm \
+            --namespace connect-int \
+            --create-namespace \
+            --values helm/values-int.yaml \
+            --set image.tag="${{ steps.version.outputs.version }}" \
+            --set app.version="${{ steps.version.outputs.version }}" \
+            --wait \
+            --timeout=10m
+        fi
       env:
         USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
