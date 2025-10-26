@@ -9,7 +9,7 @@ spec:
   replicas: {{ .Values.deployment.replicaCount }}
   strategy:
     type: {{ .Values.deployment.strategy.type }}
-    {{- if eq .Values.deployment.strategy.type "RollingUpdate" }}
+    {{- if and .Values.deployment.strategy.rollingUpdate (eq .Values.deployment.strategy.type "RollingUpdate") }}
     rollingUpdate:
       maxSurge: {{ .Values.deployment.strategy.rollingUpdate.maxSurge }}
       maxUnavailable: {{ .Values.deployment.strategy.rollingUpdate.maxUnavailable }}
@@ -21,7 +21,7 @@ spec:
     metadata:
       labels:
         {{- include "connect-backend.selectorLabels" . | nindent 8 }}
-        version: {{ .Values.app.version | quote }}
+        version: {{ .Values.image.tag | default .Values.app.version | quote }}
       annotations:
         # Force pod restart on config changes
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
@@ -60,11 +60,11 @@ spec:
         - name: FIREBASE_CONFIG_PATH
           value: "/secrets/firebase/credentials.json"
         - name: FIREBASE_DATABASE_URL
-          value: "https://connect-ea4c2-int-default-rtdb.firebaseio.com"
+          value: {{ printf "https://%s-default-rtdb.firebaseio.com" .Values.gcp.projectId | quote }}
         - name: FIREBASE_STORAGE_BUCKET
-          value: "connect-ea4c2-int.firebasestorage.app"
+          value: {{ printf "%s.firebasestorage.app" .Values.gcp.projectId | quote }}
         - name: FIREBASE_PROJECT_ID
-          value: "connect-ea4c2-int"
+          value: {{ .Values.gcp.projectId | quote }}
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: ""
         # Feature flags as environment variables

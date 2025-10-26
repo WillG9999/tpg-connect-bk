@@ -16,6 +16,8 @@ environment:
 # Deployment configuration - minimal resources for testing
 deployment:
   replicaCount: 1
+  strategy:
+    type: Recreate  # Use Recreate for single replica deployments
   
 # Resources - smaller allocation for integration
 resources:
@@ -25,6 +27,12 @@ resources:
   limits:
     memory: "1Gi"
     cpu: "500m"
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
     
 # Ingress configuration
 ingress:
@@ -35,16 +43,19 @@ ingress:
 # Health checks - more lenient timeouts for testing
 healthChecks:
   livenessProbe:
+    path: /api/health/live
     initialDelaySeconds: 90
     periodSeconds: 30
     timeoutSeconds: 10
     failureThreshold: 3
   readinessProbe:
+    path: /api/health/ready
     initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
   startupProbe:
+    path: /api/health
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
