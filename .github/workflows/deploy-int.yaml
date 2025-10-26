@@ -73,11 +73,22 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       
+    - name: Install gke-gcloud-auth-plugin
+      run: |
+        echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+        sudo apt-get update
+        sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
+        echo "✅ gke-gcloud-auth-plugin installed"
+      
     - name: Configure kubectl
       run: |
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
           --project ${{ env.PROJECT_ID }}
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: True
         
     - name: Verify container image exists
       run: |
@@ -106,12 +117,16 @@ jobs:
           --set app.version="${{ steps.version.outputs.version }}" \
           --wait \
           --timeout=10m
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
     - name: Wait for deployment rollout
       run: |
         kubectl rollout status deployment/connect-backend-int \
           --namespace=connect-int \
           --timeout=300s
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
     - name: Verify deployment health
       run: |
@@ -125,6 +140,8 @@ jobs:
         EXTERNAL_IP=$(kubectl get service connect-backend-service-int \
           --namespace=connect-int \
           -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
         if [ "$EXTERNAL_IP" != "pending" ] && [ "$EXTERNAL_IP" != "" ]; then
           echo "Service available at: http://$EXTERNAL_IP"
