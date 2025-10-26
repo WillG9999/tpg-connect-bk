@@ -125,14 +125,21 @@ jobs:
         echo "📝 Proceeding to deployment"
         
         # Use helm upgrade --install for automated deployment (best practice)
+        echo "🚀 Starting helm deployment with debug output"
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
           --create-namespace \
           --values helm/values-int.yaml \
           --set image.tag="${{ steps.version.outputs.version }}" \
           --set app.version="${{ steps.version.outputs.version }}" \
-          --wait \
-          --timeout=10m
+          --debug \
+          --timeout=5m \
+          --wait
+          
+        echo "✅ Helm command completed, checking deployed resources"
+        kubectl get pods -n connect-int
+        kubectl get services -n connect-int
+        kubectl get deployments -n connect-int
       env:
         USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
