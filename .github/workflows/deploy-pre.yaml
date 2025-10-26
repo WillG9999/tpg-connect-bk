@@ -119,46 +119,43 @@ jobs:
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
-          --project ${{ env.PROJECT_ID }}
+          --project connect-ea4c2
+        
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.13.0'
         
     - name: Tag image for pre-production
       run: |
         # Tag the existing image for pre-production
         gcloud container images add-tag \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:pre-latest
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:pre-latest
           
     - name: Create backup of current pre-production deployment
       run: |
-        # Get current image for potential rollback
-        CURRENT_IMAGE=$(kubectl get deployment connect-backend-pre \
-          -o jsonpath='{.spec.template.spec.containers[0].image}' \
-          --namespace=connect-pre 2>/dev/null || echo "none")
-          
-        echo "Current pre-production image: $CURRENT_IMAGE"
-        echo "BACKUP_IMAGE=$CURRENT_IMAGE" >> $GITHUB_ENV
+        # Get current Helm release values for potential rollback
+        CURRENT_VERSION=$(helm get values connect-pre -n connect-pre -o json | jq -r '.image.tag // "none"' 2>/dev/null || echo "none")
+        echo "Current pre-production version: $CURRENT_VERSION"
+        echo "BACKUP_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
         
-    - name: Deploy to Pre-Production Kubernetes
+    - name: Deploy to Pre-Production using Helm
       run: |
-        # Update deployment image
-        kubectl set image deployment/connect-backend-pre \
-          connect-backend=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-          --namespace=connect-pre
-          
-        # Update labels and annotations
-        kubectl annotate deployment connect-backend-pre \
-          deployment.kubernetes.io/revision- \
-          --namespace=connect-pre
-          
-        kubectl label deployment connect-backend-pre \
-          version=${{ inputs.version }} \
-          release=${{ inputs.version }} \
-          environment=pre \
-          promoted-from=int \
-          promoted-at=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-          promoted-by=${{ github.actor }} \
-          --overwrite \
-          --namespace=connect-pre
+        # Create namespace if it doesn't exist
+        kubectl create namespace connect-pre --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy using Helm
+        helm upgrade --install connect-pre ./helm \
+          --namespace connect-pre \
+          --values helm/values-pre.yaml \
+          --set image.tag="${{ inputs.version }}" \
+          --set app.version="${{ inputs.version }}" \
+          --set deployment.annotations.promoted-from="int" \
+          --set deployment.annotations.promoted-at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+          --set deployment.annotations.promoted-by="${{ github.actor }}" \
+          --wait \
+          --timeout=15m
           
     - name: Wait for deployment rollout
       run: |

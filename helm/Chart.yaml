@@ -1,0 +1,19 @@
+apiVersion: v2
+name: connect-backend
+description: Connect Dating App Backend Helm Chart
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/WillG9999/tpg-connect-bk
+sources:
+  - https://github.com/WillG9999/tpg-connect-bk
+maintainers:
+  - name: Connect Team
+    email: team@connect-app.com
+keywords:
+  - dating-app
+  - spring-boot
+  - firebase
+  - kubernetes
+annotations:
+  category: Application

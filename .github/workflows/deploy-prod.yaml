@@ -217,57 +217,52 @@ jobs:
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
-          --project ${{ env.PROJECT_ID }}
+          --project connect-ea4c2
+        
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.13.0'
         
     - name: Tag image for production
       run: |
         # Tag the existing image for production
         gcloud container images add-tag \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:prod-latest
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:prod-latest
           
         gcloud container images add-tag \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:stable
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:stable
           
     - name: Create backup of current production deployment
       run: |
-        # Get current image for potential rollback
-        CURRENT_IMAGE=$(kubectl get deployment connect-backend \
-          -o jsonpath='{.spec.template.spec.containers[0].image}' \
-          --namespace=connect 2>/dev/null || echo "none")
-          
-        echo "Current production image: $CURRENT_IMAGE"
-        echo "BACKUP_IMAGE=$CURRENT_IMAGE" >> $GITHUB_ENV
+        # Get current Helm release values for potential rollback
+        CURRENT_VERSION=$(helm get values connect -n connect -o json | jq -r '.image.tag // "none"' 2>/dev/null || echo "none")
+        echo "Current production version: $CURRENT_VERSION"
+        echo "BACKUP_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
         
         # Save current deployment for potential rollback
-        kubectl get deployment connect-backend \
-          --namespace=connect \
-          -o yaml > production-backup.yaml || echo "No existing deployment"
+        helm get values connect -n connect > production-backup-values.yaml 2>/dev/null || echo "No existing deployment"
           
-    - name: Deploy to Production Kubernetes
+    - name: Deploy to Production using Helm
       run: |
         echo "🚀 Starting production deployment..."
         
-        # Update deployment image with rolling update
-        kubectl set image deployment/connect-backend \
-          connect-backend=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
-          --namespace=connect
-          
-        # Update labels and annotations
-        kubectl annotate deployment connect-backend \
-          deployment.kubernetes.io/revision- \
-          --namespace=connect
-          
-        kubectl label deployment connect-backend \
-          version=${{ inputs.version }} \
-          release=${{ inputs.version }} \
-          environment=prod \
-          promoted-from=pre \
-          promoted-at=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-          promoted-by=${{ github.actor }} \
-          --overwrite \
-          --namespace=connect
+        # Create namespace if it doesn't exist
+        kubectl create namespace connect --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy using Helm with production values
+        helm upgrade --install connect ./helm \
+          --namespace connect \
+          --values helm/values-prod.yaml \
+          --set image.tag="${{ inputs.version }}" \
+          --set app.version="${{ inputs.version }}" \
+          --set deployment.annotations.promoted-from="pre" \
+          --set deployment.annotations.promoted-at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+          --set deployment.annotations.promoted-by="${{ github.actor }}" \
+          --wait \
+          --timeout=20m
           
     - name: Wait for deployment rollout
       run: |

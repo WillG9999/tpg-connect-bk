@@ -1,0 +1,92 @@
+# Integration Environment Configuration
+# Lightweight setup for integration testing
+
+# Environment-specific settings
+environment:
+  name: int
+  springProfile: int
+  logLevel: DEBUG
+  
+# Deployment configuration - minimal resources for testing
+deployment:
+  replicaCount: 1
+  
+# Resources - smaller allocation for integration
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+    
+# Ingress configuration
+ingress:
+  host: int-api.connect-app.com
+  staticIpName: connect-backend-int-ip
+  sslCertName: connect-backend-int-ssl
+  
+# Health checks - more lenient timeouts for testing
+healthChecks:
+  livenessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startupProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 18
+    
+# GCP configuration - separate project
+gcp:
+  projectId: connect-ea4c2-int
+  region: us-central1
+  zone: us-central1-a
+  
+# Service Account - integration-specific
+serviceAccount:
+  name: connect-backend-int
+  gcpServiceAccount: connect-backend-int@connect-ea4c2-int.iam.gserviceaccount.com
+  
+# Namespace
+namespace:
+  name: connect-int
+  labels:
+    environment: int
+    tier: integration
+    
+# Secret Manager integration
+secretManager:
+  projectId: connect-ea4c2-int
+  
+# Feature flags - enable all for testing
+features:
+  emailVerification: true
+  emailService: true
+  pushNotifications: true
+  premiumFeatures: true
+  adminFeatures: true
+  realtimeMessaging: true
+  analytics: false  # Disable analytics in integration
+  fileUploads: true
+  socialSharing: false  # Disable social sharing in integration
+  safetyFeatures: true
+  
+# Development settings
+dev:
+  exposeResetTokens: true  # Enable for integration testing
+  
+# Autoscaling - disabled for integration
+autoscaling:
+  enabled: false
+  
+# Pod disruption budget - disabled for single replica
+podDisruptionBudget:
+  enabled: false

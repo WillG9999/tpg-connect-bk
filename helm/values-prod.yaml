@@ -1,0 +1,96 @@
+# Production Environment Configuration
+# Full production setup with high availability and security
+
+# Environment-specific settings
+environment:
+  name: prod
+  springProfile: prod
+  logLevel: WARN
+  
+# Deployment configuration - high availability
+deployment:
+  replicaCount: 3
+  
+# Resources - full production allocation
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+    
+# Ingress configuration
+ingress:
+  host: api.connect-app.com
+  staticIpName: connect-backend-ip
+  sslCertName: connect-backend-ssl
+  
+# Health checks - production settings
+healthChecks:
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startupProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 12
+    
+# GCP configuration - production project
+gcp:
+  projectId: connect-ea4c2
+  region: us-central1
+  zone: us-central1-a
+  
+# Service Account - production
+serviceAccount:
+  name: connect-backend
+  gcpServiceAccount: connect-backend@connect-ea4c2.iam.gserviceaccount.com
+  
+# Namespace
+namespace:
+  name: connect
+  labels:
+    environment: prod
+    tier: production
+    
+# Secret Manager integration
+secretManager:
+  projectId: connect-ea4c2
+  
+# Feature flags - all production features enabled
+features:
+  emailVerification: true
+  emailService: true
+  pushNotifications: true
+  premiumFeatures: true
+  adminFeatures: true
+  realtimeMessaging: true
+  analytics: true
+  fileUploads: true
+  socialSharing: true
+  safetyFeatures: true
+  
+# Development settings - production security
+dev:
+  exposeResetTokens: false  # NEVER expose reset tokens in production
+  
+# Autoscaling - production scaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  
+# Pod disruption budget - ensure availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Always keep at least 2 pods running

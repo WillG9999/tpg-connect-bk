@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "connect-backend.deploymentName" . }}-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "connect-backend.labels" . | nindent 4 }}
+data:
+  # Application configuration
+  environment: {{ .Values.environment.name | quote }}
+  spring.profiles.active: {{ .Values.environment.springProfile | quote }}
+  logging.level: {{ .Values.environment.logLevel | quote }}
+  
+  # GCP Configuration
+  gcp.project.id: {{ .Values.gcp.projectId | quote }}
+  gcp.region: {{ .Values.gcp.region | quote }}
+  gcp.zone: {{ .Values.gcp.zone | quote }}
+  
+  # Secret Manager Configuration
+  {{- if .Values.secretManager.enabled }}
+  secretmanager.enabled: "true"
+  secretmanager.project.id: {{ .Values.secretManager.projectId | quote }}
+  {{- end }}
+  
+  # Feature Flags
+  {{- range $key, $value := .Values.features }}
+  feature.{{ $key | replace "_" "-" }}: {{ $value | quote }}
+  {{- end }}
+  
+  # Development Settings
+  {{- if .Values.dev.exposeResetTokens }}
+  dev.expose-reset-tokens: "true"
+  {{- else }}
+  dev.expose-reset-tokens: "false"
+  {{- end }}
+  
+  # Service Discovery
+  service.name: {{ include "connect-backend.serviceName" . }}
+  service.port: {{ .Values.service.port | quote }}
+  
+  # Health Check Paths
+  health.liveness.path: {{ .Values.healthChecks.livenessProbe.path | quote }}
+  health.readiness.path: {{ .Values.healthChecks.readinessProbe.path | quote }}
+  health.startup.path: {{ .Values.healthChecks.startupProbe.path | quote }}

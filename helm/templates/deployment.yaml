@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "connect-backend.deploymentName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "connect-backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  strategy:
+    type: {{ .Values.deployment.strategy.type }}
+    {{- if eq .Values.deployment.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.deployment.strategy.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.deployment.strategy.rollingUpdate.maxUnavailable }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "connect-backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "connect-backend.selectorLabels" . | nindent 8 }}
+        version: {{ .Values.app.version | quote }}
+      annotations:
+        # Force pod restart on config changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "connect-backend.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: {{ .Values.security.runAsNonRoot }}
+        runAsUser: {{ .Values.security.runAsUser }}
+        fsGroup: {{ .Values.security.fsGroup }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: {{ include "connect-backend.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.service.targetPort }}
+          name: http
+          protocol: TCP
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.environment.springProfile | quote }}
+        - name: SERVER_PORT
+          value: {{ .Values.service.targetPort | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.environment.name | quote }}
+        - name: GCP_PROJECT_ID
+          value: {{ .Values.gcp.projectId | quote }}
+        # Feature flags as environment variables
+        {{- range $key, $value := .Values.features }}
+        - name: {{ printf "FEATURE_%s" ($key | upper | replace "-" "_") }}
+          value: {{ $value | quote }}
+        {{- end }}
+        # Development settings
+        {{- if .Values.dev.exposeResetTokens }}
+        - name: DEV_EXPOSE_RESET_TOKENS
+          value: "true"
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.healthChecks.livenessProbe.path }}
+            port: {{ .Values.service.targetPort }}
+          initialDelaySeconds: {{ .Values.healthChecks.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.livenessProbe.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.healthChecks.readinessProbe.path }}
+            port: {{ .Values.service.targetPort }}
+          initialDelaySeconds: {{ .Values.healthChecks.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.readinessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.readinessProbe.failureThreshold }}
+        startupProbe:
+          httpGet:
+            path: {{ .Values.healthChecks.startupProbe.path }}
+            port: {{ .Values.service.targetPort }}
+          initialDelaySeconds: {{ .Values.healthChecks.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.startupProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.startupProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.startupProbe.failureThreshold }}
+        securityContext:
+          allowPrivilegeEscalation: {{ .Values.security.allowPrivilegeEscalation }}
+          readOnlyRootFilesystem: {{ .Values.security.readOnlyRootFilesystem }}
+          capabilities:
+            drop:
+            {{- range .Values.security.capabilities.drop }}
+            - {{ . }}
+            {{- end }}
+        # Volume mounts for temporary files (since readOnlyRootFilesystem is true)
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-cache
+          mountPath: /var/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-cache
+        emptyDir: {}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

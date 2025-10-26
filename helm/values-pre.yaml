@@ -1,0 +1,96 @@
+# Pre-Production Environment Configuration
+# Production-like setup with safety controls
+
+# Environment-specific settings
+environment:
+  name: pre
+  springProfile: pre
+  logLevel: INFO
+  
+# Deployment configuration - production-like but smaller
+deployment:
+  replicaCount: 2
+  
+# Resources - medium allocation for pre-production
+resources:
+  requests:
+    memory: "768Mi"
+    cpu: "375m"
+  limits:
+    memory: "1.5Gi"
+    cpu: "750m"
+    
+# Ingress configuration
+ingress:
+  host: pre-api.connect-app.com
+  staticIpName: connect-backend-pre-ip
+  sslCertName: connect-backend-pre-ssl
+  
+# Health checks - production-like with some debug info
+healthChecks:
+  livenessProbe:
+    initialDelaySeconds: 75
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 45
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startupProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 8
+    timeoutSeconds: 5
+    failureThreshold: 15
+    
+# GCP configuration - separate project
+gcp:
+  projectId: connect-ea4c2-pre
+  region: us-central1
+  zone: us-central1-a
+  
+# Service Account - pre-production-specific
+serviceAccount:
+  name: connect-backend-pre
+  gcpServiceAccount: connect-backend-pre@connect-ea4c2-pre.iam.gserviceaccount.com
+  
+# Namespace
+namespace:
+  name: connect-pre
+  labels:
+    environment: pre
+    tier: pre-production
+    
+# Secret Manager integration
+secretManager:
+  projectId: connect-ea4c2-pre
+  
+# Feature flags - production-like with safety
+features:
+  emailVerification: true
+  emailService: true
+  pushNotifications: true
+  premiumFeatures: true
+  adminFeatures: true
+  realtimeMessaging: true
+  analytics: true
+  fileUploads: true
+  socialSharing: true
+  safetyFeatures: true
+  
+# Development settings
+dev:
+  exposeResetTokens: true  # Expose tokens for pre-prod testing
+  
+# Autoscaling - basic autoscaling for pre-prod
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

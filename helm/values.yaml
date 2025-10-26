@@ -1,0 +1,141 @@
+# Default values for connect-backend
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  environment: prod
+  
+# Application configuration
+app:
+  name: connect-backend
+  version: latest
+  
+# Environment-specific settings (overridden in values-{env}.yaml)
+environment:
+  name: prod
+  springProfile: prod
+  logLevel: WARN
+  
+# Image configuration
+image:
+  repository: gcr.io/connect-ea4c2/connect-backend
+  tag: latest
+  pullPolicy: Always
+  
+# Deployment configuration
+deployment:
+  replicaCount: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+      
+# Resources
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+    
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+  
+# Ingress configuration
+ingress:
+  enabled: true
+  className: gce
+  host: api.connect-app.com
+  staticIpName: connect-backend-ip
+  sslCertName: connect-backend-ssl
+  
+# Health checks
+healthChecks:
+  livenessProbe:
+    path: /api/health/live
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  readinessProbe:
+    path: /api/health/ready
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startupProbe:
+    path: /api/health
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 12
+    
+# Security configuration
+security:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+      
+# GCP configuration
+gcp:
+  projectId: connect-ea4c2
+  region: us-central1
+  zone: us-central1-a
+  
+# Service Account
+serviceAccount:
+  create: true
+  name: connect-backend
+  gcpServiceAccount: connect-backend@connect-ea4c2.iam.gserviceaccount.com
+  
+# Namespace
+namespace:
+  create: true
+  name: connect
+  labels:
+    environment: prod
+    tier: production
+    
+# Secret Manager integration
+secretManager:
+  enabled: true
+  projectId: connect-ea4c2
+  
+# Feature flags
+features:
+  emailVerification: true
+  emailService: true
+  pushNotifications: true
+  premiumFeatures: true
+  adminFeatures: true
+  realtimeMessaging: true
+  analytics: true
+  fileUploads: true
+  socialSharing: true
+  safetyFeatures: true
+  
+# Development settings
+dev:
+  exposeResetTokens: false
+  
+# Autoscaling (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

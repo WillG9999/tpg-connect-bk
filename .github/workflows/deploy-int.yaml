@@ -53,7 +53,12 @@ jobs:
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
-          --project ${{ env.PROJECT_ID }}
+          --project connect-ea4c2
+        
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.13.0'
         
     - name: Extract version from tag
       id: version
@@ -65,28 +70,23 @@ jobs:
     - name: Build and push container image
       run: |
         mvn clean compile jib:build \
-          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
-          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:int-latest \
+          -Dimage=gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
+          -Dimage=gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:int-latest \
           -DskipTests=true
           
-    - name: Deploy to Integration Kubernetes
+    - name: Deploy to Integration using Helm
       run: |
-        # Update deployment image
-        kubectl set image deployment/connect-backend-int \
-          connect-backend=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
-          --namespace=connect-int
-          
-        # Add release labels
-        kubectl annotate deployment connect-backend-int \
-          deployment.kubernetes.io/revision- \
-          --namespace=connect-int
-          
-        kubectl label deployment connect-backend-int \
-          version=${{ steps.version.outputs.version }} \
-          release=${{ steps.version.outputs.version }} \
-          environment=int \
-          --overwrite \
-          --namespace=connect-int
+        # Create namespace if it doesn't exist
+        kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy using Helm
+        helm upgrade --install connect-int ./helm \
+          --namespace connect-int \
+          --values helm/values-int.yaml \
+          --set image.tag="${{ steps.version.outputs.version }}" \
+          --set app.version="${{ steps.version.outputs.version }}" \
+          --wait \
+          --timeout=10m
           
     - name: Wait for deployment rollout
       run: |
