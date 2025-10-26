@@ -57,19 +57,6 @@ jobs:
       with:
         ref: ${{ steps.version.outputs.version }}  # Checkout the specific tag
         
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        
-    - name: Cache Maven dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-        
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
@@ -78,24 +65,20 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       
-    - name: Configure Docker for GCR
-      run: gcloud auth configure-docker gcr.io
-        
-    - name: Build and push container image
-      run: |
-        echo "🔨 Building image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}"
-        mvn clean compile jib:build \
-          -Djib.to.image=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
-          -Djib.to.tags=latest,${{ steps.version.outputs.version }} \
-          -DGCP_PROJECT_ID=${{ env.PROJECT_ID }} \
-          -DskipTests=true
-        echo "✅ Image built and pushed successfully"
-      
     - name: Configure kubectl
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
           --project ${{ env.PROJECT_ID }}
+        
+    - name: Verify container image exists
+      run: |
+        echo "🔍 Verifying image exists: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}"
+        gcloud container images describe gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} || {
+          echo "❌ Image not found! Build workflow may have failed."
+          exit 1
+        }
+        echo "✅ Image verified successfully"
         
     - name: Install Helm
       uses: azure/setup-helm@v3
