@@ -81,24 +81,41 @@ This directory contains the GitHub Actions workflows for the Connect Dating App 
 
 ## 🚀 Usage Instructions
 
-### Creating a Release
+## 🤖 Automated Release Process
 
-1. **Prepare your code**:
+### Automatic Releases (Recommended)
+
+**Every push to main automatically creates a new release and deploys to Integration!**
+
+1. **Merge your code to main**:
    ```bash
    git checkout main
    git pull origin main
+   git merge your-feature-branch
+   git push origin main
    ```
 
-2. **Create and push a release tag**:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
+2. **Automatic process**:
+   - ✅ Auto-increments patch version (v1.0.0 → v1.0.1)
+   - ✅ Creates release tag and GitHub release
+   - ✅ Automatically deploys to Integration environment
 
-3. **Monitor Integration deployment**:
+3. **Monitor the process**:
    - Go to Actions tab in GitHub
-   - Watch "Deploy to Integration" workflow
-   - Verify deployment in Integration environment
+   - Watch "Auto Release & Deploy" workflow
+   - Then watch "Deploy to Integration" workflow
+
+### Manual Release (Alternative)
+
+If you need a specific version bump type:
+
+1. **Go to GitHub Actions** → **Auto Release & Deploy**
+2. **Click "Run workflow"**
+3. **Choose bump type**:
+   - `patch` - Bug fixes (1.0.0 → 1.0.1)
+   - `minor` - New features (1.0.0 → 1.1.0)  
+   - `major` - Breaking changes (1.0.0 → 2.0.0)
+4. **Click "Run workflow"**
 
 ### Promoting to Pre-Production
 

@@ -1,0 +1,174 @@
+name: Auto Release & Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+
+env:
+  PROJECT_ID: connect-ea4c2
+  SERVICE_NAME: connect-backend
+
+jobs:
+  auto-release:
+    name: Auto Release & Version Increment
+    runs-on: ubuntu-latest
+    outputs:
+      new-version: ${{ steps.version.outputs.new_version }}
+      release-created: ${{ steps.release.outputs.created }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+    - name: Calculate next version
+      id: version
+      run: |
+        # Get current version from last tag
+        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "Current version: $CURRENT_VERSION"
+        
+        # Remove 'v' prefix if present
+        CURRENT_VERSION=${CURRENT_VERSION#v}
+        
+        # Split version into parts
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        
+        # Determine bump type
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          BUMP_TYPE="${{ inputs.bump_type }}"
+        else
+          # For automatic releases on push to main, default to patch
+          BUMP_TYPE="patch"
+        fi
+        
+        echo "Using bump type: $BUMP_TYPE"
+        
+        # Calculate new version
+        case $BUMP_TYPE in
+          "major")
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+          "minor")
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+          *)
+            PATCH=$((PATCH + 1))
+            ;;
+        esac
+        
+        NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "🏷️ New version: $NEW_VERSION (was $CURRENT_VERSION)"
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get last tag for changelog generation
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -n "$LAST_TAG" ]; then
+          echo "Generating changelog since $LAST_TAG"
+          
+          # Get all commits since last tag
+          COMMITS=$(git log --pretty=format:"- %s (%h)" ${LAST_TAG}..HEAD 2>/dev/null || echo "")
+          
+          if [ -n "$COMMITS" ]; then
+            cat > CHANGELOG.md << 'EOF'
+        ## 📋 Changes in this Release
+        
+        EOF
+            echo "$COMMITS" >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          else
+            echo "## 🔄 Automated Release" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "This is an automated release with incremental version bump." >> CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+        else
+          echo "## 🎉 Initial Release" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "This is the first release of the Connect Dating App backend." >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        fi
+        
+        # Add deployment information
+        cat >> CHANGELOG.md << 'EOF'
+        ## 🚀 Deployment
+        
+        This release will be automatically deployed to:
+        1. **Integration Environment** - Automatic deployment upon release creation
+        2. **Pre-Production** - Manual promotion available via GitHub Actions
+        3. **Production** - Manual promotion with approval required
+        
+        ### Quick Links
+        - [Integration Environment](https://int-api.connect-app.com)
+        - [Promote to Pre-Production](https://github.com/${{ github.repository }}/actions/workflows/deploy-pre.yaml)
+        - [Promote to Production](https://github.com/${{ github.repository }}/actions/workflows/deploy-prod.yaml)
+        
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${{ steps.version.outputs.new_version }}
+        EOF
+        
+        echo "Generated changelog:"
+        cat CHANGELOG.md
+        
+    - name: Create Git tag and release
+      id: release
+      run: |
+        NEW_VERSION="${{ steps.version.outputs.new_version }}"
+        
+        # Create and push tag
+        git tag -a "$NEW_VERSION" -m "Automated release $NEW_VERSION"
+        git push origin "$NEW_VERSION"
+        
+        echo "created=true" >> $GITHUB_OUTPUT
+        echo "✅ Created and pushed tag: $NEW_VERSION"
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.new_version }}
+        name: Release ${{ steps.version.outputs.new_version }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+        
+    - name: Create release summary
+      run: |
+        echo "## 🎉 Automated Release Created" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger**: Push to main branch" >> $GITHUB_STEP_SUMMARY
+        echo "- **Next**: Auto-deploy to Integration environment" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 Deployment Pipeline" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Release Created**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔄 **Integration**: Will deploy automatically" >> $GITHUB_STEP_SUMMARY
+        echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
+        echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
