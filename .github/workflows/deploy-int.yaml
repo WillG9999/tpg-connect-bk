@@ -134,6 +134,16 @@ jobs:
         done
         echo "✅ Old ReplicaSets cleanup completed"
         
+        # Delete existing deployment to avoid environment variable conflicts
+        echo "🗑️ Removing existing deployment to avoid configuration conflicts"
+        if kubectl get deployment connect-backend-int -n connect-int >/dev/null 2>&1; then
+          echo "Found existing deployment, deleting to avoid env var conflicts (valueFrom vs value)"
+          kubectl delete deployment connect-backend-int -n connect-int
+          echo "✅ Existing deployment deleted"
+        else
+          echo "No existing deployment found, proceeding with fresh install"
+        fi
+        
         # Use helm upgrade --install for automated deployment (best practice)
         echo "🚀 Starting helm deployment with debug output"
         echo "Firebase credentials will be loaded via Spring Cloud GCP Secret Manager integration"
