@@ -80,6 +80,16 @@ jobs:
       
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker gcr.io
+        
+    - name: Build and push container image
+      run: |
+        echo "🔨 Building image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}"
+        mvn clean compile jib:build \
+          -Djib.to.image=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
+          -Djib.to.tags=latest,${{ steps.version.outputs.version }} \
+          -DGCP_PROJECT_ID=${{ env.PROJECT_ID }} \
+          -DskipTests=true
+        echo "✅ Image built and pushed successfully"
       
     - name: Configure kubectl
       run: |
@@ -91,13 +101,6 @@ jobs:
       uses: azure/setup-helm@v3
       with:
         version: '3.13.0'
-        
-    - name: Build and push container image
-      run: |
-        mvn clean compile jib:build \
-          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
-          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest \
-          -DskipTests=true
           
     - name: Deploy to Integration using Helm
       run: |
