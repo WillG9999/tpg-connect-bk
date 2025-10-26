@@ -106,6 +106,19 @@ jobs:
       run: |
         echo "🚀 Deploying to integration environment"
         
+        # Check if there's a pending operation and clean it up
+        echo "🔍 Checking for pending operations"
+        if helm status connect-int -n connect-int >/dev/null 2>&1; then
+          HELM_STATUS=$(helm status connect-int -n connect-int -o json | jq -r '.info.status')
+          echo "Current release status: $HELM_STATUS"
+          
+          if [ "$HELM_STATUS" = "pending-install" ] || [ "$HELM_STATUS" = "pending-upgrade" ] || [ "$HELM_STATUS" = "pending-rollback" ]; then
+            echo "⚠️ Found pending operation, cleaning up"
+            helm rollback connect-int 0 -n connect-int --timeout=30s || true
+            sleep 5
+          fi
+        fi
+        
         # Use helm upgrade --install for automated deployment (best practice)
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
