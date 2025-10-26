@@ -1,7 +1,3 @@
-spring:
-  profiles:
-    active: int
-
 # Firebase configuration for integration environment
 firebase:
   credentials:
