@@ -84,8 +84,27 @@ jobs:
     - name: Trigger integration deployment
       run: |
         echo "🚀 Triggering integration deployment for tag ${{ steps.version.outputs.version }}"
-        curl -X POST \
+        
+        # Make the API call and capture response
+        RESPONSE=$(curl -s -w "%{http_code}" -X POST \
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
           -H "Accept: application/vnd.github.v3+json" \
           https://api.github.com/repos/${{ github.repository }}/dispatches \
-          -d '{"event_type":"deploy-integration","client_payload":{"tag_name":"${{ steps.version.outputs.version }}"}}'
+          -d '{"event_type":"deploy-integration","client_payload":{"tag_name":"${{ steps.version.outputs.version }}"}}')
+        
+        # Extract HTTP status code and response body
+        HTTP_CODE="${RESPONSE: -3}"
+        BODY="${RESPONSE%???}"
+        
+        echo "HTTP Status Code: $HTTP_CODE"
+        echo "Response Body: $BODY"
+        
+        # Check if the request was successful
+        if [ "$HTTP_CODE" -eq 204 ] || [ "$HTTP_CODE" -eq 200 ]; then
+          echo "✅ Successfully triggered integration deployment"
+        else
+          echo "❌ Failed to trigger integration deployment"
+          echo "HTTP Code: $HTTP_CODE"
+          echo "Response: $BODY"
+          exit 1
+        fi
