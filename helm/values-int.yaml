@@ -1,6 +1,11 @@
 # Integration Environment Configuration
 # Lightweight setup for integration testing
 
+# Application configuration
+app:
+  name: connect-backend
+  version: latest
+
 # Image configuration - uses integration GCR
 image:
   repository: gcr.io/connect-ea4c2-int/connect-backend
