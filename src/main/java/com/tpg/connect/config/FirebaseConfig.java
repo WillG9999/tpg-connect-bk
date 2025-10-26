@@ -76,10 +76,17 @@ public class FirebaseConfig {
             logger.info("Firebase config path value received: '{}'", firebaseConfigPath);
             logger.info("Firebase credentials JSON available: {}", firebaseCredentialsJson != null);
             
-            // Log the RAW value we received for FIREBASE_CREDENTIALS_JSON
-            logger.info("🔍 RAW FIREBASE_CREDENTIALS_JSON value: '{}'", firebaseCredentialsJson);
-            logger.info("🔍 RAW FIREBASE_CREDENTIALS_JSON from environment: '{}'", 
-                environment.getProperty("FIREBASE_CREDENTIALS_JSON", "NOT FOUND"));
+            // Log the COMPLETE RAW value we received for FIREBASE_CREDENTIALS_JSON
+            logger.info("🔍 COMPLETE RAW FIREBASE_CREDENTIALS_JSON value:");
+            logger.info("=== START FIREBASE CREDENTIALS ===");
+            logger.info("{}", firebaseCredentialsJson != null ? firebaseCredentialsJson : "NULL");
+            logger.info("=== END FIREBASE CREDENTIALS ===");
+            
+            logger.info("🔍 COMPLETE RAW FIREBASE_CREDENTIALS_JSON from environment:");
+            logger.info("=== START ENVIRONMENT FIREBASE CREDENTIALS ===");
+            String envValue = environment.getProperty("FIREBASE_CREDENTIALS_JSON", "NOT FOUND");
+            logger.info("{}", envValue);
+            logger.info("=== END ENVIRONMENT FIREBASE CREDENTIALS ===");
             
             if (firebaseCredentialsJson != null) {
                 logger.info("Firebase credentials JSON length: {}", firebaseCredentialsJson.length());
