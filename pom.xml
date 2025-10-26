@@ -203,6 +203,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
         </dependency>
+        
+        <!-- Spring Cloud Bootstrap for bootstrap.yml processing -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
     </dependencies>
 	<dependencyManagement>
 		<dependencies>

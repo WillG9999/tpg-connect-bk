@@ -1,0 +1,21 @@
+spring:
+  profiles:
+    active: int
+
+# Firebase configuration for integration environment
+firebase:
+  credentials:
+    json: ${sm://firebase-credentials}
+  database:
+    url: ${FIREBASE_DATABASE_URL:https://connect-ea4c2-int-default-rtdb.firebaseio.com}
+  storage:
+    bucket: ${FIREBASE_STORAGE_BUCKET:connect-ea4c2-int.firebasestorage.app}
+  project:
+    id: ${FIREBASE_PROJECT_ID:connect-ea4c2-int}
+
+# Logging configuration for debugging
+logging:
+  level:
+    com.google.cloud.spring: DEBUG
+    com.google.cloud.secretmanager: DEBUG
+    com.tpg.connect.config: DEBUG

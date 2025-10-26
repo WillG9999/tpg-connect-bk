@@ -48,27 +48,9 @@ spec:
           value: {{ .Values.environment.name | quote }}
         - name: GCP_PROJECT_ID
           value: {{ .Values.gcp.projectId | quote }}
-        # JWT Secret from Secret Manager
+        # JWT Secret from Secret Manager (keeping as environment variable for now)
         - name: JWT_SECRET
           value: "${sm://jwt-secret}"
-        # Enable Google Secret Manager integration
-        - name: SPRING_CLOUD_GCP_SECRETMANAGER_ENABLED
-          value: "true"
-        - name: SPRING_CLOUD_GCP_PROJECT_ID
-          value: {{ .Values.gcp.projectId | quote }}
-        # Firebase configuration from Secret Manager
-        - name: FIREBASE_CREDENTIALS_JSON
-          value: "${sm://firebase-credentials}"
-        - name: FIREBASE_CONFIG_PATH
-          value: ""
-        - name: FIREBASE_DATABASE_URL
-          value: {{ printf "https://%s-default-rtdb.firebaseio.com" .Values.gcp.projectId | quote }}
-        - name: FIREBASE_STORAGE_BUCKET
-          value: {{ printf "%s.firebasestorage.app" .Values.gcp.projectId | quote }}
-        - name: FIREBASE_PROJECT_ID
-          value: {{ .Values.gcp.projectId | quote }}
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: ""
         # Feature flags as environment variables
         {{- range $key, $value := .Values.features }}
         - name: {{ printf "FEATURE_%s" ($key | upper | replace "-" "_") }}

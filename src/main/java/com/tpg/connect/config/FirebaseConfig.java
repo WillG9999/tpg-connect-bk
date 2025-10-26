@@ -40,16 +40,16 @@ public class FirebaseConfig {
     @Value("${FIREBASE_CONFIG_PATH:#{null}}")
     private String firebaseConfigPath;
     
-    @Value("${FIREBASE_CREDENTIALS_JSON:#{null}}")
+    @Value("${firebase.credentials.json:#{null}}")
     private String firebaseCredentialsJson;
 
-    @Value("${FIREBASE_DATABASE_URL:#{null}}")
+    @Value("${firebase.database.url:#{null}}")
     private String databaseUrl;
 
-    @Value("${FIREBASE_STORAGE_BUCKET:#{null}}")
+    @Value("${firebase.storage.bucket:#{null}}")
     private String storageBucket;
 
-    @Value("${FIREBASE_PROJECT_ID:#{null}}")
+    @Value("${firebase.project.id:#{null}}")
     private String projectId;
     
     @Autowired
