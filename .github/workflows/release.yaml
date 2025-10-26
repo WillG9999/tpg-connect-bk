@@ -110,9 +110,18 @@ jobs:
     - name: Calculate next version
       id: version
       run: |
+        # Ensure we have all tags available
+        git fetch --tags
+        echo "🔍 Debug: All tags available:"
+        git tag -l | sort -V
+        
         # Check for existing 1.x.x tags (ignore old 0.x.x tags)
         LATEST_1X_TAG=$(git tag -l "1.*.*" | sort -V | tail -n1)
         echo "🔍 Debug: Latest 1.x.x tag: '$LATEST_1X_TAG'"
+        
+        # Also check what git describe finds
+        LATEST_ANY_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+        echo "🔍 Debug: Latest any tag: '$LATEST_ANY_TAG'"
         
         if [ -z "$LATEST_1X_TAG" ]; then
           # No 1.x.x tags exist, start with 1.0.0
