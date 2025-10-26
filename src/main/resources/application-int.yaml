@@ -9,7 +9,11 @@ spring:
     gcp:
       secretmanager:
         enabled: true
-        project-id: connect-ea4c2
+        project-id: connect-ea4c2-int
+
+# JWT Configuration - Integration Environment
+jwt:
+  secret: ${sm://jwt-secret}
 
 # Feature Flags - Integration Environment (Selective testing)
 app:

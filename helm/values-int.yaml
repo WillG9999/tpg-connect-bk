@@ -1,6 +1,12 @@
 # Integration Environment Configuration
 # Lightweight setup for integration testing
 
+# Image configuration - uses integration GCR
+image:
+  repository: gcr.io/connect-ea4c2-int/connect-backend
+  tag: latest
+  pullPolicy: Always
+
 # Environment-specific settings
 environment:
   name: int

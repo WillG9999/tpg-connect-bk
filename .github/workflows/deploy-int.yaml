@@ -6,11 +6,11 @@ on:
       - 'v*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
 
 env:
-  PROJECT_ID: connect-ea4c2
+  PROJECT_ID: connect-ea4c2-int
   SERVICE_NAME: connect-backend
   REGION: us-central1
   ENVIRONMENT: int
-  GKE_CLUSTER: connect-cluster
+  GKE_CLUSTER: connect-int-cluster
   GKE_ZONE: us-central1-a
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        credentials_json: ${{ secrets.GCP_SA_KEY_INT }}
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
@@ -53,7 +53,7 @@ jobs:
       run: |
         gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
           --zone ${{ env.GKE_ZONE }} \
-          --project connect-ea4c2
+          --project ${{ env.PROJECT_ID }}
         
     - name: Install Helm
       uses: azure/setup-helm@v3
@@ -70,8 +70,8 @@ jobs:
     - name: Build and push container image
       run: |
         mvn clean compile jib:build \
-          -Dimage=gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
-          -Dimage=gcr.io/connect-ea4c2/${{ env.SERVICE_NAME }}:int-latest \
+          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
+          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest \
           -DskipTests=true
           
     - name: Deploy to Integration using Helm

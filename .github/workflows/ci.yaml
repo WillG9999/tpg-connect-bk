@@ -97,8 +97,8 @@ jobs:
     name: Build Application
     runs-on: ubuntu-latest
     needs: [test, security]
-    # Only build on feature branches and tags (not on main push to avoid conflicts with release workflow)
-    if: (github.ref != 'refs/heads/main' && github.event_name == 'push') || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request'
+    # Only build images for tags and main branch (not feature branches)
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
     
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
@@ -121,10 +121,17 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
+    - name: Set registry to production
+      id: registry
+      run: |
+        # CI builds always go to production GCR
+        echo "project=connect-ea4c2" >> $GITHUB_OUTPUT  
+        echo "sa_key=GCP_SA_KEY" >> $GITHUB_OUTPUT
+        
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        credentials_json: ${{ secrets[steps.registry.outputs.sa_key] }}
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
@@ -147,29 +154,34 @@ jobs:
       id: build
       run: |
         mvn clean compile jib:build \
-          -Dimage=gcr.io/connect-ea4c2/connect-backend:${{ github.sha }} \
-          -Dimage=gcr.io/connect-ea4c2/connect-backend:${{ github.ref_name }} \
+          -Dimage=gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.sha }} \
+          -Dimage=gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.ref_name }} \
           -DskipTests=true
           
     - name: Output image info
       run: |
-        echo "Built image: gcr.io/connect-ea4c2/connect-backend:${{ github.sha }}"
-        echo "Tagged as: gcr.io/connect-ea4c2/connect-backend:${{ github.ref_name }}"
+        echo "Built image: gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.sha }}"
+        echo "Tagged as: gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.ref_name }}"
 
   notify:
-    name: Notify Build Status
+    name: Notify CI Status
     runs-on: ubuntu-latest
     needs: [test, security, build]
     if: always()
     
     steps:
-    - name: Build Success Notification
-      if: needs.build.result == 'success'
+    - name: CI Success Notification
+      if: needs.test.result == 'success' && needs.security.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
       run: |
-        echo "✅ Build completed successfully for ${{ github.ref_name }}"
+        echo "✅ CI completed successfully for ${{ github.ref_name }}"
+        if [[ "${{ needs.build.result }}" == "skipped" ]]; then
+          echo "ℹ️ Image build skipped for feature branch (tests and security checks passed)"
+        else
+          echo "🏗️ Image built and pushed successfully"
+        fi
         
-    - name: Build Failure Notification
-      if: failure()
+    - name: CI Failure Notification
+      if: needs.test.result == 'failure' || needs.security.result == 'failure' || needs.build.result == 'failure'
       run: |
-        echo "❌ Build failed for ${{ github.ref_name }}"
+        echo "❌ CI failed for ${{ github.ref_name }}"
         echo "Check the logs for details."
