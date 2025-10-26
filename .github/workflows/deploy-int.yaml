@@ -104,20 +104,10 @@ jobs:
           
     - name: Deploy to Integration using Helm
       run: |
-        echo "🆕 Doing fresh install for integration environment"
+        echo "🚀 Deploying to integration environment"
         
-        # Clean up any existing deployment
-        echo "🧹 Cleaning up existing deployment"
-        helm uninstall connect-int -n connect-int --ignore-not-found || true
-        kubectl delete namespace connect-int --ignore-not-found=true
-        
-        # Wait for cleanup to complete
-        echo "⏳ Waiting for cleanup to complete"
-        kubectl wait --for=delete namespace/connect-int --timeout=60s || true
-        
-        # Fresh install
-        echo "🚀 Installing fresh deployment"
-        helm install connect-int ./helm \
+        # Use helm upgrade --install for automated deployment (best practice)
+        helm upgrade --install connect-int ./helm \
           --namespace connect-int \
           --create-namespace \
           --values helm/values-int.yaml \
