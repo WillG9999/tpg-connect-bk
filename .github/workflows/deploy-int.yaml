@@ -124,9 +124,10 @@ jobs:
         
         echo "📝 Proceeding to deployment"
         
-        # Fetch Firebase credentials from Secret Manager
+        # Fetch Firebase credentials from Secret Manager and save to temp file
         echo "🔑 Fetching Firebase credentials from Secret Manager"
-        FIREBASE_CREDENTIALS=$(gcloud secrets versions access latest --secret=firebase-config-path --project=${{ env.PROJECT_ID }})
+        TEMP_CREDS_FILE=$(mktemp)
+        gcloud secrets versions access latest --secret=firebase-config-path --project=${{ env.PROJECT_ID }} > "$TEMP_CREDS_FILE"
         
         # Use helm upgrade --install for automated deployment (best practice)
         echo "🚀 Starting helm deployment with debug output"
@@ -136,7 +137,7 @@ jobs:
           --values helm/values-int.yaml \
           --set image.tag="${{ steps.version.outputs.version }}" \
           --set app.version="${{ steps.version.outputs.version }}" \
-          --set-json firebase.credentials="$FIREBASE_CREDENTIALS" \
+          --set-file firebase.credentials="$TEMP_CREDS_FILE" \
           --debug \
           --timeout=5m \
           --wait || {
@@ -158,6 +159,9 @@ jobs:
         kubectl get pods -n connect-int
         kubectl get services -n connect-int
         kubectl get deployments -n connect-int
+        
+        # Cleanup temp credentials file
+        rm -f "$TEMP_CREDS_FILE"
       env:
         USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
