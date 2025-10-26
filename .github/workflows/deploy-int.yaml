@@ -115,9 +115,14 @@ jobs:
           if [ "$HELM_STATUS" = "pending-install" ] || [ "$HELM_STATUS" = "pending-upgrade" ] || [ "$HELM_STATUS" = "pending-rollback" ]; then
             echo "⚠️ Found pending operation, cleaning up"
             helm rollback connect-int 0 -n connect-int --timeout=30s || true
-            sleep 5
+            echo "✅ Rollback completed, waiting briefly for state to stabilize"
+            sleep 2
+            echo "🔄 Verifying release status after rollback"
+            helm status connect-int -n connect-int -o json | jq -r '.info.status'
           fi
         fi
+        
+        echo "📝 Proceeding to deployment"
         
         # Use helm upgrade --install for automated deployment (best practice)
         helm upgrade --install connect-int ./helm \
