@@ -235,6 +235,15 @@ jobs:
         draft: false
         prerelease: false
         
+    - name: Automatically trigger integration deployment
+      run: |
+        echo "🚀 Triggering integration deployment for tag ${{ steps.version.outputs.new_version }}"
+        gh workflow run deploy-int.yaml \
+          --ref main \
+          -f tag_name="${{ steps.version.outputs.new_version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Create release summary
       run: |
         echo "## 🎉 Automated Release Created" >> $GITHUB_STEP_SUMMARY
@@ -245,7 +254,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🚀 Deployment Pipeline" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ **Release Created**: ${{ steps.version.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
-        echo "- 🔄 **Integration**: Will deploy automatically" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔄 **Integration**: Deployment triggered automatically" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
 
