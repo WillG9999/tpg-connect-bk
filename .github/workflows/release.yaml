@@ -61,9 +61,9 @@ jobs:
           echo "🏷️ Release trigger found at start of commit message"
           
           # Check for specific release types
-          if echo "$COMMIT_MSG" | grep -qi "^release:\s*major"; then
+          if echo "$COMMIT_MSG" | grep -qi "^release:.*major"; then
             RELEASE_TYPE="major"
-          elif echo "$COMMIT_MSG" | grep -qi "^release:\s*minor"; then
+          elif echo "$COMMIT_MSG" | grep -qi "^release:.*minor"; then
             RELEASE_TYPE="minor"
           else
             RELEASE_TYPE="patch"
