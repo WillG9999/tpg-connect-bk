@@ -3,10 +3,6 @@ name: Auto Release & Deploy
 on:
   push:
     branches: [ main ]
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - '.gitignore'
   workflow_dispatch:
     inputs:
       bump_type:
