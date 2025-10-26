@@ -26,7 +26,7 @@ env:
 
 jobs:
   deploy-int:
-    name: Deploy to Integration Environment
+    name: Deploy to Integration - ${{ github.event.client_payload.tag_name || inputs.tag_name || 'latest' }}
     runs-on: ubuntu-latest
     environment: 
       name: integration

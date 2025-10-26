@@ -83,7 +83,7 @@ jobs:
         echo "  Release type: $RELEASE_TYPE"
 
   auto-release:
-    name: Auto Release & Version Increment
+    name: Create ${{ needs.check-release-trigger.outputs.release-type }} Release
     runs-on: ubuntu-latest
     needs: check-release-trigger
     if: needs.check-release-trigger.outputs.should-release == 'true'
