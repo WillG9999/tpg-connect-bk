@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.annotation.PreDestroy;
 
 import java.io.FileInputStream;
@@ -51,6 +52,9 @@ public class FirebaseConfig {
     @Value("${FIREBASE_PROJECT_ID:#{null}}")
     private String projectId;
     
+    @Autowired
+    private Environment environment;
+    
     // Instance variables to track client lifecycle
     private FirebaseApp firebaseAppInstance;
     private Firestore firestoreInstance;
@@ -59,16 +63,63 @@ public class FirebaseConfig {
     @Bean
     public FirebaseApp firebaseApp() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {
-            logger.debug("Firebase config path value received: '{}'", firebaseConfigPath);
-            logger.debug("Firebase credentials JSON length: {}", 
-                firebaseCredentialsJson != null ? firebaseCredentialsJson.length() : "null");
+            logger.info("🔥 Firebase initialization starting...");
+            logger.info("🔍 Checking Secret Manager integration status...");
+            
+            // Log Spring Cloud GCP configuration
+            logger.info("🔧 Spring Cloud GCP Secret Manager enabled: {}", 
+                environment.getProperty("spring.cloud.gcp.secretmanager.enabled", "not set"));
+            logger.info("🔧 Spring Cloud GCP Project ID: {}", 
+                environment.getProperty("spring.cloud.gcp.project-id", "not set"));
+            
+            // Log what we received
+            logger.info("Firebase config path value received: '{}'", firebaseConfigPath);
+            logger.info("Firebase credentials JSON available: {}", firebaseCredentialsJson != null);
+            
+            // Log the RAW value we received for FIREBASE_CREDENTIALS_JSON
+            logger.info("🔍 RAW FIREBASE_CREDENTIALS_JSON value: '{}'", firebaseCredentialsJson);
+            logger.info("🔍 RAW FIREBASE_CREDENTIALS_JSON from environment: '{}'", 
+                environment.getProperty("FIREBASE_CREDENTIALS_JSON", "NOT FOUND"));
+            
+            if (firebaseCredentialsJson != null) {
+                logger.info("Firebase credentials JSON length: {}", firebaseCredentialsJson.length());
+                
+                // Check if Spring Cloud GCP Secret Manager substitution worked
+                if (firebaseCredentialsJson.contains("${sm://")) {
+                    logger.error("❌ Secret Manager placeholder NOT replaced by Spring Cloud GCP!");
+                    logger.error("   Raw value: '{}'", firebaseCredentialsJson);
+                    logger.error("   This means Spring Cloud GCP Secret Manager integration is not working");
+                } else {
+                    logger.info("✅ Secret Manager placeholder appears to have been replaced");
+                    logger.info("Firebase credentials JSON first 100 chars: '{}'", 
+                        firebaseCredentialsJson.length() > 100 ? firebaseCredentialsJson.substring(0, 100) + "..." : firebaseCredentialsJson);
+                    
+                    // Log if it looks like escaped JSON or raw JSON
+                    if (firebaseCredentialsJson.startsWith("{")) {
+                        logger.info("📋 Credentials appear to be raw JSON format");
+                    } else if (firebaseCredentialsJson.startsWith("\"{")) {
+                        logger.info("📋 Credentials appear to be escaped JSON string format");
+                    } else {
+                        logger.warn("⚠️ Credentials format unexpected - does not start with { or \"{");
+                    }
+                }
+            } else {
+                logger.error("❌ Firebase credentials JSON is null - Secret Manager integration failed");
+            }
             
             InputStream serviceAccount;
             
             // Priority: Use JSON credentials from environment variable if available
             if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
-                logger.info("Initializing Firebase with credentials from environment variable");
-                serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
+                logger.info("🔧 Initializing Firebase with credentials from environment variable");
+                
+                try {
+                    serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
+                    logger.info("✅ Successfully created input stream from credentials JSON");
+                } catch (Exception e) {
+                    logger.error("❌ Failed to create input stream from credentials JSON: {}", e.getMessage());
+                    throw e;
+                }
             }
             // Fallback: Use file path
             else if (firebaseConfigPath != null && !firebaseConfigPath.isEmpty()) {
@@ -86,8 +137,25 @@ public class FirebaseConfig {
                 throw new RuntimeException("Firebase credentials not specified. Please set FIREBASE_CREDENTIALS_JSON environment variable or FIREBASE_CONFIG_PATH property");
             }
 
+            logger.info("🔐 Attempting to parse Google credentials from input stream...");
+            GoogleCredentials credentials;
+            try {
+                credentials = GoogleCredentials.fromStream(serviceAccount);
+                logger.info("✅ Successfully parsed Google credentials");
+            } catch (Exception e) {
+                logger.error("❌ Failed to parse Google credentials: {}", e.getMessage());
+                logger.error("❌ Exception type: {}", e.getClass().getSimpleName());
+                if (firebaseCredentialsJson != null && firebaseCredentialsJson.length() > 0) {
+                    logger.error("❌ Credentials content analysis:");
+                    logger.error("   - Length: {}", firebaseCredentialsJson.length());
+                    logger.error("   - Starts with: '{}'", firebaseCredentialsJson.substring(0, Math.min(50, firebaseCredentialsJson.length())));
+                    logger.error("   - Is valid JSON start: {}", firebaseCredentialsJson.trim().startsWith("{"));
+                }
+                throw e;
+            }
+
             FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setCredentials(credentials)
                     .setStorageBucket(storageBucket);
 
             if (databaseUrl != null && !databaseUrl.isEmpty()) {
