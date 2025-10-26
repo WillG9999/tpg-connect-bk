@@ -24,9 +24,64 @@ env:
   SERVICE_NAME: connect-backend
 
 jobs:
+  check-release-trigger:
+    name: Check if Release Should Be Created
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.check.outputs.should_release }}
+      release-type: ${{ steps.check.outputs.release_type }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Need at least 2 commits to check the latest
+        
+    - name: Check commit message for release trigger
+      id: check
+      run: |
+        # Get the latest commit message
+        COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+        echo "Latest commit: $COMMIT_MSG"
+        
+        # Check for release triggers in commit message
+        SHOULD_RELEASE=false
+        RELEASE_TYPE="patch"
+        
+        # Check for different release triggers
+        if echo "$COMMIT_MSG" | grep -qi "release:"; then
+          SHOULD_RELEASE=true
+          echo "🏷️ Release trigger found in commit message"
+          
+          # Check for specific release types
+          if echo "$COMMIT_MSG" | grep -qi "release:\s*major\|release-major\|major-release"; then
+            RELEASE_TYPE="major"
+          elif echo "$COMMIT_MSG" | grep -qi "release:\s*minor\|release-minor\|minor-release"; then
+            RELEASE_TYPE="minor"
+          else
+            RELEASE_TYPE="patch"
+          fi
+        fi
+        
+        # If manual trigger, always release
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          SHOULD_RELEASE=true
+          RELEASE_TYPE="${{ inputs.bump_type }}"
+          echo "🎯 Manual workflow trigger detected"
+        fi
+        
+        echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+        echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+        
+        echo "Release decision:"
+        echo "  Should release: $SHOULD_RELEASE"
+        echo "  Release type: $RELEASE_TYPE"
+
   auto-release:
     name: Auto Release & Version Increment
     runs-on: ubuntu-latest
+    needs: check-release-trigger
+    if: needs.check-release-trigger.outputs.should-release == 'true'
     outputs:
       new-version: ${{ steps.version.outputs.new_version }}
       release-created: ${{ steps.release.outputs.created }}
@@ -56,13 +111,8 @@ jobs:
         # Split version into parts
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
         
-        # Determine bump type
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          BUMP_TYPE="${{ inputs.bump_type }}"
-        else
-          # For automatic releases on push to main, default to patch
-          BUMP_TYPE="patch"
-        fi
+        # Get bump type from the release trigger check
+        BUMP_TYPE="${{ needs.check-release-trigger.outputs.release-type }}"
         
         echo "Using bump type: $BUMP_TYPE"
         
@@ -172,3 +222,26 @@ jobs:
         echo "- 🔄 **Integration**: Will deploy automatically" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
+
+  no-release:
+    name: No Release Triggered
+    runs-on: ubuntu-latest
+    needs: check-release-trigger
+    if: needs.check-release-trigger.outputs.should-release == 'false'
+    
+    steps:
+    - name: No release notification
+      run: |
+        echo "## ℹ️ No Release Created" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Reason**: No release trigger found in commit message" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🏷️ To create a release, include one of these in your commit message:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release:\` - Creates a patch release (v1.0.0 → v1.0.1)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release: minor\` - Creates a minor release (v1.0.0 → v1.1.0)" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release: major\` - Creates a major release (v1.0.0 → v2.0.0)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📝 Example commit messages:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`feat: add user authentication release:\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`fix: resolve login bug release: minor\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`feat: breaking API changes release: major\`" >> $GITHUB_STEP_SUMMARY
