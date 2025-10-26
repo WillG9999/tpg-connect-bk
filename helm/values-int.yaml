@@ -88,9 +88,8 @@ namespace:
 secretManager:
   projectId: connect-ea4c2-int
   
-# Firebase configuration - credentials will be injected from Secret Manager at deploy time
-firebase:
-  # credentials will be set by deployment workflow from Secret Manager
+# Firebase configuration - uses Secret Manager integration like JWT secret
+# Firebase credentials are stored in Secret Manager as 'firebase-credentials'
   
 # Feature flags - enable all for testing
 features:
