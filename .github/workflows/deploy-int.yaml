@@ -124,11 +124,21 @@ jobs:
         
         echo "📝 Proceeding to deployment"
         
+        # Clean up old ReplicaSets to ensure single-replica deployment
+        echo "🧹 Cleaning up old ReplicaSets for clean deployment"
+        kubectl get replicasets -n connect-int -l app.kubernetes.io/name=connect-backend --no-headers | while read rs replica desired current age; do
+          if [ "$current" = "0" ]; then
+            echo "Deleting old ReplicaSet: $rs"
+            kubectl delete replicaset "$rs" -n connect-int || true
+          fi
+        done
+        echo "✅ Old ReplicaSets cleanup completed"
+        
         # Create Firebase credentials Kubernetes secret from Secret Manager
         echo "🔥 Creating Firebase credentials Kubernetes secret"
         echo "Fetching Firebase credentials from Secret Manager"
         FIREBASE_CREDS=$(gcloud secrets versions access latest --secret=firebase-credentials --project=${{ env.PROJECT_ID }})
-        kubectl create secret generic firebase-credentials-json \
+        kubectl create secret generic firebase-credentials \
           --namespace connect-int \
           --from-literal=credentials.json="$FIREBASE_CREDS" \
           --dry-run=client -o yaml | kubectl apply -f -
@@ -178,7 +188,7 @@ jobs:
                       "name": "FIREBASE_CREDENTIALS_JSON",
                       "valueFrom": {
                         "secretKeyRef": {
-                          "name": "firebase-credentials-json",
+                          "name": "firebase-credentials",
                           "key": "credentials.json"
                         }
                       }
@@ -190,6 +200,11 @@ jobs:
           }'
         
         echo "✅ Deployment patched to use Kubernetes secret"
+        
+        # Trigger rollout restart to apply the patched configuration
+        echo "🔄 Triggering rollout restart to apply Firebase credentials"
+        kubectl rollout restart deployment/connect-backend-int -n connect-int
+        echo "✅ Rollout restart initiated"
         
         # Deployment completed successfully
       env:
@@ -205,11 +220,35 @@ jobs:
           
     - name: Verify deployment health
       run: |
+        # Verify single pod deployment
+        echo "🔍 Verifying single pod deployment"
+        POD_COUNT=$(kubectl get pods -n connect-int -l app.kubernetes.io/name=connect-backend --no-headers | wc -l)
+        echo "Pod count: $POD_COUNT"
+        if [ "$POD_COUNT" -ne 1 ]; then
+          echo "❌ Expected 1 pod, found $POD_COUNT pods"
+          kubectl get pods -n connect-int -l app.kubernetes.io/name=connect-backend
+          exit 1
+        fi
+        echo "✅ Single pod deployment verified"
+        
         # Wait for pods to be ready
         kubectl wait --for=condition=ready pod \
-          -l app=connect-backend \
+          -l app.kubernetes.io/name=connect-backend \
           --namespace=connect-int \
           --timeout=300s
+        
+        # Verify Firebase credentials are loaded
+        echo "🔥 Verifying Firebase credentials integration"
+        POD_NAME=$(kubectl get pods -n connect-int -l app.kubernetes.io/name=connect-backend --no-headers -o custom-columns=":metadata.name")
+        echo "Checking logs for Firebase initialization in pod: $POD_NAME"
+        
+        # Check for Firebase initialization in logs
+        if kubectl logs "$POD_NAME" -n connect-int | grep -i "firebase.*initialized\|firebase.*credentials"; then
+          echo "✅ Firebase credentials loaded successfully"
+        else
+          echo "⚠️ No Firebase initialization found in logs, checking for errors"
+          kubectl logs "$POD_NAME" -n connect-int --tail=50
+        fi
           
         # Get service URL (assuming LoadBalancer or NodePort)
         EXTERNAL_IP=$(kubectl get service connect-backend-service-int \
