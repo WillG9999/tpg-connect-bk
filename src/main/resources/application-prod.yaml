@@ -5,6 +5,11 @@ spring:
   config:
     activate:
       on-profile: prod
+  cloud:
+    gcp:
+      secretmanager:
+        enabled: true
+        project-id: connect-ea4c2
 
 # Feature Flags - Production Environment (All features enabled)
 app:
@@ -28,14 +33,14 @@ app:
 email:
   enabled: true
   provider: smtp
-  from-email: ${EMAIL_FROM_EMAIL}
+  from-email: ${sm://email-from-email}
   from-name: Connect Dating App
   
   # Gmail SMTP Settings
   smtp-host: smtp.gmail.com
   smtp-port: 587
-  username: ${EMAIL_USERNAME}
-  password: ${EMAIL_PASSWORD}  # Use environment variable in production
+  username: ${sm://email-username}
+  password: ${sm://email-password}
   authentication-enabled: true
   start-tls-enabled: true
   ssl-enabled: false
@@ -68,25 +73,24 @@ logging:
     total-size-cap: 1GB
 
 # Firebase Configuration - Production database
-# NOTE: In production, use environment variables for sensitive paths
 firebase:
   config:
-    path: ${FIREBASE_CONFIG_PATH}
+    path: ${sm://firebase-config-path}
   database:
-    url: ${FIREBASE_DATABASE_URL}
+    url: ${sm://firebase-database-url}
   storage:
-    bucket: ${FIREBASE_STORAGE_BUCKET}
+    bucket: ${sm://firebase-storage-bucket}
   project:
-    id: ${FIREBASE_PROJECT_ID}
+    id: ${sm://firebase-project-id}
 
 # Google Cloud Storage - Production
 gcp:
   project:
-    id: ${GCP_PROJECT_ID}
+    id: ${sm://gcp-project-id}
   storage:
-    bucket: ${GCP_STORAGE_BUCKET}
+    bucket: ${sm://gcp-storage-bucket}
     credentials:
-      location: ${GCP_CREDENTIALS_PATH}
+      location: ${sm://gcp-credentials-path}
 
 # Production Security Settings
 server:
@@ -101,7 +105,7 @@ server:
 
 # Production JWT Settings
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${sm://jwt-secret}
 
 # Production Database Connection Pool Settings (if using SQL database)
 # spring:

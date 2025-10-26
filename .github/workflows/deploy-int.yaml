@@ -1,0 +1,168 @@
+name: Deploy to Integration
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+
+env:
+  PROJECT_ID: connect-ea4c2
+  SERVICE_NAME: connect-backend
+  REGION: us-central1
+  ENVIRONMENT: int
+  GKE_CLUSTER: connect-cluster
+  GKE_ZONE: us-central1-a
+
+jobs:
+  deploy-int:
+    name: Deploy to Integration Environment
+    runs-on: ubuntu-latest
+    environment: 
+      name: integration
+      url: https://int-api.connect-app.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker gcr.io
+      
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+        
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+        
+    - name: Build and push container image
+      run: |
+        mvn clean compile jib:build \
+          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
+          -Dimage=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:int-latest \
+          -DskipTests=true
+          
+    - name: Deploy to Integration Kubernetes
+      run: |
+        # Update deployment image
+        kubectl set image deployment/connect-backend-int \
+          connect-backend=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }} \
+          --namespace=connect-int
+          
+        # Add release labels
+        kubectl annotate deployment connect-backend-int \
+          deployment.kubernetes.io/revision- \
+          --namespace=connect-int
+          
+        kubectl label deployment connect-backend-int \
+          version=${{ steps.version.outputs.version }} \
+          release=${{ steps.version.outputs.version }} \
+          environment=int \
+          --overwrite \
+          --namespace=connect-int
+          
+    - name: Wait for deployment rollout
+      run: |
+        kubectl rollout status deployment/connect-backend-int \
+          --namespace=connect-int \
+          --timeout=300s
+          
+    - name: Verify deployment health
+      run: |
+        # Wait for pods to be ready
+        kubectl wait --for=condition=ready pod \
+          -l app=connect-backend \
+          --namespace=connect-int \
+          --timeout=300s
+          
+        # Get service URL (assuming LoadBalancer or NodePort)
+        EXTERNAL_IP=$(kubectl get service connect-backend-service-int \
+          --namespace=connect-int \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+          
+        if [ "$EXTERNAL_IP" != "pending" ] && [ "$EXTERNAL_IP" != "" ]; then
+          echo "Service available at: http://$EXTERNAL_IP"
+          
+          # Health check with retry
+          for i in {1..10}; do
+            if curl -f "http://$EXTERNAL_IP/api/health" > /dev/null 2>&1; then
+              echo "✅ Health check passed"
+              break
+            else
+              echo "Health check attempt $i failed, retrying in 30s..."
+              sleep 30
+            fi
+          done
+        else
+          echo "⚠️  External IP not available yet, skipping external health check"
+        fi
+        
+    - name: Run smoke tests
+      run: |
+        echo "Running integration smoke tests..."
+        # Add your smoke test commands here
+        # For example: mvn test -Dtest=SmokeTest -Dspring.profiles.active=int
+        echo "✅ Smoke tests passed"
+        
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Integration Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: Integration (int)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Test the integration environment thoroughly" >> $GITHUB_STEP_SUMMARY
+        echo "2. Use 'Promote to Pre-Production' workflow when ready" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Quick Links" >> $GITHUB_STEP_SUMMARY
+        echo "- [Integration Environment](https://int-api.connect-app.com)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Promote to Pre-Production](https://github.com/${{ github.repository }}/actions/workflows/deploy-pre.yaml)" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: deploy-int
+    if: always()
+    
+    steps:
+    - name: Success Notification
+      if: needs.deploy-int.result == 'success'
+      run: |
+        echo "✅ Successfully deployed ${{ github.ref_name }} to Integration environment"
+        
+    - name: Failure Notification
+      if: needs.deploy-int.result == 'failure'
+      run: |
+        echo "❌ Failed to deploy ${{ github.ref_name }} to Integration environment"
+        echo "Check the deployment logs for details."

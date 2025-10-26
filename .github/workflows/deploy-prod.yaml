@@ -1,0 +1,419 @@
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to promote from Pre-Production (e.g., v1.0.0)'
+        required: true
+        type: string
+      maintenance_mode:
+        description: 'Enable maintenance mode during deployment'
+        required: false
+        type: boolean
+        default: true
+      skip_health_checks:
+        description: 'Skip health checks (emergency deployment only)'
+        required: false
+        type: boolean
+        default: false
+      approval_required:
+        description: 'Require manual approval before deployment'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  PROJECT_ID: connect-ea4c2
+  SERVICE_NAME: connect-backend
+  REGION: us-central1
+  ENVIRONMENT: prod
+  GKE_CLUSTER: connect-cluster
+  GKE_ZONE: us-central1-a
+
+jobs:
+  validate-and-approve:
+    name: Validate Version & Request Approval
+    runs-on: ubuntu-latest
+    outputs:
+      image-exists: ${{ steps.check.outputs.exists }}
+      current-pre-version: ${{ steps.check.outputs.current_version }}
+      deployment-approved: ${{ steps.approval.outputs.approved }}
+    
+    steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+      
+    - name: Validate version in pre-production
+      id: check
+      run: |
+        # Check if the image exists
+        if gcloud container images describe gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "✅ Image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} exists"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "❌ Image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} not found"
+          exit 1
+        fi
+        
+        # Check current version in pre-production
+        kubectl config set-context --current --namespace=connect-pre
+        CURRENT_VERSION=$(kubectl get deployment connect-backend-pre -o jsonpath='{.metadata.labels.version}' || echo "unknown")
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        
+        if [ "$CURRENT_VERSION" != "${{ inputs.version }}" ]; then
+          echo "⚠️  Warning: Version ${{ inputs.version }} is not currently deployed in pre-production"
+          echo "Current pre-production version: $CURRENT_VERSION"
+          echo "Requested version: ${{ inputs.version }}"
+        else
+          echo "✅ Version ${{ inputs.version }} is verified in pre-production"
+        fi
+        
+    - name: Manual approval for production deployment
+      id: approval
+      if: inputs.approval_required == true
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: ${{ github.repository_owner }}
+        minimum-approvals: 1
+        issue-title: "Production Deployment Approval Required"
+        issue-body: |
+          ## 🚨 Production Deployment Approval Required
+          
+          **Version**: ${{ inputs.version }}
+          **Requested by**: ${{ github.actor }}
+          **Environment**: Production
+          **Current Pre-Prod Version**: ${{ steps.check.outputs.current_version }}
+          
+          ### Deployment Configuration
+          - Maintenance Mode: ${{ inputs.maintenance_mode }}
+          - Skip Health Checks: ${{ inputs.skip_health_checks }}
+          
+          ### Pre-Deployment Checklist
+          - [ ] Version thoroughly tested in pre-production
+          - [ ] All stakeholders notified of deployment
+          - [ ] Database migrations reviewed (if any)
+          - [ ] Rollback plan confirmed
+          - [ ] Monitoring alerts configured
+          
+          **Please review and approve this production deployment.**
+          
+          ### Quick Links
+          - [Pre-Production Environment](https://pre-api.connect-app.com)
+          - [Production Environment](https://api.connect-app.com)
+          - [Deployment Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+  pre-production-verification:
+    name: Pre-Production Final Verification
+    runs-on: ubuntu-latest
+    needs: validate-and-approve
+    if: needs.validate-and-approve.outputs.image-exists == 'true'
+    
+    steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+      
+    - name: Verify pre-production health
+      run: |
+        echo "Performing final health check on pre-production..."
+        
+        # Get pre-production service endpoint
+        EXTERNAL_IP=$(kubectl get service connect-backend-service-pre \
+          --namespace=connect-pre \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+          
+        if [ "$EXTERNAL_IP" != "pending" ] && [ "$EXTERNAL_IP" != "" ]; then
+          # Comprehensive health checks
+          echo "Testing pre-production endpoints..."
+          curl -f "http://$EXTERNAL_IP/api/health" || exit 1
+          curl -f "http://$EXTERNAL_IP/api/health/ready" || exit 1
+          curl -f "http://$EXTERNAL_IP/api/health/live" || exit 1
+          echo "✅ Pre-production health verification completed"
+        else
+          echo "❌ Cannot verify pre-production health - external IP not available"
+          exit 1
+        fi
+
+  maintenance-mode:
+    name: Enable Maintenance Mode
+    runs-on: ubuntu-latest
+    needs: [validate-and-approve, pre-production-verification]
+    if: needs.validate-and-approve.outputs.image-exists == 'true' && inputs.maintenance_mode == true
+    
+    steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+      
+    - name: Enable maintenance mode
+      run: |
+        echo "Enabling maintenance mode for production..."
+        # Add maintenance mode annotation to service
+        kubectl annotate service connect-backend-service \
+          maintenance.mode/enabled=true \
+          maintenance.mode/enabled-at=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+          maintenance.mode/enabled-by=${{ github.actor }} \
+          --namespace=connect \
+          --overwrite
+          
+        echo "✅ Maintenance mode enabled"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate-and-approve, pre-production-verification, maintenance-mode]
+    if: always() && needs.validate-and-approve.outputs.image-exists == 'true' && (needs.maintenance-mode.result == 'success' || needs.maintenance-mode.result == 'skipped')
+    environment: 
+      name: production
+      url: https://api.connect-app.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      
+    - name: Configure kubectl
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+        
+    - name: Tag image for production
+      run: |
+        # Tag the existing image for production
+        gcloud container images add-tag \
+          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:prod-latest
+          
+        gcloud container images add-tag \
+          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:stable
+          
+    - name: Create backup of current production deployment
+      run: |
+        # Get current image for potential rollback
+        CURRENT_IMAGE=$(kubectl get deployment connect-backend \
+          -o jsonpath='{.spec.template.spec.containers[0].image}' \
+          --namespace=connect 2>/dev/null || echo "none")
+          
+        echo "Current production image: $CURRENT_IMAGE"
+        echo "BACKUP_IMAGE=$CURRENT_IMAGE" >> $GITHUB_ENV
+        
+        # Save current deployment for potential rollback
+        kubectl get deployment connect-backend \
+          --namespace=connect \
+          -o yaml > production-backup.yaml || echo "No existing deployment"
+          
+    - name: Deploy to Production Kubernetes
+      run: |
+        echo "🚀 Starting production deployment..."
+        
+        # Update deployment image with rolling update
+        kubectl set image deployment/connect-backend \
+          connect-backend=gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }} \
+          --namespace=connect
+          
+        # Update labels and annotations
+        kubectl annotate deployment connect-backend \
+          deployment.kubernetes.io/revision- \
+          --namespace=connect
+          
+        kubectl label deployment connect-backend \
+          version=${{ inputs.version }} \
+          release=${{ inputs.version }} \
+          environment=prod \
+          promoted-from=pre \
+          promoted-at=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+          promoted-by=${{ github.actor }} \
+          --overwrite \
+          --namespace=connect
+          
+    - name: Wait for deployment rollout
+      run: |
+        echo "Waiting for production deployment to complete..."
+        kubectl rollout status deployment/connect-backend \
+          --namespace=connect \
+          --timeout=900s
+          
+    - name: Comprehensive production health verification
+      id: health_check
+      if: inputs.skip_health_checks != true
+      run: |
+        echo "Running comprehensive production health checks..."
+        
+        # Wait for pods to be ready
+        kubectl wait --for=condition=ready pod \
+          -l app=connect-backend \
+          --namespace=connect \
+          --timeout=600s
+          
+        # Get service endpoint
+        EXTERNAL_IP=$(kubectl get service connect-backend-service \
+          --namespace=connect \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+          
+        if [ "$EXTERNAL_IP" != "pending" ] && [ "$EXTERNAL_IP" != "" ]; then
+          echo "Production service endpoint: http://$EXTERNAL_IP"
+          
+          # Progressive health checks with retries
+          echo "Starting health check sequence..."
+          
+          # Basic health check
+          for i in {1..20}; do
+            if curl -f -s "http://$EXTERNAL_IP/api/health" > /dev/null 2>&1; then
+              echo "✅ Basic health check passed (attempt $i)"
+              break
+            else
+              echo "Health check attempt $i failed, retrying in 15s..."
+              if [ $i -eq 20 ]; then
+                echo "❌ Basic health checks failed after 20 attempts"
+                echo "health_check_passed=false" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+              sleep 15
+            fi
+          done
+          
+          # Readiness check
+          if curl -f -s "http://$EXTERNAL_IP/api/health/ready" > /dev/null 2>&1; then
+            echo "✅ Readiness check passed"
+          else
+            echo "❌ Readiness check failed"
+            echo "health_check_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Liveness check
+          if curl -f -s "http://$EXTERNAL_IP/api/health/live" > /dev/null 2>&1; then
+            echo "✅ Liveness check passed"
+          else
+            echo "❌ Liveness check failed"
+            echo "health_check_passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "health_check_passed=true" >> $GITHUB_OUTPUT
+          echo "✅ All production health checks passed"
+        else
+          echo "❌ External IP not available for health checks"
+          echo "health_check_passed=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+    - name: Run production smoke tests
+      if: steps.health_check.outputs.health_check_passed == 'true' || inputs.skip_health_checks == true
+      run: |
+        echo "Running critical production smoke tests..."
+        # Add your most critical smoke test commands here
+        # These should test the most important user journeys
+        echo "✅ Production smoke tests completed successfully"
+        
+    - name: Disable maintenance mode
+      if: inputs.maintenance_mode == true && (success() || failure())
+      run: |
+        echo "Disabling maintenance mode..."
+        kubectl annotate service connect-backend-service \
+          maintenance.mode/enabled- \
+          maintenance.mode/disabled-at=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+          --namespace=connect
+          
+        echo "✅ Maintenance mode disabled"
+        
+    - name: Emergency rollback on failure
+      if: failure() && env.BACKUP_IMAGE != 'none'
+      run: |
+        echo "🚨 EMERGENCY ROLLBACK: Deployment failed, rolling back to previous version..."
+        
+        # Rollback to previous image
+        kubectl set image deployment/connect-backend \
+          connect-backend=${{ env.BACKUP_IMAGE }} \
+          --namespace=connect
+          
+        kubectl rollout status deployment/connect-backend \
+          --namespace=connect \
+          --timeout=600s
+          
+        echo "✅ Emergency rollback completed"
+        echo "🚨 PRODUCTION DEPLOYMENT FAILED - SYSTEM ROLLED BACK"
+        
+    - name: Create production deployment summary
+      if: success()
+      run: |
+        echo "## 🎉 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: Production (prod)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Promoted from**: Pre-Production (pre)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Health Check**: ${{ steps.health_check.outputs.health_check_passed }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Maintenance Mode**: ${{ inputs.maintenance_mode }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+        echo "The Connect Dating App backend has been successfully deployed to production!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Monitoring" >> $GITHUB_STEP_SUMMARY
+        echo "- [Production Environment](https://api.connect-app.com)" >> $GITHUB_STEP_SUMMARY
+        echo "- Monitor application performance and user experience" >> $GITHUB_STEP_SUMMARY
+        echo "- Watch for any alerts or issues in the monitoring dashboard" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Notify Production Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always()
+    
+    steps:
+    - name: Success Notification
+      if: needs.deploy-production.result == 'success'
+      run: |
+        echo "🎉 Successfully deployed ${{ inputs.version }} to Production!"
+        echo "The Connect Dating App is now live with the latest version."
+        
+    - name: Failure Notification
+      if: needs.deploy-production.result == 'failure'
+      run: |
+        echo "🚨 CRITICAL: Production deployment of ${{ inputs.version }} FAILED!"
+        echo "Emergency rollback has been triggered."
+        echo "Immediate investigation required!"

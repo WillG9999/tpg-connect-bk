@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: connect-backend
-  namespace: connect
+  name: connect-backend-pre
+  namespace: connect-pre
   labels:
     app: connect-backend
-    environment: prod
+    environment: pre
     version: v1
 spec:
-  replicas: 3
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -17,15 +17,15 @@ spec:
   selector:
     matchLabels:
       app: connect-backend
-      environment: prod
+      environment: pre
   template:
     metadata:
       labels:
         app: connect-backend
-        environment: prod
+        environment: pre
         version: v1
     spec:
-      serviceAccountName: connect-backend
+      serviceAccountName: connect-backend-pre
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -40,24 +40,24 @@ spec:
           protocol: TCP
         env:
         - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
+          value: "pre"
         - name: SERVER_PORT
           value: "8080"
         - name: ENVIRONMENT
-          value: "production"
+          value: "pre-production"
         # All secrets come from Google Secret Manager via Spring Cloud GCP
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "500m"
+            memory: "768Mi"
+            cpu: "375m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "1.5Gi"
+            cpu: "750m"
         livenessProbe:
           httpGet:
             path: /api/health/live
             port: 8080
-          initialDelaySeconds: 60
+          initialDelaySeconds: 75
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
@@ -65,7 +65,7 @@ spec:
           httpGet:
             path: /api/health/ready
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 45
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
@@ -73,10 +73,10 @@ spec:
           httpGet:
             path: /api/health
             port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 12
+          initialDelaySeconds: 20
+          periodSeconds: 8
+          timeoutSeconds: 5
+          failureThreshold: 15
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -89,12 +89,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: connect-backend-service
-  namespace: connect
+  name: connect-backend-service-pre
+  namespace: connect-pre
   labels:
     app: connect-backend
+    environment: pre
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
   - port: 80
     targetPort: 8080
@@ -102,27 +103,27 @@ spec:
     name: http
   selector:
     app: connect-backend
-    environment: prod
+    environment: pre
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: connect-backend-ingress
-  namespace: connect
+  name: connect-backend-ingress-pre
+  namespace: connect-pre
   annotations:
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: "connect-backend-ip"
-    networking.gke.io/managed-certificates: "connect-backend-ssl"
+    kubernetes.io/ingress.global-static-ip-name: "connect-backend-pre-ip"
+    networking.gke.io/managed-certificates: "connect-backend-pre-ssl"
     kubernetes.io/ingress.allow-http: "false"
 spec:
   rules:
-  - host: api.connect-app.com
+  - host: pre-api.connect-app.com
     http:
       paths:
       - path: /*
         pathType: ImplementationSpecific
         backend:
           service:
-            name: connect-backend-service
+            name: connect-backend-service-pre
             port:
               number: 80
