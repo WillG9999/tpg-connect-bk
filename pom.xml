@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.tpg</groupId>
 	<artifactId>Connect</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.44-SNAPSHOT</version>
 	<name>freedom</name>
 	<description>Freedom Project</description>
 	<url/>
