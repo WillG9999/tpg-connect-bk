@@ -110,21 +110,18 @@ jobs:
     - name: Calculate next version
       id: version
       run: |
-        # Check if any tags exist
-        TAG_COUNT=$(git tag -l | wc -l)
-        echo "🔍 Debug: Found $TAG_COUNT existing tags"
+        # Check for existing 1.x.x tags (ignore old 0.x.x tags)
+        LATEST_1X_TAG=$(git tag -l "1.*.*" | sort -V | tail -n1)
+        echo "🔍 Debug: Latest 1.x.x tag: '$LATEST_1X_TAG'"
         
-        if [ "$TAG_COUNT" -eq 0 ]; then
-          # No tags exist, start with 1.0.0
+        if [ -z "$LATEST_1X_TAG" ]; then
+          # No 1.x.x tags exist, start with 1.0.0
           NEW_VERSION="1.0.0"
-          echo "🎉 First release - starting with version 1.0.0"
+          echo "🎉 First 1.x.x release - starting with version 1.0.0"
         else
-          # Get current version from last tag
-          CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null)
+          # Get current version from last 1.x.x tag
+          CURRENT_VERSION="$LATEST_1X_TAG"
           echo "Current version: $CURRENT_VERSION"
-          
-          # Remove 'v' prefix if present
-          CURRENT_VERSION=${CURRENT_VERSION#v}
           
           # Split version into parts
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
