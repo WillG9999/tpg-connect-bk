@@ -249,14 +249,10 @@ jobs:
         echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
 
-  build-and-deploy:
-    name: Build and Deploy to Integration
-    needs: auto-release
-    if: needs.auto-release.outputs.release-created == 'true'
-    uses: ./.github/workflows/ci.yaml
-    with:
-      tag_name: ${{ needs.auto-release.outputs.new-version }}
-    secrets: inherit
+    - name: Trigger build workflow (temporary)
+      run: |
+        echo "🚀 Release created: ${{ steps.version.outputs.new_version }}"
+        echo "Build workflow should be triggered manually or via separate trigger"
 
   no-release:
     name: No Release Triggered
