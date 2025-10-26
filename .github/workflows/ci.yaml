@@ -1,9 +1,8 @@
 name: Build Images
 
 on:
-  push:
-    branches: [ main ]
-    # Only build on main branch pushes
+  # Disabled - only release tags should trigger builds
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '21'
