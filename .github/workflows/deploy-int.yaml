@@ -111,11 +111,14 @@ jobs:
           helm uninstall $release -n $namespace || true
         done
         
-        # Remove Helm ownership annotations from namespace (preserve namespace itself)
-        echo "🔧 Cleaning namespace annotations"
-        kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f - || true
-        kubectl annotate namespace connect-int meta.helm.sh/release-name- --overwrite || true
-        kubectl annotate namespace connect-int meta.helm.sh/release-namespace- --overwrite || true
+        # Ensure namespace exists with proper Helm metadata
+        echo "🔧 Configuring namespace with Helm metadata"
+        kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Add required Helm label and annotations for proper ownership
+        kubectl label namespace connect-int app.kubernetes.io/managed-by=Helm --overwrite
+        kubectl annotate namespace connect-int meta.helm.sh/release-name=connect-int --overwrite
+        kubectl annotate namespace connect-int meta.helm.sh/release-namespace=connect-int --overwrite
         
         # Deploy using Helm - force install since we cleaned up releases
         echo "🚀 Deploying to clean namespace"
@@ -134,7 +137,6 @@ jobs:
           echo "No existing release, doing fresh install"
           helm install connect-int ./helm \
             --namespace connect-int \
-            --create-namespace \
             --values helm/values-int.yaml \
             --set image.tag="${{ steps.version.outputs.version }}" \
             --set app.version="${{ steps.version.outputs.version }}" \
