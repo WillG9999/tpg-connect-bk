@@ -83,6 +83,10 @@ namespace:
 secretManager:
   projectId: connect-ea4c2-int
   
+# Firebase configuration - placeholder for integration
+firebase:
+  # credentials: ""  # Will use placeholder secret if not provided
+  
 # Feature flags - enable all for testing
 features:
   emailVerification: true
