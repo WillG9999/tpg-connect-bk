@@ -67,11 +67,6 @@ public class SecretManagerConfig {
                 logger.info("✅ Successfully retrieved Firebase credentials from Secret Manager");
                 logger.info("🔍 Secret data length: {}", secretData.length());
                 
-                // Log the complete secret for debugging
-                logger.info("=== START FIREBASE CREDENTIALS FROM SECRET MANAGER ===");
-                logger.info("{}", secretData);
-                logger.info("=== END FIREBASE CREDENTIALS FROM SECRET MANAGER ===");
-                
                 if (secretData.trim().isEmpty()) {
                     throw new RuntimeException("Firebase credentials secret is empty");
                 }
