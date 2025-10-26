@@ -27,6 +27,8 @@ import jakarta.annotation.PreDestroy;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableConfigurationProperties
@@ -36,6 +38,9 @@ public class FirebaseConfig {
 
     @Value("${FIREBASE_CONFIG_PATH:#{null}}")
     private String firebaseConfigPath;
+    
+    @Value("${FIREBASE_CREDENTIALS_JSON:#{null}}")
+    private String firebaseCredentialsJson;
 
     @Value("${FIREBASE_DATABASE_URL:#{null}}")
     private String databaseUrl;
@@ -55,20 +60,30 @@ public class FirebaseConfig {
     public FirebaseApp firebaseApp() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {
             logger.debug("Firebase config path value received: '{}'", firebaseConfigPath);
-            
-            if (firebaseConfigPath == null || firebaseConfigPath.isEmpty()) {
-                throw new RuntimeException("Firebase config path not specified. Please set firebase.config.path property or pass --firebase.config.path=/path/to/your/service-account.json");
-            }
-            
-            logger.info("Initializing Firebase with config path: {}", firebaseConfigPath);
+            logger.debug("Firebase credentials JSON length: {}", 
+                firebaseCredentialsJson != null ? firebaseCredentialsJson.length() : "null");
             
             InputStream serviceAccount;
-            try {
-                serviceAccount = new FileInputStream(firebaseConfigPath);
-            } catch (IOException e) {
-                logger.error("Failed to load Firebase service account from: {}", firebaseConfigPath);
-                throw new RuntimeException("Firebase service account file not found. Please ensure the file exists at: " + firebaseConfigPath + 
-                    "\nYou can specify the path using: --firebase.config.path=/path/to/your/service-account.json", e);
+            
+            // Priority: Use JSON credentials from environment variable if available
+            if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
+                logger.info("Initializing Firebase with credentials from environment variable");
+                serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
+            }
+            // Fallback: Use file path
+            else if (firebaseConfigPath != null && !firebaseConfigPath.isEmpty()) {
+                logger.info("Initializing Firebase with config path: {}", firebaseConfigPath);
+                try {
+                    serviceAccount = new FileInputStream(firebaseConfigPath);
+                } catch (IOException e) {
+                    logger.error("Failed to load Firebase service account from: {}", firebaseConfigPath);
+                    throw new RuntimeException("Firebase service account file not found. Please ensure the file exists at: " + firebaseConfigPath + 
+                        "\nYou can specify the path using: --firebase.config.path=/path/to/your/service-account.json", e);
+                }
+            }
+            // No credentials provided
+            else {
+                throw new RuntimeException("Firebase credentials not specified. Please set FIREBASE_CREDENTIALS_JSON environment variable or FIREBASE_CONFIG_PATH property");
             }
 
             FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
@@ -136,11 +151,23 @@ public class FirebaseConfig {
     public Storage cloudStorage() throws IOException {
         logger.info("Creating Google Cloud Storage client");
         
-        if (firebaseConfigPath == null || firebaseConfigPath.isEmpty()) {
-            throw new RuntimeException("Firebase config path not specified for Cloud Storage. Please set firebase.config.path property");
+        InputStream serviceAccount;
+        
+        // Priority: Use JSON credentials from environment variable if available
+        if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
+            logger.info("Creating Cloud Storage client with credentials from environment variable");
+            serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
+        }
+        // Fallback: Use file path
+        else if (firebaseConfigPath != null && !firebaseConfigPath.isEmpty()) {
+            logger.info("Creating Cloud Storage client with config path: {}", firebaseConfigPath);
+            serviceAccount = new FileInputStream(firebaseConfigPath);
+        }
+        // No credentials provided
+        else {
+            throw new RuntimeException("Firebase credentials not specified for Cloud Storage. Please set FIREBASE_CREDENTIALS_JSON environment variable or FIREBASE_CONFIG_PATH property");
         }
         
-        InputStream serviceAccount = new FileInputStream(firebaseConfigPath);
         GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
         
         return StorageOptions.newBuilder()
