@@ -1,6 +1,12 @@
 name: Deploy to Integration
 
 on:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Tag name to deploy'
+        required: true
+        type: string
   repository_dispatch:
     types: [deploy-integration]
   workflow_dispatch:  # Keep manual trigger for testing
@@ -42,9 +48,11 @@ jobs:
     - name: Set deployment version
       id: version
       run: |
-        # Get tag from either repository dispatch or manual input
+        # Get tag from different trigger types
         if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
           VERSION="${{ github.event.client_payload.tag_name }}"
+        elif [ "${{ github.event_name }}" = "workflow_call" ]; then
+          VERSION="${{ inputs.tag_name }}"
         else
           VERSION="${{ inputs.tag_name }}"
         fi

@@ -1,8 +1,20 @@
 name: Build Images
 
 on:
-  # Disabled - only release tags should trigger builds
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Tag name to build'
+        required: true
+        type: string
+  repository_dispatch:
+    types: [build-image]
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to build'
+        required: true
+        type: string
 
 env:
   JAVA_VERSION: '21'
@@ -12,10 +24,28 @@ jobs:
   build:
     name: Build and Push Image
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     
     steps:
+    - name: Get build version
+      id: version
+      run: |
+        # Get tag from different trigger types
+        if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+          VERSION="${{ github.event.client_payload.tag_name }}"
+        elif [ "${{ github.event_name }}" = "workflow_call" ]; then
+          VERSION="${{ inputs.tag_name }}"
+        else
+          VERSION="${{ inputs.tag_name }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "🏷️ Building tag: $VERSION"
+        
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.version.outputs.version }}  # Checkout the specific tag
       
     - name: Set up JDK 21
       uses: actions/setup-java@v4
@@ -43,13 +73,18 @@ jobs:
           
     - name: Build and push with Jib
       run: |
+        echo "🔨 Building image: gcr.io/connect-ea4c2-int/connect-backend:${{ steps.version.outputs.version }}"
         mvn clean compile jib:build \
-          -Dimage=gcr.io/connect-ea4c2-int/connect-backend:${{ github.sha }} \
-          -Dimage=gcr.io/connect-ea4c2-int/connect-backend:main \
+          -Djib.to.image=gcr.io/connect-ea4c2-int/connect-backend:${{ steps.version.outputs.version }} \
+          -Djib.to.tags=latest,${{ steps.version.outputs.version }} \
+          -DGCP_PROJECT_ID=connect-ea4c2-int \
           -DskipTests=true
-          
-    - name: Build Success
-      run: |
         echo "✅ Image built and pushed successfully"
-        echo "Image: gcr.io/connect-ea4c2-int/connect-backend:${{ github.sha }}"
-        echo "Tagged as: gcr.io/connect-ea4c2-int/connect-backend:main"
+          
+  deploy-integration:
+    name: Deploy to Integration Environment
+    needs: build
+    uses: ./.github/workflows/deploy-int.yaml
+    with:
+      tag_name: ${{ needs.build.outputs.version }}
+    secrets: inherit

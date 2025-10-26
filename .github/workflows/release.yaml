@@ -235,15 +235,6 @@ jobs:
         draft: false
         prerelease: false
         
-    - name: Automatically trigger integration deployment
-      run: |
-        echo "🚀 Triggering integration deployment for tag ${{ steps.version.outputs.new_version }}"
-        curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/dispatches \
-          -d '{"event_type":"deploy-integration","client_payload":{"tag_name":"${{ steps.version.outputs.new_version }}"}}'
-        
     - name: Create release summary
       run: |
         echo "## 🎉 Automated Release Created" >> $GITHUB_STEP_SUMMARY
@@ -257,6 +248,15 @@ jobs:
         echo "- 🔄 **Integration**: Deployment triggered automatically" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Pre-Production**: Manual promotion available" >> $GITHUB_STEP_SUMMARY
         echo "- ⏳ **Production**: Manual promotion with approval" >> $GITHUB_STEP_SUMMARY
+
+  build-and-deploy:
+    name: Build and Deploy to Integration
+    needs: auto-release
+    if: needs.auto-release.outputs.release-created == 'true'
+    uses: ./.github/workflows/ci.yaml
+    with:
+      tag_name: ${{ needs.auto-release.outputs.new-version }}
+    secrets: inherit
 
   no-release:
     name: No Release Triggered
