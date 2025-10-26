@@ -134,7 +134,20 @@ jobs:
           --set app.version="${{ steps.version.outputs.version }}" \
           --debug \
           --timeout=5m \
-          --wait
+          --wait || {
+            echo "❌ Helm deployment failed, diagnosing pod issues"
+            echo "📋 Deployment status:"
+            kubectl get deployments -n connect-int
+            echo "📋 Pod status:"
+            kubectl get pods -n connect-int -o wide
+            echo "📋 Pod events:"
+            kubectl get events -n connect-int --sort-by='.firstTimestamp'
+            echo "📋 Pod logs (if any pods exist):"
+            kubectl logs -n connect-int -l app.kubernetes.io/name=connect-backend --tail=50 || echo "No pod logs available"
+            echo "📋 Deployment details:"
+            kubectl describe deployment connect-backend-int -n connect-int
+            exit 1
+          }
           
         echo "✅ Helm command completed, checking deployed resources"
         kubectl get pods -n connect-int
