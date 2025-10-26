@@ -85,33 +85,33 @@ This directory contains the GitHub Actions workflows for the Connect Dating App 
 
 ### Commit Message Triggered Releases (Recommended)
 
-**Add `release:` to your commit message to trigger automatic releases!**
+**Start your commit message with `release:` to trigger automatic releases!**
 
 1. **Create a release with your commit**:
    ```bash
-   git commit -m "feat: add user authentication release:"
+   git commit -m "release: add user authentication feature"
    git push origin main
    ```
 
 2. **Different release types**:
    ```bash
    # Patch release (v1.0.0 → v1.0.1) - default
-   git commit -m "fix: resolve login issue release:"
+   git commit -m "release: fix login issue"
    
    # Minor release (v1.0.0 → v1.1.0) - new features
-   git commit -m "feat: add messaging system release: minor"
+   git commit -m "release: minor add messaging system"
    
-   # Major release (v1.0.0 → v2.0.0) - breaking changes
-   git commit -m "feat: new API structure release: major"
+   # Major release (v1.0.0 → v2.0.0) - breaking changes  
+   git commit -m "release: major new API structure"
    ```
 
-3. **Automatic process when `release:` is detected**:
+3. **Automatic process when message starts with `release:`**:
    - ✅ Auto-increments version based on type specified
    - ✅ Creates release tag and GitHub release
    - ✅ Automatically deploys to Integration environment
 
 4. **No release trigger = no release**:
-   - Regular commits without `release:` won't create releases
+   - Regular commits that don't start with `release:` won't create releases
    - Perfect for work-in-progress commits
 
 ### Manual Release (Alternative)

@@ -48,15 +48,15 @@ jobs:
         SHOULD_RELEASE=false
         RELEASE_TYPE="patch"
         
-        # Check for different release triggers
-        if echo "$COMMIT_MSG" | grep -qi "release:"; then
+        # Check if commit message STARTS with "release:"
+        if echo "$COMMIT_MSG" | grep -qi "^release:"; then
           SHOULD_RELEASE=true
-          echo "🏷️ Release trigger found in commit message"
+          echo "🏷️ Release trigger found at start of commit message"
           
           # Check for specific release types
-          if echo "$COMMIT_MSG" | grep -qi "release:\s*major\|release-major\|major-release"; then
+          if echo "$COMMIT_MSG" | grep -qi "^release:\s*major"; then
             RELEASE_TYPE="major"
-          elif echo "$COMMIT_MSG" | grep -qi "release:\s*minor\|release-minor\|minor-release"; then
+          elif echo "$COMMIT_MSG" | grep -qi "^release:\s*minor"; then
             RELEASE_TYPE="minor"
           else
             RELEASE_TYPE="patch"
@@ -236,12 +236,12 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Reason**: No release trigger found in commit message" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🏷️ To create a release, include one of these in your commit message:" >> $GITHUB_STEP_SUMMARY
+        echo "### 🏷️ To create a release, START your commit message with:" >> $GITHUB_STEP_SUMMARY
         echo "- \`release:\` - Creates a patch release (v1.0.0 → v1.0.1)" >> $GITHUB_STEP_SUMMARY
         echo "- \`release: minor\` - Creates a minor release (v1.0.0 → v1.1.0)" >> $GITHUB_STEP_SUMMARY
         echo "- \`release: major\` - Creates a major release (v1.0.0 → v2.0.0)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📝 Example commit messages:" >> $GITHUB_STEP_SUMMARY
-        echo "- \`feat: add user authentication release:\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`fix: resolve login bug release: minor\`" >> $GITHUB_STEP_SUMMARY
-        echo "- \`feat: breaking API changes release: major\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release: add user authentication feature\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release: minor add messaging system\`" >> $GITHUB_STEP_SUMMARY
+        echo "- \`release: major breaking API changes\`" >> $GITHUB_STEP_SUMMARY
