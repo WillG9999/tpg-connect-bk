@@ -238,11 +238,11 @@ jobs:
     - name: Automatically trigger integration deployment
       run: |
         echo "🚀 Triggering integration deployment for tag ${{ steps.version.outputs.new_version }}"
-        gh workflow run deploy-int.yaml \
-          --ref main \
-          -f tag_name="${{ steps.version.outputs.new_version }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{"event_type":"deploy-integration","client_payload":{"tag_name":"${{ steps.version.outputs.new_version }}"}}'
         
     - name: Create release summary
       run: |
