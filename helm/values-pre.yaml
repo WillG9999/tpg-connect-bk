@@ -44,16 +44,16 @@ healthChecks:
     timeoutSeconds: 5
     failureThreshold: 15
     
-# GCP configuration - separate project
+# GCP configuration - using main project due to billing quota constraints
 gcp:
-  projectId: connect-ea4c2-pre
+  projectId: connect-ea4c2
   region: us-central1
   zone: us-central1-a
   
 # Service Account - pre-production-specific
 serviceAccount:
   name: connect-backend-pre
-  gcpServiceAccount: connect-backend-pre@connect-ea4c2-pre.iam.gserviceaccount.com
+  gcpServiceAccount: connect-backend-pre@connect-ea4c2.iam.gserviceaccount.com
   
 # Namespace
 namespace:
@@ -64,7 +64,7 @@ namespace:
     
 # Secret Manager integration
 secretManager:
-  projectId: connect-ea4c2-pre
+  projectId: connect-ea4c2
   
 # Feature flags - production-like with safety
 features:

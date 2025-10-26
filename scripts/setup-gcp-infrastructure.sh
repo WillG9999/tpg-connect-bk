@@ -290,8 +290,9 @@ main() {
     # Create projects
     create_projects
     
-    # Setup each environment
-    for project in $PROD_PROJECT_ID $INT_PROJECT_ID $PRE_PROJECT_ID; do
+    # Setup each environment (skip production since it already exists)
+    # Note: Pre-production skipped due to billing account quota - set up manually later
+    for project in $INT_PROJECT_ID; do
         print_step "Setting up environment: $project"
         
         # Enable APIs
@@ -308,16 +309,27 @@ main() {
             create_static_ips $project "connect-backend-pre-ip"
             create_secrets $project
             setup_workload_identity $project "connect-backend-pre"
-        else
-            create_service_accounts $project "connect-backend"
-            create_static_ips $project "connect-backend-ip"
-            create_secrets $project
-            setup_workload_identity $project "connect-backend"
         fi
         
         # Setup Firebase (manual step)
         create_firebase_projects $project
     done
+    
+    # Handle production environment separately (already exists)
+    print_step "Configuring existing production environment: $PROD_PROJECT_ID"
+    gcloud config set project $PROD_PROJECT_ID
+    
+    # Only set up production-specific resources if they don't exist
+    if ! gcloud compute addresses describe connect-backend-ip --global &>/dev/null; then
+        create_static_ips $PROD_PROJECT_ID "connect-backend-ip"
+    else
+        print_status "Production static IP already exists"
+        local ip_address=$(gcloud compute addresses describe connect-backend-ip --global --format="value(address)")
+        print_status "Production IP Address: $ip_address"
+    fi
+    
+    # Setup Workload Identity for production if not already configured
+    setup_workload_identity $PROD_PROJECT_ID "connect-backend"
     
     print_step "Infrastructure setup complete!"
     print_status "Next steps:"
@@ -327,20 +339,22 @@ main() {
     print_status "4. Deploy using Helm charts"
     
     # Display the static IPs
-    print_step "Static IP addresses created:"
-    for project in $PROD_PROJECT_ID $INT_PROJECT_ID $PRE_PROJECT_ID; do
-        gcloud config set project $project
-        if [[ $project == *"int"* ]]; then
-            local ip=$(gcloud compute addresses describe connect-backend-int-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
-            print_status "$project (int-api.connect-app.com): $ip"
-        elif [[ $project == *"pre"* ]]; then
-            local ip=$(gcloud compute addresses describe connect-backend-pre-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
-            print_status "$project (pre-api.connect-app.com): $ip"
-        else
-            local ip=$(gcloud compute addresses describe connect-backend-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
-            print_status "$project (api.connect-app.com): $ip"
-        fi
-    done
+    print_step "Static IP addresses:"
+    
+    # Production IP
+    gcloud config set project $PROD_PROJECT_ID
+    local prod_ip=$(gcloud compute addresses describe connect-backend-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
+    print_status "$PROD_PROJECT_ID (api.connect-app.com): $prod_ip"
+    
+    # Integration IP
+    gcloud config set project $INT_PROJECT_ID
+    local int_ip=$(gcloud compute addresses describe connect-backend-int-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
+    print_status "$INT_PROJECT_ID (int-api.connect-app.com): $int_ip"
+    
+    # Pre-production IP
+    gcloud config set project $PRE_PROJECT_ID
+    local pre_ip=$(gcloud compute addresses describe connect-backend-pre-ip --global --format="value(address)" 2>/dev/null || echo "Not found")
+    print_status "$PRE_PROJECT_ID (pre-api.connect-app.com): $pre_ip"
 }
 
 # Run main function

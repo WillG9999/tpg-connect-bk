@@ -48,6 +48,25 @@ spec:
           value: {{ .Values.environment.name | quote }}
         - name: GCP_PROJECT_ID
           value: {{ .Values.gcp.projectId | quote }}
+        # JWT Secret from Secret Manager
+        - name: JWT_SECRET
+          value: "${sm://jwt-secret}"
+        # Enable Google Secret Manager integration
+        - name: SPRING_CLOUD_GCP_SECRETMANAGER_ENABLED
+          value: "true"
+        - name: SPRING_CLOUD_GCP_PROJECT_ID
+          value: {{ .Values.gcp.projectId | quote }}
+        # Firebase configuration
+        - name: FIREBASE_CONFIG_PATH
+          value: "/secrets/firebase/credentials.json"
+        - name: FIREBASE_DATABASE_URL
+          value: "https://connect-ea4c2-int-default-rtdb.firebaseio.com"
+        - name: FIREBASE_STORAGE_BUCKET
+          value: "connect-ea4c2-int.firebasestorage.app"
+        - name: FIREBASE_PROJECT_ID
+          value: "connect-ea4c2-int"
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: ""
         # Feature flags as environment variables
         {{- range $key, $value := .Values.features }}
         - name: {{ printf "FEATURE_%s" ($key | upper | replace "-" "_") }}
@@ -98,10 +117,16 @@ spec:
           mountPath: /tmp
         - name: var-cache
           mountPath: /var/cache
+        - name: firebase-credentials
+          mountPath: /secrets/firebase
+          readOnly: true
       volumes:
       - name: tmp
         emptyDir: {}
       - name: var-cache
         emptyDir: {}
+      - name: firebase-credentials
+        secret:
+          secretName: firebase-credentials
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
