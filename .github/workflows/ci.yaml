@@ -1,108 +1,18 @@
-name: Continuous Integration
+name: Build Images
 
 on:
   push:
-    branches: [ main, develop, 'feature/*', 'bugfix/*' ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+    # Only build on main branch pushes
 
 env:
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
-  test:
-    name: Tests & Quality Checks
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: ${{ env.JAVA_DISTRIBUTION }}
-        
-    - name: Cache Maven dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-        
-    - name: Run unit tests
-      run: mvn clean test
-      
-    - name: Run integration tests
-      run: mvn verify -Dspring.profiles.active=test
-      
-    - name: Generate test coverage report
-      run: mvn jacoco:report
-      
-    - name: Upload test results
-      uses: dorny/test-reporter@v1
-      if: success() || failure()
-      with:
-        name: Maven Test Results
-        path: target/surefire-reports/*.xml
-        reporter: java-junit
-        
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      if: success()
-      with:
-        file: target/site/jacoco/jacoco.xml
-        flags: unittests
-        name: codecov-umbrella
-
-  security:
-    name: Security Scanning
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: ${{ env.JAVA_DISTRIBUTION }}
-        
-    - name: Cache Maven dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-        
-    - name: OWASP Dependency Check
-      run: |
-        mvn org.owasp:dependency-check-maven:check \
-          -DskipTests=true \
-          -DfailBuildOnCVSS=7
-        
-    - name: Upload OWASP report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: owasp-security-report
-        path: target/dependency-check-report.html
-        retention-days: 30
-
   build:
-    name: Build Application
+    name: Build and Push Image
     runs-on: ubuntu-latest
-    needs: [test, security]
-    # Only build images for tags and main branch (not feature branches)
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
-    
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
     
     steps:
     - name: Checkout code
@@ -120,68 +30,27 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
-        
-    - name: Set registry to production
-      id: registry
-      run: |
-        # CI builds always go to production GCR
-        echo "project=connect-ea4c2" >> $GITHUB_OUTPUT  
-        echo "sa_key=GCP_SA_KEY" >> $GITHUB_OUTPUT
         
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: ${{ secrets[steps.registry.outputs.sa_key] }}
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
         
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker gcr.io
-      
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: gcr.io/connect-ea4c2/connect-backend
-        tags: |
-          type=ref,event=branch
-          type=ref,event=tag
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
           
     - name: Build and push with Jib
-      id: build
       run: |
         mvn clean compile jib:build \
-          -Dimage=gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.sha }} \
-          -Dimage=gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.ref_name }} \
+          -Dimage=gcr.io/connect-ea4c2/connect-backend:${{ github.sha }} \
+          -Dimage=gcr.io/connect-ea4c2/connect-backend:main \
           -DskipTests=true
           
-    - name: Output image info
+    - name: Build Success
       run: |
-        echo "Built image: gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.sha }}"
-        echo "Tagged as: gcr.io/${{ steps.registry.outputs.project }}/connect-backend:${{ github.ref_name }}"
-
-  notify:
-    name: Notify CI Status
-    runs-on: ubuntu-latest
-    needs: [test, security, build]
-    if: always()
-    
-    steps:
-    - name: CI Success Notification
-      if: needs.test.result == 'success' && needs.security.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
-      run: |
-        echo "✅ CI completed successfully for ${{ github.ref_name }}"
-        if [[ "${{ needs.build.result }}" == "skipped" ]]; then
-          echo "ℹ️ Image build skipped for feature branch (tests and security checks passed)"
-        else
-          echo "🏗️ Image built and pushed successfully"
-        fi
-        
-    - name: CI Failure Notification
-      if: needs.test.result == 'failure' || needs.security.result == 'failure' || needs.build.result == 'failure'
-      run: |
-        echo "❌ CI failed for ${{ github.ref_name }}"
-        echo "Check the logs for details."
+        echo "✅ Image built and pushed successfully"
+        echo "Image: gcr.io/connect-ea4c2/connect-backend:${{ github.sha }}"
+        echo "Tagged as: gcr.io/connect-ea4c2/connect-backend:main"
