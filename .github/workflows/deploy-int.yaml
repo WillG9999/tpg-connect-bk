@@ -124,9 +124,19 @@ jobs:
         
         echo "📝 Proceeding to deployment"
         
+        # Create Firebase credentials Kubernetes secret from Secret Manager
+        echo "🔥 Creating Firebase credentials Kubernetes secret"
+        echo "Fetching Firebase credentials from Secret Manager"
+        FIREBASE_CREDS=$(gcloud secrets versions access latest --secret=firebase-credentials --project=${{ env.PROJECT_ID }})
+        kubectl create secret generic firebase-credentials-json \
+          --namespace connect-int \
+          --from-literal=credentials.json="$FIREBASE_CREDS" \
+          --dry-run=client -o yaml | kubectl apply -f -
+        echo "✅ Firebase credentials secret created/updated"
+        
         # Use helm upgrade --install for automated deployment (best practice)
         echo "🚀 Starting helm deployment with debug output"
-        echo "Firebase credentials will be injected from Secret Manager like other secrets"
+        echo "Firebase credentials will be loaded from Kubernetes secret (post-deployment patch)"
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
           --create-namespace \
@@ -154,6 +164,32 @@ jobs:
         kubectl get pods -n connect-int
         kubectl get services -n connect-int
         kubectl get deployments -n connect-int
+        
+        # Patch deployment to use Kubernetes secret for Firebase credentials
+        echo "🔧 Patching deployment to use Kubernetes secret for Firebase credentials"
+        kubectl patch deployment connect-backend-int -n connect-int \
+          --patch '{
+            "spec": {
+              "template": {
+                "spec": {
+                  "containers": [{
+                    "name": "connect-backend",
+                    "env": [{
+                      "name": "FIREBASE_CREDENTIALS_JSON",
+                      "valueFrom": {
+                        "secretKeyRef": {
+                          "name": "firebase-credentials-json",
+                          "key": "credentials.json"
+                        }
+                      }
+                    }]
+                  }]
+                }
+              }
+            }
+          }'
+        
+        echo "✅ Deployment patched to use Kubernetes secret"
         
         # Deployment completed successfully
       env:
