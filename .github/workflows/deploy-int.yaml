@@ -140,8 +140,6 @@ jobs:
         EXTERNAL_IP=$(kubectl get service connect-backend-service-int \
           --namespace=connect-int \
           -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
-      env:
-        USE_GKE_GCLOUD_AUTH_PLUGIN: True
           
         if [ "$EXTERNAL_IP" != "pending" ] && [ "$EXTERNAL_IP" != "" ]; then
           echo "Service available at: http://$EXTERNAL_IP"
@@ -159,6 +157,8 @@ jobs:
         else
           echo "⚠️  External IP not available yet, skipping external health check"
         fi
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: True
         
     - name: Run smoke tests
       run: |
