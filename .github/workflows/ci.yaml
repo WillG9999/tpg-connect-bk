@@ -1,4 +1,4 @@
-name: Build Images${{ inputs.tag_name && format(' - v{0}', inputs.tag_name) || '' }}
+name: Build Images
 
 run-name: Build v${{ inputs.tag_name || 'latest' }} 🚀
 

@@ -1,4 +1,4 @@
-name: Deploy to Integration${{ inputs.tag_name && format(' - v{0}', inputs.tag_name) || '' }}
+name: Deploy to Integration
 
 run-name: Deploy v${{ inputs.tag_name || 'latest' }} to Integration 🚀
 
