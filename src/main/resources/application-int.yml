@@ -1,7 +1,7 @@
 # Firebase configuration for integration environment
 firebase:
   credentials:
-    json: ${sm://firebase-credentials}
+    json: "${sm://firebase-credentials}"
   database:
     url: ${FIREBASE_DATABASE_URL:https://connect-ea4c2-int-default-rtdb.firebaseio.com}
   storage:
