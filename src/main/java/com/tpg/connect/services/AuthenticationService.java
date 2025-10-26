@@ -397,119 +397,124 @@ public class AuthenticationService {
             // Normalize email to lowercase for case-insensitive lookup
             String normalizedEmail = request.getEmail().toLowerCase().trim();
             Optional<User> userOpt = userRepository.findByEmail(normalizedEmail);
-        if (!userOpt.isPresent()) {
-            throw new IllegalArgumentException("Invalid email or password");
-        }
-        
-        User user = userOpt.get();
-        if (!user.getActive()) {
-            throw new IllegalArgumentException("Account is deactivated");
-        }
-
-        // Verify password - in development mode, also accept test password
-        boolean passwordValid = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
-        
-        // In bld profile, also allow login with default test password
-        if (!passwordValid && isDevelopmentMode() && !defaultTestPassword.isEmpty()) {
-            passwordValid = request.getPassword().equals(defaultTestPassword);
-            if (passwordValid) {
-                System.out.println("🛠️ Development mode: Login accepted with default test password for " + normalizedEmail);
+            if (!userOpt.isPresent()) {
+                throw new IllegalArgumentException("Invalid email or password");
             }
-        }
-        
-        if (!passwordValid) {
-            throw new IllegalArgumentException("Invalid email or password");
-        }
-
-        // Check email verification if feature flag is enabled
-        if (featureFlagConfig.isEmailVerification() && !user.getEmailVerified()) {
-            throw new IllegalArgumentException("EMAIL_NOT_VERIFIED: Please verify your email address before logging in");
-        }
-
-        // Check application status - determine where to direct users after login
-        String applicationStatus = "NO_APPLICATION"; // Default for users without applications
-        
-        // Admin users bypass application status checks
-        if ("183600102436".equals(user.getConnectId())) {
-            applicationStatus = "ADMIN";
-        } else {
-            try {
-                com.tpg.connect.model.application.ApplicationSubmission application = 
-                    applicationService.getApplicationByConnectId(user.getConnectId());
-                
-                if (application != null) {
-                    ApplicationStatus status = application.getStatus();
-                    
-                    if (status == ApplicationStatus.PENDING_APPROVAL) {
-                        applicationStatus = "APPLICATION_PENDING";
-                    } else if (status == ApplicationStatus.REJECTED) {
-                        applicationStatus = "APPLICATION_REJECTED";
-                    } else if (status == ApplicationStatus.SUSPENDED) {
-                        throw new IllegalArgumentException("ACCOUNT_SUSPENDED"); // Still block suspended users
-                    } else if (status == ApplicationStatus.APPROVED) {
-                        applicationStatus = "APPROVED";
-                    }
-                    // All other statuses will show application under review
-                }
-            } catch (IllegalArgumentException e) {
-                // Re-throw application status errors
-                throw e;
-            } catch (Exception e) {
-                // Log application check errors but don't block login
-                System.err.println("⚠️ Error checking application status for user " + user.getConnectId() + ": " + e.getMessage());
-            }
-        }
-
-        try {
-            // Update last login
-            user = userRepository.updateLastLogin(user.getConnectId(), Timestamp.now(), request.getDeviceType());
-        } catch (Exception e) {
-            System.err.println("Error updating last login: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        try {
-            // Get user profile (create if not exists for approved application users)
-            CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
             
-            if (profile == null) {
-                System.out.println("⚠️ No profile found for user " + user.getConnectId() + " - creating profile from stored user data");
-                
-                // This is likely an approved application user logging in for the first time
-                // Create their profile now
-                profile = new CompleteUserProfile();
-                profile.setConnectId(user.getConnectId());
-                profile.setEmail(user.getEmail());
-                profile.setFirstName("User"); // We don't have this stored in User entity
-                profile.setLastName(""); // We don't have this stored in User entity  
-                profile.setCreatedAt(LocalDateTime.now());
-                profile.setUpdatedAt(LocalDateTime.now());
-                profile.setActive(true);
-                
-                // Save the new profile
-                userProfileRepository.save(profile);
-                System.out.println("✅ Created new profile for approved user: " + user.getConnectId());
+            User user = userOpt.get();
+            if (!user.getActive()) {
+                throw new IllegalArgumentException("Account is deactivated");
             }
 
-            // Generate tokens
-            String accessToken = generateAccessToken(user.getConnectId(), user.getEmail());
-            String refreshToken = generateRefreshToken(user.getConnectId());
+            // Verify password - in development mode, also accept test password
+            boolean passwordValid = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+            
+            // In bld profile, also allow login with default test password
+            if (!passwordValid && isDevelopmentMode() && !defaultTestPassword.isEmpty()) {
+                passwordValid = request.getPassword().equals(defaultTestPassword);
+                if (passwordValid) {
+                    System.out.println("🛠️ Development mode: Login accepted with default test password for " + normalizedEmail);
+                }
+            }
+            
+            if (!passwordValid) {
+                throw new IllegalArgumentException("Invalid email or password");
+            }
 
-            UserProfileDTO profileDTO;
+            // Check email verification if feature flag is enabled
+            if (featureFlagConfig.isEmailVerification() && !user.getEmailVerified()) {
+                throw new IllegalArgumentException("EMAIL_NOT_VERIFIED: Please verify your email address before logging in");
+            }
+
+            // Check application status - determine where to direct users after login
+            String applicationStatus = "NO_APPLICATION"; // Default for users without applications
+            
+            // Admin users bypass application status checks
+            if ("183600102436".equals(user.getConnectId())) {
+                applicationStatus = "ADMIN";
+            } else {
+                try {
+                    com.tpg.connect.model.application.ApplicationSubmission application = 
+                        applicationService.getApplicationByConnectId(user.getConnectId());
+                    
+                    if (application != null) {
+                        ApplicationStatus status = application.getStatus();
+                        
+                        if (status == ApplicationStatus.PENDING_APPROVAL) {
+                            applicationStatus = "APPLICATION_PENDING";
+                        } else if (status == ApplicationStatus.REJECTED) {
+                            applicationStatus = "APPLICATION_REJECTED";
+                        } else if (status == ApplicationStatus.SUSPENDED) {
+                            throw new IllegalArgumentException("ACCOUNT_SUSPENDED"); // Still block suspended users
+                        } else if (status == ApplicationStatus.APPROVED) {
+                            applicationStatus = "APPROVED";
+                        }
+                        // All other statuses will show application under review
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Re-throw application status errors
+                    throw e;
+                } catch (Exception e) {
+                    // Log application check errors but don't block login
+                    System.err.println("⚠️ Error checking application status for user " + user.getConnectId() + ": " + e.getMessage());
+                }
+            }
+
             try {
-                profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+                // Update last login
+                user = userRepository.updateLastLogin(user.getConnectId(), Timestamp.now(), request.getDeviceType());
             } catch (Exception e) {
-                // Fallback to minimal profile if conversion fails
-                profileDTO = createMinimalProfile(user, profile);
-                System.err.println("Profile conversion failed, using minimal profile: " + e.getMessage());
+                System.err.println("Error updating last login: " + e.getMessage());
                 e.printStackTrace();
             }
-            
-            // Record successful login
-            loginSuccessCounter.increment();
-            sample.stop(loginTimer);
-            
-            return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO, applicationStatus);
+
+            try {
+                // Get user profile (create if not exists for approved application users)
+                CompleteUserProfile profile = userProfileRepository.findByUserId(user.getConnectId());
+                
+                if (profile == null) {
+                    System.out.println("⚠️ No profile found for user " + user.getConnectId() + " - creating profile from stored user data");
+                    
+                    // This is likely an approved application user logging in for the first time
+                    // Create their profile now
+                    profile = new CompleteUserProfile();
+                    profile.setConnectId(user.getConnectId());
+                    profile.setEmail(user.getEmail());
+                    profile.setFirstName("User"); // We don't have this stored in User entity
+                    profile.setLastName(""); // We don't have this stored in User entity  
+                    profile.setCreatedAt(LocalDateTime.now());
+                    profile.setUpdatedAt(LocalDateTime.now());
+                    profile.setActive(true);
+                    
+                    // Save the new profile
+                    userProfileRepository.save(profile);
+                    System.out.println("✅ Created new profile for approved user: " + user.getConnectId());
+                }
+
+                // Generate tokens
+                String accessToken = generateAccessToken(user.getConnectId(), user.getEmail());
+                String refreshToken = generateRefreshToken(user.getConnectId());
+
+                UserProfileDTO profileDTO;
+                try {
+                    profileDTO = UserProfileDTO.fromCompleteUserProfile(profile);
+                } catch (Exception e) {
+                    // Fallback to minimal profile if conversion fails
+                    profileDTO = createMinimalProfile(user, profile);
+                    System.err.println("Profile conversion failed, using minimal profile: " + e.getMessage());
+                    e.printStackTrace();
+                }
+                
+                // Record successful login
+                loginSuccessCounter.increment();
+                sample.stop(loginTimer);
+                
+                return new LoginResponse(true, "Login successful", accessToken, refreshToken, profileDTO, applicationStatus);
+            } catch (Exception e) {
+                // Handle profile creation/retrieval errors
+                System.err.println("Error processing user profile: " + e.getMessage());
+                throw e;
+            }
         } catch (Exception e) {
             // Record failed login
             loginFailureCounter.increment();

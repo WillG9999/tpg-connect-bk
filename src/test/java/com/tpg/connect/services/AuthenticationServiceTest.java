@@ -16,6 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Counter;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +44,9 @@ class AuthenticationServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
     @InjectMocks
     private AuthenticationService authenticationService;
 
@@ -49,6 +55,24 @@ class AuthenticationServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         passwordEncoder = new BCryptPasswordEncoder();
+        
+        // Mock MeterRegistry and its components
+        Timer.Builder timerBuilder = mock(Timer.Builder.class);
+        Timer timer = mock(Timer.class);
+        Timer.Sample sample = mock(Timer.Sample.class);
+        Counter.Builder counterBuilder = mock(Counter.Builder.class);
+        Counter counter = mock(Counter.class);
+        MeterRegistry.Config config = mock(MeterRegistry.Config.class);
+        
+        when(meterRegistry.timer(anyString())).thenReturn(timer);
+        when(meterRegistry.counter(anyString())).thenReturn(counter);
+        when(meterRegistry.config()).thenReturn(config);
+        when(Timer.start(meterRegistry)).thenReturn(sample);
+        when(sample.stop(timer)).thenReturn(0L);
+        when(timer.recordCallable(any())).thenAnswer(invocation -> {
+            return ((java.util.concurrent.Callable<?>) invocation.getArgument(0)).call();
+        });
+        doNothing().when(counter).increment();
         
         // Set JWT secret using reflection for testing
         Field jwtSecretField = AuthenticationService.class.getDeclaredField("jwtSecret");
