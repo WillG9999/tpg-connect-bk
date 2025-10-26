@@ -104,23 +104,21 @@ jobs:
           
     - name: Deploy to Integration using Helm
       run: |
-        # Clean up any existing Helm releases in any namespace
-        echo "🧹 Cleaning up existing Helm releases"
-        helm list -A | grep connect-int | awk '{print $1 " " $2}' | while read release namespace; do
-          echo "Uninstalling release $release from namespace $namespace"
+        # Clean up any existing Helm releases with our name across all namespaces
+        echo "🧹 Cleaning up existing connect-int releases"
+        helm list -A -o json | jq -r '.[] | select(.name=="connect-int") | "\(.name) \(.namespace)"' | while read release namespace; do
+          echo "Removing release $release from namespace $namespace"
           helm uninstall $release -n $namespace || true
         done
         
-        # Delete and recreate namespace to fix ownership issues
-        echo "🗑️ Deleting existing namespace"
-        kubectl delete namespace connect-int --ignore-not-found=true
-        
-        # Wait for namespace deletion to complete
-        echo "⏳ Waiting for namespace deletion to complete"
-        kubectl wait --for=delete namespace/connect-int --timeout=60s || true
+        # Remove Helm ownership annotations from namespace (preserve namespace itself)
+        echo "🔧 Cleaning namespace annotations"
+        kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f - || true
+        kubectl annotate namespace connect-int meta.helm.sh/release-name- --overwrite || true
+        kubectl annotate namespace connect-int meta.helm.sh/release-namespace- --overwrite || true
         
         # Deploy using Helm with create-namespace flag
-        echo "🚀 Deploying to fresh namespace"
+        echo "🚀 Deploying to clean namespace"
         helm upgrade --install connect-int ./helm \
           --namespace connect-int \
           --create-namespace \
