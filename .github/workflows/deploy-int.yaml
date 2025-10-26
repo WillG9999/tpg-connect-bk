@@ -1,8 +1,9 @@
 name: Deploy to Integration
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Auto Release & Deploy"]
+    types: [completed]
   workflow_dispatch:  # Allow manual triggering for testing
 
 env:
@@ -22,24 +23,36 @@ jobs:
       url: https://int-api.connect-app.com
     
     steps:
+    - name: Check if release workflow succeeded
+      run: |
+        if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+          echo "✅ Release workflow succeeded - proceeding with deployment"
+        else
+          echo "❌ Release workflow failed - skipping deployment"
+          exit 1
+        fi
+        
     - name: Debug trigger information
       run: |
-        echo "🔍 Integration deployment triggered by release!"
+        echo "🔍 Integration deployment triggered by workflow completion!"
         echo "Event: ${{ github.event_name }}"
-        echo "Release tag: ${{ github.event.release.tag_name }}"
-        echo "Release name: ${{ github.event.release.name }}"
+        echo "Triggering workflow: ${{ github.event.workflow_run.name }}"
+        echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
         
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history to find latest tag
       
-    - name: Get release tag
+    - name: Get latest release tag
       id: version
       run: |
-        # Get the tag from the release event
-        VERSION="${{ github.event.release.tag_name }}"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        # Get the latest tag (should be the one just created by release workflow)
+        git fetch --tags
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        echo "version=$LATEST_TAG" >> $GITHUB_OUTPUT
         echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-        echo "🏷️ Release tag: $VERSION"
+        echo "🏷️ Latest tag: $LATEST_TAG"
         
     - name: Set up JDK 21
       uses: actions/setup-java@v4
