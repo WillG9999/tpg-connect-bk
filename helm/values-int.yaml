@@ -55,16 +55,16 @@ healthChecks:
     failureThreshold: 3
   readinessProbe:
     path: /api/health/ready
-    initialDelaySeconds: 60
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 3
+    initialDelaySeconds: 90
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
   startupProbe:
     path: /api/health
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 18
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 30
     
 # GCP configuration - separate project
 gcp:
