@@ -104,9 +104,9 @@ jobs:
           
     - name: Deploy to Integration using Helm
       run: |
-        # Check if namespace exists and is active (not terminating)
-        if kubectl get namespace connect-int -o jsonpath='{.status.phase}' 2>/dev/null | grep -q "Active"; then
-          echo "✅ Active namespace exists, doing helm upgrade"
+        # Check if namespace exists and has an active release
+        if kubectl get namespace connect-int >/dev/null 2>&1 && helm status connect-int -n connect-int >/dev/null 2>&1; then
+          echo "✅ Namespace and release exist, doing helm upgrade"
           helm upgrade connect-int ./helm \
             --namespace connect-int \
             --values helm/values-int.yaml \
@@ -115,7 +115,11 @@ jobs:
             --wait \
             --timeout=10m
         else
-          echo "🆕 No active namespace (missing or terminating), doing helm install"
+          echo "🆕 No existing setup, doing helm install"
+          # Ensure clean namespace if it exists in bad state
+          kubectl delete namespace connect-int --ignore-not-found=true
+          kubectl wait --for=delete namespace/connect-int --timeout=60s || true
+          
           helm install connect-int ./helm \
             --namespace connect-int \
             --create-namespace \
