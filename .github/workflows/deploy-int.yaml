@@ -104,28 +104,9 @@ jobs:
           
     - name: Deploy to Integration using Helm
       run: |
-        # Clean up any existing Helm releases with our name across all namespaces
-        echo "🧹 Cleaning up existing connect-int releases"
-        helm list -A -o json | jq -r '.[] | select(.name=="connect-int") | "\(.name) \(.namespace)"' | while read release namespace; do
-          echo "Removing release $release from namespace $namespace"
-          helm uninstall $release -n $namespace || true
-        done
-        
-        # Ensure namespace exists with proper Helm metadata
-        echo "🔧 Configuring namespace with Helm metadata"
-        kubectl create namespace connect-int --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Add required Helm label and annotations for proper ownership
-        kubectl label namespace connect-int app.kubernetes.io/managed-by=Helm --overwrite
-        kubectl annotate namespace connect-int meta.helm.sh/release-name=connect-int --overwrite
-        kubectl annotate namespace connect-int meta.helm.sh/release-namespace=connect-int --overwrite
-        
-        # Deploy using Helm - force install since we cleaned up releases
-        echo "🚀 Deploying to clean namespace"
-        
-        # Check if release exists, if not do install, otherwise upgrade
-        if helm status connect-int -n connect-int >/dev/null 2>&1; then
-          echo "Release exists, doing upgrade"
+        # Check if namespace exists and is active (not terminating)
+        if kubectl get namespace connect-int -o jsonpath='{.status.phase}' 2>/dev/null | grep -q "Active"; then
+          echo "✅ Active namespace exists, doing helm upgrade"
           helm upgrade connect-int ./helm \
             --namespace connect-int \
             --values helm/values-int.yaml \
@@ -134,9 +115,10 @@ jobs:
             --wait \
             --timeout=10m
         else
-          echo "No existing release, doing fresh install"
+          echo "🆕 No active namespace (missing or terminating), doing helm install"
           helm install connect-int ./helm \
             --namespace connect-int \
+            --create-namespace \
             --values helm/values-int.yaml \
             --set image.tag="${{ steps.version.outputs.version }}" \
             --set app.version="${{ steps.version.outputs.version }}" \
