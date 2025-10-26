@@ -190,3 +190,7 @@ java -Dspring.profiles.active=prod,secretmanager -jar app.jar
 - [Google Secret Manager Documentation](https://cloud.google.com/secret-manager/docs)
 - [Spring Cloud GCP Secret Manager](https://spring.io/projects/spring-cloud-gcp)
 - [Security Best Practices](https://cloud.google.com/security/best-practices)
+
+## 🔄 Automated Deployment
+
+The Connect application uses automated CI/CD pipelines for deployment across multiple environments.
